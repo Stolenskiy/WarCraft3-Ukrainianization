@@ -28,6 +28,15 @@ cov.md
 *.wav
 *.mp3
 *.flac
+*.m4a
+*.aac
+*.opus
+*.webm
+*.aif
+*.aiff
+*.w3x
+*.w3m
+*.mpq
 *.ogg
 .env*
 *.key
@@ -35,3 +44,12 @@ cov.md
 
 # виняток: пакети голосів спільноти (лише їхні FLAC; решта аудіо лишається ігнорованою)
 !voices/*/units/*/*/*.flac
+*.m4a
+*.aac
+*.opus
+*.webm
+*.aif
+*.aiff
+*.w3x
+*.w3m
+*.mpq

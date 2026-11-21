@@ -2,7 +2,7 @@
 
 Для кожного voices/<автор>/:
   * voice.json: id = назва теки (a-z0-9-, 2–32), license = CC BY 4.0, consent = true, name без «@»; ніде немає «@»;
-  * лише voice.json, manifest.json і units/<раса>/<юніт>/<файл>.flac (інше — «сторонній файл»);
+  * лише voice.json, manifest.json, (необов'язково) LICENSE.md і units/<раса>/<юніт>/<файл>.flac (інше — «сторонній файл»);
   * кожен FLAC: 22050 Hz, mono, 16 біт, ≤ 1 МБ, 0.2–30 с, без метаданих, є в manifest.json зі збіжним sha256;
   * шлях відповідає відомій репліці з data/inventory-units.csv; у маніфесті немає зайвих записів.
   .venv/bin/python -I tools/check_voices.py
@@ -43,6 +43,8 @@ def check(root: Path) -> list[str]:
     for top in sorted(base.iterdir()):
         if top.is_dir():
             errs += _author(root, top, known)
+        elif top.name == "LICENSE.md":      # спільна ліцензія пакетів (CC BY 4.0)
+            continue
         else:
             errs.append(f"voices/{top.name}: сторонній файл (очікуються лише теки авторів)")
     return errs
@@ -78,7 +80,7 @@ def _author(root: Path, top: Path, known: set[str]) -> list[str]:
         if p.is_dir():
             continue
         rel = p.relative_to(top).as_posix()
-        if rel in ("voice.json", "manifest.json"):
+        if rel in ("voice.json", "manifest.json", "LICENSE.md"):
             continue
         if not rel.startswith("units/") or not rel.endswith(".flac"):
             e.append(f"{pre}/{rel}: сторонній файл")
