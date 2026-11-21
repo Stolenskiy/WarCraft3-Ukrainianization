@@ -50,7 +50,7 @@
 - [x] human — docs/voice-bible/human.md (15 юнітів)
 - [ ] orc
 - [ ] undead
-- [ ] nightelf
+- [x] nightelf — docs/voice-bible/nightelf.md (12 melee-юнітів)
 - [ ] naga / demon / creeps / critters / other (позалоговий охоплення)
 
 ## Довідка обсягу
