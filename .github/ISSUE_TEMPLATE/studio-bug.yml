@@ -1,0 +1,14 @@
+name: Помилка в студії
+description: Щось не працює у веб-студії запису (make studio)
+labels: [bug, studio]
+body:
+  - type: textarea
+    id: what
+    attributes: { label: Що сталося і що очікувалось, description: Кроки відтворення }
+    validations: { required: true }
+  - type: input
+    id: env
+    attributes: { label: Середовище, description: "macOS/Linux, браузер, вивід `make doctor`" }
+  - type: textarea
+    id: logs
+    attributes: { label: Журнал / скріншот, description: "Не додавайте аудіо гри" }
