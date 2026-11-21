@@ -118,10 +118,10 @@ def test_full_flow(page):
     assert "удовольствием" in pg.inner_text(".ru-text")
 
     pg.keyboard.press("ArrowUp")
-    pg.click("#optLang [data-lang='en']")                # мова оригіналу → англійська
+    with pg.expect_response(lambda r: "/audio/ref-en/" in r.url):   # мова оригіналу → англійська (хвиля вантажить EN)
+        pg.click("#optLang [data-lang='en']")
     assert pg.inner_text("#refTag") == "EN"
-    with pg.expect_response(lambda r: "/audio/ref-en/" in r.url):
-        pg.keyboard.press("KeyR")
+    pg.keyboard.press("KeyR")                            # R грає вже завантажений EN-оригінал (з кешу)
     pg.reload()                                          # налаштування запам'ятовується
     pg.wait_for_selector(".cue.on")
     assert pg.inner_text("#refTag") == "EN"
@@ -269,6 +269,7 @@ def test_game_preview_button_and_processing_toggles(page):
     pg.reload()
     pg.wait_for_selector(".cue.on")
     assert pg.is_checked("#optDenoise")
+    pg.click("#optsMenu summary")                                 # після перезавантаження меню згорнуте
     pg.click("label:has(#optLoudness)")
     pg.wait_for_function("async () => (await (await fetch('/api/settings')).json()).loudness === false")
     assert not pg.errors, pg.errors
