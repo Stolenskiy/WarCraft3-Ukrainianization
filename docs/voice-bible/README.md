@@ -49,7 +49,7 @@
 
 - [x] human — docs/voice-bible/human.md (15 юнітів)
 - [x] orc — docs/voice-bible/orc.md (15 юнітів + 3 кампанійні поза melee-обсягом)
-- [ ] undead
+- [x] undead — docs/voice-bible/undead.md (13 melee-юнітів; gargoyle/meatwagon — без reference-файлів)
 - [x] nightelf — docs/voice-bible/nightelf.md (12 melee-юнітів)
 - [ ] naga / demon / creeps / critters / other (позалоговий охоплення)
 
