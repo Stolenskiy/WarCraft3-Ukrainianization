@@ -2,7 +2,7 @@
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-include = ["tools/studio/**/*.py", "tools/record_studio.py", "tools/build_refs.py", "tests/**/*.py"]
+include = ["tools/studio/**/*.py", "tools/record_studio.py", "tools/build_refs.py", "tools/install_voices.py", "tests/**/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]

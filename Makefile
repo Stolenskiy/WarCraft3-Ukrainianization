@@ -1,7 +1,7 @@
 PY := .venv/bin/python -I
 PYTHON311 ?= python3.11
 
-.PHONY: studio test test-core lint check refs setup
+.PHONY: studio test test-core lint check refs setup install-voices uninstall-voices
 
 studio:      ## веб-студія запису озвучки (http://127.0.0.1:8765)
 	$(PY) tools/record_studio.py
@@ -25,3 +25,9 @@ setup:       ## створити .venv на Python 3.11 (PyCASC несумісн
 	.venv/bin/python -c "import sys; assert sys.version_info[:2] == (3, 11), 'потрібен Python 3.11 у .venv'"
 	(command -v uv >/dev/null && uv pip install -q --python .venv/bin/python -r requirements.txt -r requirements-dev.txt) \
 	  || .venv/bin/python -m pip install -q -r requirements.txt -r requirements-dev.txt
+
+install-voices:   ## обрані дублі → гра (без APPLY=1 лише план); бекап і журнал у <гра>/Backups/ua-voices/
+	$(PY) tools/install_voices.py $(if $(APPLY),--apply,)
+
+uninstall-voices: ## прибрати встановлені нами голоси, повернути оригінали
+	$(PY) tools/install_voices.py --uninstall

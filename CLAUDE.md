@@ -16,6 +16,7 @@
 
 ## Команди
 `make check` — те саме, що CI (ruff + усі тести + поріг покриття); запускати перед кожним комітом.
+`make install-voices [APPLY=1]` / `make uninstall-voices` — дублі в гру з бекапом і відкатом.
 `make test-core` — швидко без браузера. `make studio` — студія. `make refs` — оригінали (EN з CASC; RU лише з рос. мовного пакета, `RU_PACK=`).
 CASC: `.venv/bin/python tools/casc_read.py list "UNITS\\ORC\\"` (фільтр позиційний; `extract --filter … --out …`).
 Python — завжди `.venv/bin/python -I`.
