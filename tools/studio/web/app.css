@@ -285,7 +285,7 @@ details.fold[open] > summary::before { content: "▾ "; }
 
 @media (max-width: 1100px) {
   .layout { grid-template-columns: 310px 1fr; }
-  .overall, .switch { display: none; }
+  .overall { display: none; }
   .main { padding: 20px; }
   .ru-text { font-size: 28px; } .ua-input { font-size: 25px; }
 }
@@ -347,3 +347,13 @@ details.fold[open] > summary::before { content: "▾ "; }
 .tempo-pop input[type=range] { width: 140px; accent-color: var(--accent); }
 .tempo-pop b { color: var(--text); font-variant-numeric: tabular-nums; min-width: 42px; }
 .btn.icon.tempo-btn:hover { color: var(--gold); border-color: rgba(240,164,65,.5); }
+/* меню «⚙ Обробка» в шапці (перемикачі не розпирають шапку) */
+.opts { position: relative; }
+.opts summary { list-style: none; cursor: pointer; color: var(--muted); font-size: 13px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; white-space: nowrap; }
+.opts summary::-webkit-details-marker { display: none; }
+.opts[open] summary { color: var(--text); border-color: var(--accent); }
+.opts-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; display: grid; gap: 12px; width: 300px; padding: 14px 16px;
+  background: var(--raise); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.45); }
+.opts-note { margin: 2px 0 0; color: var(--faint); font-size: 12px; line-height: 1.4; }
+.take > div { min-width: 0; }            /* хвиля стискається, кнопки не вилазять за край */
+.take .btn { padding-left: 10px; padding-right: 10px; }

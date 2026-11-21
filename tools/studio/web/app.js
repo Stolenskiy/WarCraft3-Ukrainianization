@@ -561,7 +561,7 @@ function takeRow(p, t, isNew) {
   const actions = t.deleted
     ? `<button class="btn" data-restore="${esc(t.file)}">↩ Відновити</button>`
     : `<button class="btn" data-ab="${esc(t.file)}" title="Спершу оригінал, потім цей дубль">Оригінал → дубль</button>
-       <button class="btn quiet" data-preview="${esc(t.file)}" title="Як цей дубль прозвучить у грі: обрізання, темп, шумоговорення, EQ, гучність">▶ Як у грі</button>
+       <button class="btn quiet" data-preview="${esc(t.file)}" title="Як цей дубль прозвучить у грі: обрізання, темп, шумоговорення, EQ, гучність">▶ У грі</button>
        <button class="btn icon tempo-btn" data-tempo-toggle="${esc(t.file)}" title="Темп: прискорити голос без зміни висоти">⏩</button>
        ${appr ? "" : `<button class="btn primary" data-approve="${esc(t.file)}" title="Цей дубль піде в гру">✓ Обрати</button>`}
        <button class="btn icon" data-del="${esc(t.file)}" title="У кошик (можна відновити)">🗑</button>`;

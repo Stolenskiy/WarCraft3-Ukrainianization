@@ -263,6 +263,7 @@ def test_game_preview_button_and_processing_toggles(page):
     with pg.expect_response(lambda r: "/api/preview" in r.url and r.status == 200):
         pg.locator("[data-preview]").first.click()
     pg.wait_for_function("() => typeof playing !== 'undefined' && (playing === null || playing.id.startsWith('preview:'))")
+    pg.click("#optsMenu summary")
     pg.click("label:has(#optDenoise)")                            # налаштування — на сервері, а не лише в localStorage
     pg.wait_for_function("async () => (await (await fetch('/api/settings')).json()).denoise === true")
     pg.reload()
