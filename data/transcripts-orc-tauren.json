@@ -1,0 +1,82 @@
+{
+  "taurendeath1.wav": {
+    "text": "Субтитры сделал DimaTorzok",
+    "duration": 29.98
+  },
+  "taurenpissed1.wav": {
+    "text": "Не щёлкай, а то забодаю!",
+    "duration": 2.48
+  },
+  "taurenpissed2.wav": {
+    "text": "Мо-о-о!",
+    "duration": 1.72
+  },
+  "taurenpissed3.wav": {
+    "text": "А молочка не хочешь?",
+    "duration": 1.62
+  },
+  "taurenpissed4.wav": {
+    "text": "Ты слышал о коровьем бешенстве?",
+    "duration": 2.74
+  },
+  "taurenpissed5.wav": {
+    "text": "Эй, убери клейма!",
+    "duration": 2.0
+  },
+  "taurenpissed6.wav": {
+    "text": "Ну, таро!",
+    "duration": 2.24
+  },
+  "taurenpissed7.wav": {
+    "text": "Слушай, а может мне надо?",
+    "duration": 2.4
+  },
+  "taurenready1.wav": {
+    "text": "Дохранят меня мои предки!",
+    "duration": 2.78
+  },
+  "taurenwarcry1.wav": {
+    "text": "Е蒙",
+    "duration": 1.32
+  },
+  "taurenwhat1.wav": {
+    "text": "Где враги?",
+    "duration": 1.36
+  },
+  "taurenwhat2.wav": {
+    "text": "Что нужно?",
+    "duration": 0.82
+  },
+  "taurenwhat3.wav": {
+    "text": "Ну что?",
+    "duration": 0.54
+  },
+  "taurenyes1.wav": {
+    "text": "За племя!",
+    "duration": 1.14
+  },
+  "taurenyes2.wav": {
+    "text": "Немедленно!",
+    "duration": 1.0
+  },
+  "taurenyes3.wav": {
+    "text": "Отлично!",
+    "duration": 0.76
+  },
+  "taurenyesattack1.wav": {
+    "text": "Смерть врагам!",
+    "duration": 1.58
+  },
+  "taurenyesattack2.wav": {
+    "text": "Да сгинет враг!",
+    "duration": 2.22
+  },
+  "taurenyesattack3.wav": {
+    "text": "РАСТАПЧУ!",
+    "duration": 2.0
+  },
+  "warstomp.wav": {
+    "text": "Продолжение следует...",
+    "duration": 29.98
+  }
+}

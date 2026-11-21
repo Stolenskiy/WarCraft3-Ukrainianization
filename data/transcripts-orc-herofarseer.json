@@ -1,0 +1,74 @@
+{
+  "herofarseerpissed1.wav": {
+    "text": "Я вижу мёртвых людей!",
+    "duration": 3.08
+  },
+  "herofarseerpissed2.wav": {
+    "text": "В действительности все выглядит иначе, чем на самом деле.",
+    "duration": 4.72
+  },
+  "herofarseerpissed3.wav": {
+    "text": "Сосредоточься на своем вопросе. Мысленно произнеси его.",
+    "duration": 6.0
+  },
+  "herofarseerpissed4.wav": {
+    "text": "Да пребудет с тобой сила!",
+    "duration": 2.04
+  },
+  "herofarseerpissed5.wav": {
+    "text": "Любое утверждение ложно, это тоже...",
+    "duration": 4.0
+  },
+  "herofarseerready1.wav": {
+    "text": "Провижу грядущее!",
+    "duration": 1.46
+  },
+  "herofarseerwarcry1.wav": {
+    "text": "Духи Земли и Ветра заклинаю вас!",
+    "duration": 2.86
+  },
+  "herofarseerwhat1.wav": {
+    "text": "Вижу и помню!",
+    "duration": 1.52
+  },
+  "herofarseerwhat2.wav": {
+    "text": "От судьбы не уйдёшь!",
+    "duration": 1.72
+  },
+  "herofarseerwhat3.wav": {
+    "text": "Мои глаза открыты!",
+    "duration": 1.7
+  },
+  "herofarseerwhat4.wav": {
+    "text": "Вам нужен мой совет!",
+    "duration": 2.16
+  },
+  "herofarseeryes1.wav": {
+    "text": "Я это предвидел.",
+    "duration": 1.32
+  },
+  "herofarseeryes2.wav": {
+    "text": "Так и будет!",
+    "duration": 0.8
+  },
+  "herofarseeryes3.wav": {
+    "text": "Будь осторожен!",
+    "duration": 1.14
+  },
+  "herofarseeryes4.wav": {
+    "text": "Рейс-ченал!",
+    "duration": 1.0
+  },
+  "herofarseeryesattack1.wav": {
+    "text": "В атаку!",
+    "duration": 1.0
+  },
+  "herofarseeryesattack2.wav": {
+    "text": "Берегись!",
+    "duration": 1.16
+  },
+  "herofarseeryesattack3.wav": {
+    "text": "Да будет так!",
+    "duration": 1.3
+  }
+}

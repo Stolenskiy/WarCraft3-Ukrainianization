@@ -1,0 +1,42 @@
+{
+  "kodobeastdeath.wav": {
+    "text": "Телёв!",
+    "duration": 1.0
+  },
+  "kodobeastpuke1.wav": {
+    "text": "Продолжение следует...",
+    "duration": 2.0
+  },
+  "kododrum1.wav": {
+    "text": "Продолжение следует...",
+    "duration": 29.98
+  },
+  "kododrum2.wav": {
+    "text": "Продолжение следует...",
+    "duration": 29.98
+  },
+  "kotobeastpissed1.wav": {
+    "text": "Субтитры создавал DimaTorzok",
+    "duration": 2.0
+  },
+  "kotobeastpissed3.wav": {
+    "text": "Субтитры создавал DimaTorzok",
+    "duration": 29.98
+  },
+  "kotobeastready1.wav": {
+    "text": "Субтитры сделал DimaTorzok",
+    "duration": 29.98
+  },
+  "kotobeastwhat1.wav": {
+    "text": "Продолжение следует...",
+    "duration": 29.98
+  },
+  "kotobeastwhat3.wav": {
+    "text": "Субтитры создавал DimaTorzok",
+    "duration": 29.98
+  },
+  "kotobeastyes3.wav": {
+    "text": "Продолжение следует...",
+    "duration": 29.98
+  }
+}

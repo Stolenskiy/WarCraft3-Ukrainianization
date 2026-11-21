@@ -1,0 +1,17 @@
+{
+  "peonyes1.wav":  {"text": "Зроблю."},
+  "peonyes2.wav":  {"text": "З задоволенням."},
+  "peonyes3.wav":  {"text": "Так, так!"},
+  "peonyes4.wav":  {"text": "Добре."},
+  "peonwhat1.wav": {"text": "Угу!"},
+  "peonwhat3.wav": {"text": "Чого хочеш?"},
+  "peonwhat4.wav": {"text": "Чого треба, хазяїне?"},
+  "peonpissed1.wav": {"text": "Чого?"},
+  "peonpissed2.wav": {"text": "Не заважай, я зайнятий!"},
+  "peonpissed3.wav": {"text": "Часу нема!"},
+  "peonpissed4.wav": {"text": "Ти мене з кимось плутаєш!"},
+  "peonready1.wav":  {"text": "Готовий колоти!"},
+  "peonwarcry1.wav": {"text": "А чому б і ні?"},
+  "peonyesattack2.wav": {"text": "Бий їх!"},
+  "peonyesattack3.wav": {"text": "Спробуємо."}
+}

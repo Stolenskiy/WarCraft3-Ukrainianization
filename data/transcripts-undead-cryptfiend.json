@@ -1,0 +1,86 @@
+{
+  "cryptfiendpissed1.wav": {
+    "text": "Кто тяжело работает, тот тяжело отдыхает.",
+    "duration": 5.54
+  },
+  "cryptfiendpissed2.wav": {
+    "text": "Сейчас вам будет немного больно.",
+    "duration": 5.08
+  },
+  "cryptfiendpissed3.wav": {
+    "text": "Вчера мою верхнюю половину показывали в передаче случайный свидетель.",
+    "duration": 8.12
+  },
+  "cryptfiendpissed4.wav": {
+    "text": "А мою нижнюю половину показывали в передаче в мире животных. Продолжение следует...",
+    "duration": 38.8
+  },
+  "cryptfiendpissed5.wav": {
+    "text": "Лучше переесть, чем не доспать.",
+    "duration": 9.04
+  },
+  "cryptfiendpissed6.wav": {
+    "text": "Даже если вас съели, у вас есть два выхода.",
+    "duration": 7.78
+  },
+  "cryptfiendpissed7.wav": {
+    "text": "Рожденный ползать упасть не может.",
+    "duration": 6.0
+  },
+  "cryptfiendready1.wav": {
+    "text": "Спящий пробудился.",
+    "duration": 2.84
+  },
+  "cryptfiendwarcry1.wav": {
+    "text": "Склонитесь перед плетью!",
+    "duration": 3.66
+  },
+  "cryptfiendwhat1.wav": {
+    "text": "Приступаем!",
+    "duration": 2.0
+  },
+  "cryptfiendwhat2.wav": {
+    "text": "Ваш ход.",
+    "duration": 1.78
+  },
+  "cryptfiendwhat3.wav": {
+    "text": "Вызвали меня.",
+    "duration": 1.84
+  },
+  "cryptfiendwhat4.wav": {
+    "text": "Я жду.",
+    "duration": 1.38
+  },
+  "cryptfiendyes1.wav": {
+    "text": "Во имя Руба.",
+    "duration": 1.56
+  },
+  "cryptfiendyes2.wav": {
+    "text": "Что сделано, то сделано.",
+    "duration": 2.7
+  },
+  "cryptfiendyes3.wav": {
+    "text": "Время пришло.",
+    "duration": 1.74
+  },
+  "cryptfiendyes4.wav": {
+    "text": "Да, повелитель.",
+    "duration": 1.72
+  },
+  "cryptfiendyesattack1.wav": {
+    "text": "Запухав!",
+    "duration": 1.76
+  },
+  "cryptfiendyesattack2.wav": {
+    "text": "Я выпью их соки.",
+    "duration": 2.7
+  },
+  "cryptfiendyesattack3.wav": {
+    "text": "Спокойствие, только спокойствие. Сейчас я вас настигну.",
+    "duration": 7.9
+  },
+  "pitfienddeath1.wav": {
+    "text": "Ааааа!",
+    "duration": 2.0
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "peasantdeath.wav": {
+    "text": "Ааааа!",
+    "duration": 1.0
+  },
+  "peasantpissed1.wav": {
+    "text": "Ты что ли, король? А я за тебя не голосовал.",
+    "duration": 2.48
+  },
+  "peasantpissed2.wav": {
+    "text": "Тебя бы так.",
+    "duration": 0.64
+  },
+  "peasantpissed3.wav": {
+    "text": "Помогите, на меня давят.",
+    "duration": 2.08
+  },
+  "peasantpissed4.wav": {
+    "text": "Работа не волк, в лес не убежит.",
+    "duration": 1.88
+  },
+  "peasantpissed5.wav": {
+    "text": "Мы поймали ведьму. Можно мы ее сожжем?",
+    "duration": 2.28
+  },
+  "peasantready1.wav": {
+    "text": "Я готов.",
+    "duration": 0.52
+  },
+  "peasantwarcry1.wav": {
+    "text": "АААААААА!!!",
+    "duration": 1.14
+  },
+  "peasantwhat1.wav": {
+    "text": "Да, господин.",
+    "duration": 0.72
+  },
+  "peasantwhat2.wav": {
+    "text": "Чего?",
+    "duration": 0.22
+  },
+  "peasantwhat3.wav": {
+    "text": "Опять работа.",
+    "duration": 0.9
+  },
+  "peasantwhat4.wav": {
+    "text": "Да?",
+    "duration": 0.22
+  },
+  "peasantyes1.wav": {
+    "text": "Угу.",
+    "duration": 0.26
+  },
+  "peasantyes2.wav": {
+    "text": "Хорошо.",
+    "duration": 0.3
+  },
+  "peasantyes3.wav": {
+    "text": "Хорошо.",
+    "duration": 0.3
+  },
+  "peasantyes4.wav": {
+    "text": "Ну, я пошел.",
+    "duration": 0.92
+  },
+  "peasantyesattack1.wav": {
+    "text": "прощайте",
+    "duration": 2.0
+  },
+  "peasantyesattack2.wav": {
+    "text": "Вам меня не жалко?",
+    "duration": 1.08
+  },
+  "peasantyesattack3.wav": {
+    "text": "Придется драться.",
+    "duration": 1.58
+  },
+  "peasantyesattack4.wav": {
+    "text": "Ну вот, меня убьют.",
+    "duration": 1.76
+  }
+}

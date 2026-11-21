@@ -1,0 +1,90 @@
+{
+  "shamandeath.wav": {
+    "text": "УАХ УАХ",
+    "duration": 2.18
+  },
+  "shamanpissed1.wav": {
+    "text": "Мечтают ли орки об электросвининах?",
+    "duration": 2.88
+  },
+  "shamanpissed2.wav": {
+    "text": "Отстань, Шинок.",
+    "duration": 1.2
+  },
+  "shamanpissed3.wav": {
+    "text": "Небо становится ближе.",
+    "duration": 1.68
+  },
+  "shamanpissed4.wav": {
+    "text": "Не ошибается тот, кто ничего не делает.",
+    "duration": 2.68
+  },
+  "shamanpissed5.wav": {
+    "text": "У нас нет времени для игр. Мы должны воевать.",
+    "duration": 3.02
+  },
+  "shamanpissed6.wav": {
+    "text": "Ха, возбуждает.",
+    "duration": 1.46
+  },
+  "shamanpissed7.wav": {
+    "text": "Уау! Давай еще раз!",
+    "duration": 2.0
+  },
+  "shamanready1.wav": {
+    "text": "Взываю к силам ветра, земли и огня",
+    "duration": 4.1
+  },
+  "shamanwarcry1.wav": {
+    "text": "За рту!",
+    "duration": 0.84
+  },
+  "shamanwhat1.wav": {
+    "text": "Ну даааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааа",
+    "duration": 0.04
+  },
+  "shamanwhat2.wav": {
+    "text": "ДАВОЖД",
+    "duration": 1.5
+  },
+  "shamanwhat3.wav": {
+    "text": "Чем могу помочь?",
+    "duration": 0.98
+  },
+  "shamanwhat4.wav": {
+    "text": "Приказывай.",
+    "duration": 0.96
+  },
+  "shamanyes1.wav": {
+    "text": "Мудрые слова",
+    "duration": 1.2
+  },
+  "shamanyes2.wav": {
+    "text": "Понял.",
+    "duration": 0.5
+  },
+  "shamanyes3.wav": {
+    "text": "Во славу Орды!",
+    "duration": 1.18
+  },
+  "shamanyes4.wav": {
+    "text": "Приступаю!",
+    "duration": 0.8
+  },
+  "shamanyesattack1.wav": {
+    "text": "Гром и молния",
+    "duration": 1.46
+  },
+  "shamanyesattack2.wav": {
+    "text": "Орда победит!",
+    "duration": 1.06
+  },
+  "shamanyesattack3.wav": {
+    "text": "Земля содрогнется.",
+    "duration": 1.66
+  },
+  "shamanyesattack4.wav": {
+    "text": "Удар молнии!",
+    "duration": 1.12
+  }
+}

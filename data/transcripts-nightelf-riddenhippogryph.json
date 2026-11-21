@@ -1,0 +1,70 @@
+{
+  "hippogryphwithriderpissed1.wav": {
+    "text": "Рождённый летать ползать не может.",
+    "duration": 2.82
+  },
+  "hippogryphwithriderpissed2.wav": {
+    "text": "Кто это у нас такой миленький? Гиппогриф.",
+    "duration": 3.98
+  },
+  "hippogryphwithriderpissed3.wav": {
+    "text": "Гиппогриф – симпатичное и очень редкое животное. Обратите внимание на его клюв. Одним щелчком он перекусывает пополам небольшого теленка.",
+    "duration": 9.26
+  },
+  "hippogryphwithriderpissed4.wav": {
+    "text": "Посмотрите, я протягиваю руку и гиппогриф... Ой, проклятая тварь!",
+    "duration": 6.0
+  },
+  "hippogryphwithriderready1.wav": {
+    "text": "К полету готово!",
+    "duration": 1.42
+  },
+  "hippogryphwithriderwarcry1.wav": {
+    "text": "Во имя лунного света!",
+    "duration": 1.58
+  },
+  "hippogryphwithriderwhat1.wav": {
+    "text": "Я жду.",
+    "duration": 0.86
+  },
+  "hippogryphwithriderwhat2.wav": {
+    "text": "Наше время настало.",
+    "duration": 1.38
+  },
+  "hippogryphwithriderwhat3.wav": {
+    "text": "Твой ход?",
+    "duration": 0.88
+  },
+  "hippogryphwithrideryes1.wav": {
+    "text": "Держись!",
+    "duration": 0.76
+  },
+  "hippogryphwithrideryes2.wav": {
+    "text": "К небесам!",
+    "duration": 1.0
+  },
+  "hippogryphwithrideryes3.wav": {
+    "text": "На крыло!",
+    "duration": 0.92
+  },
+  "hippogryphwithrideryes4.wav": {
+    "text": "Слишком просто.",
+    "duration": 1.48
+  },
+  "hippogryphwithrideryesattack1.wav": {
+    "text": "Они обречены.",
+    "duration": 1.18
+  },
+  "hippogryphwithrideryesattack2.wav": {
+    "text": "На врага!",
+    "duration": 0.96
+  },
+  "hippogryphwithrideryesattack3.wav": {
+    "text": "Бью без промаха.",
+    "duration": 1.22
+  },
+  "riddenhippogryphdeath1.wav": {
+    "text": "ААААА!",
+    "duration": 1.0
+  }
+}

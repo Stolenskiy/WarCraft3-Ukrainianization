@@ -1,0 +1,86 @@
+{
+  "deathknightpissed1.wav": {
+    "text": "Ну, замерзула!",
+    "duration": 1.94
+  },
+  "deathknightpissed2.wav": {
+    "text": "Скромность украшает, но оставляет голодным.",
+    "duration": 3.42
+  },
+  "deathknightpissed3.wav": {
+    "text": "Да мне цены нет. Даже страховку оформить не могу.",
+    "duration": 4.22
+  },
+  "deathknightpissed4.wav": {
+    "text": "Как там в аду? Не похолодало?",
+    "duration": 2.72
+  },
+  "deathknightpissed5.wav": {
+    "text": "В мертвом теле здоровый дух.",
+    "duration": 2.82
+  },
+  "deathknightpissed6.wav": {
+    "text": "Не трожь меня, я злой.",
+    "duration": 2.46
+  },
+  "deathknightready1.wav": {
+    "text": "Клятва дана.",
+    "duration": 1.04
+  },
+  "deathknightwarcry1.wav": {
+    "text": "Да воцарится ужас!",
+    "duration": 1.76
+  },
+  "deathknightwhat1.wav": {
+    "text": "Ты звал меня?",
+    "duration": 0.68
+  },
+  "deathknightwhat2.wav": {
+    "text": "Мое терпение истощилось.",
+    "duration": 2.42
+  },
+  "deathknightwhat3.wav": {
+    "text": "Я воплощении тьмы.",
+    "duration": 2.0
+  },
+  "deathknightwhat4.wav": {
+    "text": "Лагадов мастит!",
+    "duration": 1.22
+  },
+  "deathknightyes1.wav": {
+    "text": "Да начнется битва!",
+    "duration": 1.42
+  },
+  "deathknightyes2.wav": {
+    "text": "Как прикажете.",
+    "duration": 0.96
+  },
+  "deathknightyes3.wav": {
+    "text": "Эй!",
+    "duration": 1.0
+  },
+  "deathknightyes4.wav": {
+    "text": "Маканятста!",
+    "duration": 2.0
+  },
+  "deathknightyes5.wav": {
+    "text": "За короля мертвых!",
+    "duration": 1.28
+  },
+  "deathknightyesattack1.wav": {
+    "text": "Мой гнев на вас!",
+    "duration": 1.34
+  },
+  "deathknightyesattack2.wav": {
+    "text": "Вставайся и умри!",
+    "duration": 1.64
+  },
+  "deathknightyesattack3.wav": {
+    "text": "Замерзула!",
+    "duration": 1.04
+  },
+  "herodeathknightattack1.wav": {
+    "text": "Девушки отдыхают...",
+    "duration": 29.98
+  }
+}

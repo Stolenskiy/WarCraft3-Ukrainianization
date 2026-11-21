@@ -1,0 +1,78 @@
+{
+  "headhunterdeath.wav": {
+    "text": "Хуах!",
+    "duration": 2.0
+  },
+  "headhunterpissed1.wav": {
+    "text": "Ну? Что вам от меня надо?",
+    "duration": 2.3
+  },
+  "headhunterpissed2.wav": {
+    "text": "Мне кажется, вас надо немного укоротить. Ровно на одну голову.",
+    "duration": 5.06
+  },
+  "headhunterpissed3.wav": {
+    "text": "Одна голова хорошо, а на плечах еще лучше.",
+    "duration": 4.12
+  },
+  "headhunterpissed4.wav": {
+    "text": "Вурдалак вурдалаку друг, товарищ и корм.",
+    "duration": 3.74
+  },
+  "headhunterpissed5.wav": {
+    "text": "Одна голова хорошо, а две уже некрасиво.",
+    "duration": 3.36
+  },
+  "headhunterready1.wav": {
+    "text": "Зулджин будет отмщен.",
+    "duration": 2.0
+  },
+  "headhunterwarcry1.wav": {
+    "text": "Это зинга!",
+    "duration": 1.16
+  },
+  "headhunterwhat1.wav": {
+    "text": "кого убить.",
+    "duration": 1.04
+  },
+  "headhunterwhat2.wav": {
+    "text": "Чего?",
+    "duration": 1.0
+  },
+  "headhunterwhat3.wav": {
+    "text": "Что прикажете?",
+    "duration": 0.76
+  },
+  "headhunterwhat4.wav": {
+    "text": "Куда пойдем?",
+    "duration": 0.82
+  },
+  "headhunteryes1.wav": {
+    "text": "Ааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааа",
+    "duration": 1.22
+  },
+  "headhunteryes2.wav": {
+    "text": "Все, что пожелаете.",
+    "duration": 1.28
+  },
+  "headhunteryes3.wav": {
+    "text": "Так и сделаю.",
+    "duration": 1.0
+  },
+  "headhunteryes4.wav": {
+    "text": "Ладно.",
+    "duration": 0.62
+  },
+  "headhunteryesattack1.wav": {
+    "text": "ЗДИНГА!",
+    "duration": 0.8
+  },
+  "headhunteryesattack2.wav": {
+    "text": "Сам виноват!",
+    "duration": 1.12
+  },
+  "headhunteryesattack3.wav": {
+    "text": "Прольется кровь.",
+    "duration": 1.54
+  }
+}

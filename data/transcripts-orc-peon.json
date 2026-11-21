@@ -1,0 +1,74 @@
+{
+  "peondeath.wav": {
+    "text": "Уху!",
+    "duration": 0.5
+  },
+  "peonpissed1.wav": {
+    "text": "Чего?",
+    "duration": 1.0
+  },
+  "peonpissed2.wav": {
+    "text": "Не мешай, я занят!",
+    "duration": 1.6
+  },
+  "peonpissed3.wav": {
+    "text": "Нет времени!",
+    "duration": 2.0
+  },
+  "peonpissed4.wav": {
+    "text": "Ты меня с кем-то путаешь!",
+    "duration": 2.0
+  },
+  "peonready1.wav": {
+    "text": "Готов скалывать!",
+    "duration": 2.0
+  },
+  "peonwarcry1.wav": {
+    "text": "Почему бы нет?",
+    "duration": 1.14
+  },
+  "peonwhat1.wav": {
+    "text": "Угу!",
+    "duration": 1.0
+  },
+  "peonwhat2.wav": {
+    "text": "Нway!",
+    "duration": 1.0
+  },
+  "peonwhat3.wav": {
+    "text": "Чего хочешь?",
+    "duration": 1.3
+  },
+  "peonwhat4.wav": {
+    "text": "Чё надо, хозяин?",
+    "duration": 1.56
+  },
+  "peonyes1.wav": {
+    "text": "Сделаю.",
+    "duration": 0.82
+  },
+  "peonyes2.wav": {
+    "text": "С удовольствием.",
+    "duration": 1.3
+  },
+  "peonyes3.wav": {
+    "text": "Да, да!",
+    "duration": 0.68
+  },
+  "peonyes4.wav": {
+    "text": "Хорошо.",
+    "duration": 0.88
+  },
+  "peonyesattack1.wav": {
+    "text": "Уху!",
+    "duration": 0.54
+  },
+  "peonyesattack2.wav": {
+    "text": "Бей их!",
+    "duration": 0.94
+  },
+  "peonyesattack3.wav": {
+    "text": "Попробуем.",
+    "duration": 1.08
+  }
+}

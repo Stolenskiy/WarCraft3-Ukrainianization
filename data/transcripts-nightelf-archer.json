@@ -1,0 +1,90 @@
+{
+  "archerpissed1.wav": {
+    "text": "Оу, я вся дрожу.",
+    "duration": 1.72
+  },
+  "archerpissed2.wav": {
+    "text": "Послушай, ты не мог бы положить это яблоко себе на голову? Спасибо.",
+    "duration": 4.86
+  },
+  "archerpissed3.wav": {
+    "text": "Если сравнивать лучника у людей с топорометателем орков, то можно сказать, что они равноправны даже после полного их улучшения. Продолжение следует...",
+    "duration": 37.98
+  },
+  "archerpissed4.wav": {
+    "text": "Свои враги. В темноте какая к черту разница?",
+    "duration": 2.9
+  },
+  "archerpissed5.wav": {
+    "text": "Благородный дон прожжён в пятку. Не в эту. Правую.",
+    "duration": 3.5
+  },
+  "archerpissed6.wav": {
+    "text": "Между прочим, у тебя отстреляна правая пятка. Пора бы тебе истечь кровью.",
+    "duration": 4.12
+  },
+  "archerpissed7.wav": {
+    "text": "Интим и гербалаев не предлагать.",
+    "duration": 2.36
+  },
+  "archerpissed8.wav": {
+    "text": "Да осторожней ты. Это не резинка трусов, а тетива.",
+    "duration": 3.42
+  },
+  "archerready1.wav": {
+    "text": "Я готова.",
+    "duration": 0.66
+  },
+  "archerwarcry1.wav": {
+    "text": "Во имя лунного света!",
+    "duration": 1.34
+  },
+  "archerwhat1.wav": {
+    "text": "Жду приказа.",
+    "duration": 0.7
+  },
+  "archerwhat2.wav": {
+    "text": "Укажите мне путь.",
+    "duration": 0.8
+  },
+  "archerwhat3.wav": {
+    "text": "Мой лук всегда со мной.",
+    "duration": 1.26
+  },
+  "archerwhat4.wav": {
+    "text": "Ваш ход.",
+    "duration": 0.48
+  },
+  "archeryes1.wav": {
+    "text": "Ни слова больше.",
+    "duration": 0.8
+  },
+  "archeryes2.wav": {
+    "text": "Не проблема.",
+    "duration": 0.46
+  },
+  "archeryes3.wav": {
+    "text": "Хорошо.",
+    "duration": 0.26
+  },
+  "archeryes4.wav": {
+    "text": "Слишком просто.",
+    "duration": 0.76
+  },
+  "archeryesattack1.wav": {
+    "text": "Вижу цель.",
+    "duration": 0.52
+  },
+  "archeryesattack2.wav": {
+    "text": "Стреляю.",
+    "duration": 0.66
+  },
+  "archeryesattack3.wav": {
+    "text": "Бью без промаха.",
+    "duration": 0.86
+  },
+  "archeryesattack4.wav": {
+    "text": "Пощады не будет.",
+    "duration": 0.9
+  }
+}

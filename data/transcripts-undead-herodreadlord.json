@@ -1,0 +1,86 @@
+{
+  "herodreadlordattack1.wav": {
+    "text": "Продолжение следует...",
+    "duration": 29.98
+  },
+  "herodreadlordpissed1.wav": {
+    "text": "Если у меня есть крылья, почему я хожу пешком?",
+    "duration": 3.88
+  },
+  "herodreadlordpissed2.wav": {
+    "text": "Я не злопамятный. Я запишу.",
+    "duration": 2.36
+  },
+  "herodreadlordpissed3.wav": {
+    "text": "Мой вид разит наповал.",
+    "duration": 2.08
+  },
+  "herodreadlordpissed4.wav": {
+    "text": "Нам нужен мир, желательно весь.",
+    "duration": 3.2
+  },
+  "herodreadlordpissed5.wav": {
+    "text": "Разговаривая с людьми, всегда улыбайся.",
+    "duration": 3.16
+  },
+  "herodreadlordpissed6.wav": {
+    "text": "Это не маскарадный костюм. Это стандартная униформа повелителей ужаса.",
+    "duration": 6.16
+  },
+  "herodreadlordpissed7.wav": {
+    "text": "Эй, Тьма, как жизнь? От демонов ничего нового? Да нет у меня их номера.",
+    "duration": 6.82
+  },
+  "herodreadlordready1.wav": {
+    "text": "Да воцарится ночь!",
+    "duration": 1.94
+  },
+  "herodreadlordwarcry1.wav": {
+    "text": "Твоя душа принадлежит мне.",
+    "duration": 2.14
+  },
+  "herodreadlordwhat1.wav": {
+    "text": "Что нужно, смертный?",
+    "duration": 1.96
+  },
+  "herodreadlordwhat2.wav": {
+    "text": "Что на этот раз?",
+    "duration": 1.4
+  },
+  "herodreadlordwhat3.wav": {
+    "text": "Скоро на охоту!",
+    "duration": 1.2
+  },
+  "herodreadlordwhat4.wav": {
+    "text": "Приветствую!",
+    "duration": 1.0
+  },
+  "herodreadlordyes1.wav": {
+    "text": "Ты угадал мой план.",
+    "duration": 1.3
+  },
+  "herodreadlordyes2.wav": {
+    "text": "согласен.",
+    "duration": 1.0
+  },
+  "herodreadlordyes3.wav": {
+    "text": "Ты это сам придумал.",
+    "duration": 1.38
+  },
+  "herodreadlordyes4.wav": {
+    "text": "Неплохо, неплохо.",
+    "duration": 1.58
+  },
+  "herodreadlordyesattack1.wav": {
+    "text": "Я голоден!",
+    "duration": 1.22
+  },
+  "herodreadlordyesattack2.wav": {
+    "text": "Смерть ждет.",
+    "duration": 1.54
+  },
+  "herodreadlordyesattack3.wav": {
+    "text": "Умри!",
+    "duration": 0.56
+  }
+}

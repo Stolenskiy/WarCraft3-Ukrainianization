@@ -1,0 +1,106 @@
+{
+  "fanofknives.wav": {
+    "text": "Продолжение следует...",
+    "duration": 29.98
+  },
+  "herowardenpissed1.wav": {
+    "text": "«Говорите точно, сколько вешать?»",
+    "duration": 3.0
+  },
+  "herowardenpissed2.wav": {
+    "text": "Незаконные приобретения или хранение без цели сбыта магических артефактов или чародейских эликсиров в особо крупных размерах наказываются лишением свободы на срок от трех до трех тысяч лет.",
+    "duration": 14.38
+  },
+  "herowardenpissed3.wav": {
+    "text": "Есть три вида правосудия. Право, закон и понятие.",
+    "duration": 4.48
+  },
+  "herowardenpissed4.wav": {
+    "text": "Если вы чисты перед законом, значит, вы уже умерли.",
+    "duration": 4.14
+  },
+  "herowardenpissed5.wav": {
+    "text": "Честные люди меня не боятся. Чистая совесть — лучший адвокат.",
+    "duration": 5.86
+  },
+  "herowardenpissed6.wav": {
+    "text": "Ваша свобода — это не ваша заслуга, а наша недоработка.",
+    "duration": 4.26
+  },
+  "herowardenpissed7.wav": {
+    "text": "Так вам по закону или по справедливости?",
+    "duration": 3.44
+  },
+  "herowardenpissed8.wav": {
+    "text": "Главное в нашей работе — чистые руки, горячее сердце и холодная голова.",
+    "duration": 6.72
+  },
+  "herowardenready1.wav": {
+    "text": "Кто нарушил закон?",
+    "duration": 1.06
+  },
+  "herowardenwarcry1.wav": {
+    "text": "Справедливость восторжествует!",
+    "duration": 1.64
+  },
+  "herowardenwhat1.wav": {
+    "text": "Ваше решение.",
+    "duration": 0.84
+  },
+  "herowardenwhat2.wav": {
+    "text": "Огласите приговор.",
+    "duration": 0.92
+  },
+  "herowardenwhat3.wav": {
+    "text": "Жду указаний.",
+    "duration": 0.68
+  },
+  "herowardenwhat4.wav": {
+    "text": "Асфалано",
+    "duration": 0.72
+  },
+  "herowardenwhat5.wav": {
+    "text": "Ваш вердикт?",
+    "duration": 0.82
+  },
+  "herowardenyes1.wav": {
+    "text": "Закон это я!",
+    "duration": 0.88
+  },
+  "herowardenyes2.wav": {
+    "text": "Во имя правосудия.",
+    "duration": 1.24
+  },
+  "herowardenyes3.wav": {
+    "text": "Да будет так.",
+    "duration": 0.94
+  },
+  "herowardenyes4.wav": {
+    "text": "Все ясно.",
+    "duration": 0.58
+  },
+  "herowardenyes5.wav": {
+    "text": "Суд будет быстрым.",
+    "duration": 1.0
+  },
+  "herowardenyesattack1.wav": {
+    "text": "Исполняю приговор.",
+    "duration": 1.66
+  },
+  "herowardenyesattack2.wav": {
+    "text": "Да свершится правосудие!",
+    "duration": 1.64
+  },
+  "herowardenyesattack3.wav": {
+    "text": "Именем закона!",
+    "duration": 1.34
+  },
+  "wardenattackeffort1.wav": {
+    "text": "Продолжение следует...",
+    "duration": 29.98
+  },
+  "wardendeath1.wav": {
+    "text": "ААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААА",
+    "duration": 1.38
+  }
+}

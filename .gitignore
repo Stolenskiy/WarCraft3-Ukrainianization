@@ -1,5 +1,11 @@
 reference/
+audio/
 audio-raw/
+models/
+.venv/
+.venv-fish/
+tools/fish-speech/
+game-files/
 *.pyc
 __pycache__/
 .DS_Store

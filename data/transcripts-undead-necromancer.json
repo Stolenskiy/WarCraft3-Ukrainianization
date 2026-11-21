@@ -1,0 +1,74 @@
+{
+  "necromancerpissed1.wav": {
+    "text": "Все живут, но далеко не каждый действительно умирает.",
+    "duration": 4.66
+  },
+  "necromancerpissed2.wav": {
+    "text": "Я люблю мертвых. Они такие симпатичные.",
+    "duration": 5.1
+  },
+  "necromancerpissed3.wav": {
+    "text": "Я вижу мертвых людей.",
+    "duration": 5.14
+  },
+  "necromancerpissed4.wav": {
+    "text": "Что за запах? А-а-а, это наши войска.",
+    "duration": 4.38
+  },
+  "necromancerpissed5.wav": {
+    "text": "Первое условие бессмертия. Смерть.",
+    "duration": 4.08
+  },
+  "necromancerready1.wav": {
+    "text": "Тьма зовет меня.",
+    "duration": 1.6
+  },
+  "necromancerwarcry1.wav": {
+    "text": "Они будут моими.",
+    "duration": 1.76
+  },
+  "necromancerwhat1.wav": {
+    "text": "Мертвые служат тебе.",
+    "duration": 1.86
+  },
+  "necromancerwhat2.wav": {
+    "text": "Мертвые ждут.",
+    "duration": 1.52
+  },
+  "necromancerwhat3.wav": {
+    "text": "Какова воля тени?",
+    "duration": 1.24
+  },
+  "necromancerwhat4.wav": {
+    "text": "Жду приказаний.",
+    "duration": 1.5
+  },
+  "necromanceryes1.wav": {
+    "text": "Интересно.",
+    "duration": 1.12
+  },
+  "necromanceryes2.wav": {
+    "text": "Во имя короля мертвых!",
+    "duration": 1.68
+  },
+  "necromanceryes3.wav": {
+    "text": "Да хранит меня тьма.",
+    "duration": 1.92
+  },
+  "necromanceryes4.wav": {
+    "text": "Такова воля тени.",
+    "duration": 1.4
+  },
+  "necromanceryesattack1.wav": {
+    "text": "Умри!",
+    "duration": 1.0
+  },
+  "necromanceryesattack2.wav": {
+    "text": "Трепещите, враги плети!",
+    "duration": 2.3
+  },
+  "necromanceryesattack3.wav": {
+    "text": "Никто не уйдет живым.",
+    "duration": 2.06
+  }
+}
