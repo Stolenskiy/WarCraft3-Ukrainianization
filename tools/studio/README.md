@@ -105,6 +105,26 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 (реальна тека + симлінки на елементи цілі); деталі, маніфест і відкат — docstring `tools/install_voices.py`
 і скіл `game-change`. CLI (`make install-voices` / `uninstall-voices`) працює як раніше.
 
+## Голоси спільноти
+
+Код: `tools/voices.py` (публікація, вибір, декодування; без залежності від студії), `tools/check_voices.py` (перевірка пакетів,
+`make check-voices` у `make check` і CI), `Service.voices_json/set_voice_choice/publish_voice/voice_audio`, у `install_voices`
+`plan/apply(..., sources={rel: Path})`. Пакет автора — `voices/<нік>/{voice.json, manifest.json, units/<раса>/<юніт>/<файл>.flac}`
+(FLAC 22050/mono/s16 = готові файли з `game-files/`; CC BY 4.0, `consent: true`); у git дозволено лише їх (`.gitignore`).
+
+| Що | Де |
+|---|---|
+| Вибір `{default:[автор…], race:{orc:а}, unit:{"orc/peon":а}, line:{"Units/…wav":а}}` | `data/studio/voice-choice.json` (gitignored) |
+| Нікнейм цього комп'ютера (запам'ятовується при публікації) | `data/studio/settings-local.json` (gitignored) |
+| Кеш FLAC→wav за sha (для встановлення й ▶) | `data/studio/voice-cache/<sha>.wav` |
+
+Автор `local` = власна `game-files/`. Пріоритет: рядок > юніт > раса > порядок `default`; перший, у кого Є файл, виграє; якщо явно
+обраного автора файла немає — наступний за `default` і позначка `fallback`. Без збереженого вибору `default = ["local"]`
+(поведінка як раніше). API: `GET /api/voices`, `POST /api/voices/choice`, `POST /api/voices/publish`, `GET /audio/voice/<автор>/<Units/…wav>`
+(лише файли з маніфесту з тим самим sha; решта 404); докладно — docstring `server.py`. UI: кнопка «Голоси спільноти» (порядок ↑↓,
+публікація зі згодою) і `<select>` автора на рівнях раса / юніт / рядок у вікні встановлення, ▶ — прослухати. Публікація пропускає (і прибирає з пакета) оригінали з `game-files/.originals.json`, а `check_voices` падає, якщо опублікований FLAC збігається з таким оригіналом; обрані дублі з `source: "ai"` позначаються `"ai": true` у manifest.json і «ШІ» в UI. Публікація не запускає git —
+повертає команди. Тести: `tests/test_voices.py` (публікація, перевірка, вибір, встановлення суміші, API, traversal) і e2e `test_community_voices_flow`.
+
 ## Еквалайзер
 
 Панель «Еквалайзер» у бічній колонці: профіль на персонажа (група), слайдери смуг, крива відгуку,

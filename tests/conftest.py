@@ -81,7 +81,7 @@ _build_fixture()
 @pytest.fixture
 def clean_root():
     """Порожній стан перед кожним тестом (референси лишаються)."""
-    for d in ("audio", "game-files", "data/studio"):
+    for d in ("audio", "game-files", "data/studio", "voices"):
         shutil.rmtree(TMP_ROOT / d, ignore_errors=True)
     return TMP_ROOT
 

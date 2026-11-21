@@ -32,6 +32,14 @@ API:
   POST /api/install   {files?:[game_rel]}    install_voices.apply лише обраних (без files — усе); невідомий шлях → 400
   GET  /api/uninstall/plan                   те саме дерево, але лише файли з маніфесту (status present|changed|missing)
   POST /api/uninstall {files?:[game_rel]}    прибрати обрані (без files — усе); симлінк теки повертається, коли наших файлів у ній не лишилось
+  GET  /api/voices                           голоси спільноти: {authors:[{id,name,local,license,files,bytes,coverage:{раса:{юніт:n}}}] (перший — "local"),
+                                             choice:{default,race,unit,line}, nickname, consent_text, license}
+  POST /api/voices/choice {default?,race?,unit?,line?,nickname?}  зберегти вибір (data/studio/voice-choice.json; розділ замінюється
+                                             цілком, порожнє значення прибирає перевизначення) і нікнейм (settings-local.json); невідомий автор → 400
+  POST /api/voices/publish {nickname?,consent}  game-files/ → voices/<нік>/ (FLAC, manifest.json, voice.json); без consent:true або з
+                                             нікнеймом поза [a-z0-9-]{2,32} → 400; відповідь: added/updated/removed/total_mb/git (команди; git не запускається)
+  GET  /audio/voice/<автор>/<Units/раса/юніт/файл.wav>   прослуховування рядка автора (або "local"); лише файли з маніфесту з тим самим sha, інакше 404
+Плани встановлення (install/plan) містять у файлах author/wanted/fallback/alts і ключі authors/choice для вибору голосу.
 Кожна дія (крім install*) повертає оновлену репліку (той самий формат, що в /api/group).
 """
 from __future__ import annotations
@@ -141,7 +149,14 @@ def make_handler(svc: core.Service):
                 if parts == ["api", "catalogs"]:
                     return self._json(svc.catalogs_json())
                 if parts == ["api", "install", "plan"]:
-                    return self._json(install_tree(install_voices.plan(), svc))
+                    v = svc.voices_json()
+                    return self._json({**install_tree(install_voices.plan(), svc),
+                                       "authors": [{"id": a["id"], "name": a["name"]} for a in v["authors"]],
+                                       "choice": v["choice"]})
+                if parts == ["api", "voices"]:
+                    return self._json(svc.voices_json())
+                if parts[:2] == ["audio", "voice"] and len(parts) >= 4:
+                    return self._file(svc.voice_audio(parts[2], "/".join(parts[3:])), "audio/wav")
                 if parts == ["api", "uninstall", "plan"]:
                     return self._json(install_tree(install_voices.uninstall_plan(), svc))
                 if parts == ["api", "eq"]:
@@ -188,6 +203,10 @@ def make_handler(svc: core.Service):
                         raise ValueError("files має бути списком рядків")
                     fn = install_voices.apply if url.path == "/api/install" else install_voices.uninstall
                     return self._json(fn(files=chosen))
+                if url.path == "/api/voices/choice":
+                    return self._json(svc.set_voice_choice(data))
+                if url.path == "/api/voices/publish":
+                    return self._json(svc.publish_voice(data.get("nickname"), data.get("consent") is True))
                 if url.path in actions:
                     return self._json(actions[url.path](data))
                 if url.path == "/api/open-dir":

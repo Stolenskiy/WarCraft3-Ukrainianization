@@ -27,6 +27,9 @@ import sys
 import threading
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # `python -I` не додає теку скрипта
+import voices  # noqa: E402
+
 ROOT = Path(os.environ.get("WC3UA_ROOT") or Path(__file__).resolve().parent.parent)
 GAME = Path(os.environ.get("WC3_GAME_ROOT", "/Applications/Warcraft III Classic"))
 LOCK = threading.Lock()
@@ -65,12 +68,22 @@ def _save(game: Path, m: dict) -> None:
     (bdir / "manifest.json").write_text(json.dumps(m, indent=2, ensure_ascii=False))
 
 
-def _sources(root: Path) -> list[Path]:
-    src = root / "game-files"
-    files = sorted(src.rglob("*.wav")) if src.is_dir() else []
-    if not files:
-        raise InstallError("game-files/ порожня — оберіть дублі в студії (✓ Обрати)")
-    return files
+def _sources(root: Path, sources: dict[str, Path] | None = None) -> dict[str, Path]:
+    """rel → файл-джерело (wav або flac). Без явного sources — за збереженим вибором голосів (voices.resolve;
+    типово лише локальна game-files/)."""
+    if sources is None:
+        sources = voices.build_sources(root)
+    if not sources:
+        raise InstallError("немає що встановлювати — оберіть дублі в студії (✓ Обрати) або голоси спільноти")
+    return dict(sorted(sources.items()))
+
+
+def _wav(src: Path, root: Path) -> Path:
+    """FLAC → wav у кеші (за sha); wav як є."""
+    try:
+        return voices.stage(src, root) if src.suffix == ".flac" else src
+    except voices.VoiceError as ex:
+        raise InstallError(str(ex)) from ex
 
 
 # ---------------------------------------------------------------- класифікація цілі
@@ -107,8 +120,8 @@ def _link_info(game: Path, lrel: str) -> tuple[str, str, list[str]]:
 
 
 # ---------------------------------------------------------------- план
-def plan(game: Path | None = None, root: Path | None = None) -> dict:
-    """Сухий прогін. files: [{rel, status: new|update|same, materialize: теку-симлінк або ''}],
+def plan(game: Path | None = None, root: Path | None = None, sources: dict[str, Path] | None = None) -> dict:
+    """Сухий прогін. files: [{rel, status: new|update|same, materialize: теку-симлінк або '', author, wanted, fallback, alts}],
     materialize: [{rel, link, entries}], skipped: [{rel, reason}]."""
     game = Path(game or GAME)
     if not game.is_dir():
@@ -117,8 +130,8 @@ def plan(game: Path | None = None, root: Path | None = None) -> dict:
     man = _load(game)
     out = {"game": str(game), "files": [], "materialize": [], "skipped": [], "same": 0}
     mat: dict[str, dict] = {}
-    for src in _sources(root):
-        rel = src.relative_to(root / "game-files").as_posix()
+    picks = voices.resolve(root) if sources is None else {}
+    for rel, src in _sources(root, sources if sources is not None else {r: p.path for r, p in picks.items()}).items():
         kind, lrel, why = classify(game, rel, man["materialized"])
         if kind == "skip":
             out["skipped"].append({"rel": rel, "reason": why})
@@ -129,12 +142,15 @@ def plan(game: Path | None = None, root: Path | None = None) -> dict:
                 raw, absdir, names = _link_info(game, lrel)
                 mat[lrel] = {"rel": lrel, "link": raw, "entries": len(names)}
             status = "update" if os.path.lexists(os.path.join(os.path.realpath(game / lrel), t.name)) else "new"
-        elif t.exists() and not t.is_symlink() and sha(t) == sha(src):
+        elif t.exists() and not t.is_symlink() and sha(t) == sha(_wav(src, root)):
             status = "same"
         else:
             status = "update" if t.exists() else "new"
         out["same"] += status == "same"
-        out["files"].append({"rel": rel, "status": status, "materialize": lrel})
+        pk = picks.get(rel)
+        out["files"].append({"rel": rel, "status": status, "materialize": lrel, "author": pk.author if pk else voices.LOCAL,
+                             "wanted": pk.wanted if pk else "", "fallback": bool(pk and pk.fallback),
+                             "alts": pk.alts if pk else [voices.LOCAL]})
     out["materialize"] = list(mat.values())
     return out
 
@@ -177,12 +193,13 @@ def _materialize(game: Path, lrel: str, man: dict, log: list[str]) -> None:
     log.append(f"MATERIALIZED {lrel} (was symlink -> {raw}; {len(entries)} symlinks recreated)")
 
 
-def apply(game: Path | None = None, root: Path | None = None, files: list[str] | None = None) -> dict:
+def apply(game: Path | None = None, root: Path | None = None, files: list[str] | None = None,
+          sources: dict[str, Path] | None = None) -> dict:
     """files — обрані game_rel (None = усе з плану); невідомий шлях → InstallError."""
     game = Path(game or GAME)
     with LOCK:
-        pl = plan(game, root)             # перевірки + _sources
         root = root or ROOT
+        pl = plan(game, root, sources)    # перевірки + _sources (None → за збереженим вибором голосів)
         valid = {f["rel"] for f in pl["files"]}
         chosen = valid if files is None else set(files)
         if chosen - valid:
@@ -193,8 +210,7 @@ def apply(game: Path | None = None, root: Path | None = None, files: list[str] |
         man = _load(game)
         log: list[str] = []
         installed = skipped = 0
-        for src in _sources(root):
-            rel = src.relative_to(root / "game-files").as_posix()
+        for rel, src in _sources(root, sources).items():     # під LOCK — вибір не змінюється між планом і копіюванням
             if rel not in chosen:
                 continue
             kind, lrel, _ = classify(game, rel, man["materialized"])
@@ -207,6 +223,7 @@ def apply(game: Path | None = None, root: Path | None = None, files: list[str] |
                 _save(game, man)                  # маніфест одразу: матеріалізація має відкат
                 if safe_target(game, rel) is None or not t.parent.resolve().is_relative_to(game.resolve() / lrel):
                     raise InstallError(f"{rel}: після матеріалізації ціль небезпечна — зупинено")
+            src = _wav(src, root)
             if t.exists() and rel in man["files"] and sha(t) == sha(src):
                 continue
             backup = False
@@ -310,7 +327,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"МАТЕРІАЛІЗУЮ {m['rel']} (симлінк → {m['link']}, {m['entries']} елементів)")
             for c in pl["files"]:
                 if c["status"] != "same":
-                    print(f"буде  {c['rel']}" + (" (замінить файл, оригінал у бекап)" if c["status"] == "update" else ""))
+                    print(f"буде  {c['rel']}  ← {c['author']}" + (" (запасний: обраного автора немає)" if c["fallback"] else "")
+                          + (" (замінить файл, оригінал у бекап)" if c["status"] == "update" else ""))
             for s in pl["skipped"]:
                 print(f"ПРОПУСК {s['rel']}: {s['reason']}")
             print(f"вже є: {pl['same']}\n\nЦе план. Встановити: make install-voices APPLY=1")

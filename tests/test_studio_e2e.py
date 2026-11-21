@@ -338,3 +338,73 @@ def test_install_modal(page, tmp_path, monkeypatch):
     pg.wait_for_selector("#toast >> text=Прибрано з гри файлів: 1")
     assert not (game / "Units/human/footman/footmanyes1.wav").exists() and (game / "Units/orc/peon/peonyes1.wav").exists()
     assert pg.locator("#installModal").is_hidden()
+
+
+def test_community_voices_flow(page, tmp_path, monkeypatch):
+    """«Голоси спільноти»: публікація зі згодою → інший автор для юніта у вікні встановлення → гра отримує його файл."""
+    import wave
+
+    import install_voices as iv
+    import voices
+    from conftest import synth
+
+    def pcm(p):
+        with wave.open(str(p), "rb") as w:
+            return w.readframes(w.getnframes())
+
+    game = tmp_path / "game"
+    (game / "Units").mkdir(parents=True)
+    monkeypatch.setattr(iv, "GAME", game)
+    monkeypatch.setattr(iv, "ROOT", TMP_ROOT)
+    rels = ["Units/orc/peon/peonyes1.wav", "Units/orc/peon/peonwhat1.wav"]
+    for r in rels:
+        synth(TMP_ROOT / "game-files" / r, freq=300)
+    bob_pcm = {r: pcm(TMP_ROOT / "game-files" / r) for r in rels}
+    voices.publish("bob", "bob", TMP_ROOT, consent=True)                  # «чужий» голос
+    for r in rels:
+        synth(TMP_ROOT / "game-files" / r, freq=440)                     # мій локальний
+    mine = {r: pcm(TMP_ROOT / "game-files" / r) for r in rels}
+    pg = page
+
+    pg.click("#voicesBtn")
+    pg.wait_for_selector(".v-row")
+    assert pg.locator(".v-row").count() == 2 and "bob" in pg.inner_text("#voicesBody")
+    pg.fill("#vNick", "alice")
+    pg.click("#vPublish")                                                # без згоди — відмова
+    assert not (TMP_ROOT / "voices/alice").exists()
+    pg.check("#vConsent")
+    pg.click("#vPublish")
+    pg.wait_for_selector(".v-result pre")
+    assert "git push -u origin voices/alice" in pg.inner_text(".v-result pre")
+    assert (TMP_ROOT / "voices/alice/units/orc/peon/peonyes1.flac").is_file()
+    assert voices.get_nickname(TMP_ROOT) == "alice"
+    with pg.expect_response("**/api/voices/choice"):
+        pg.check(".v-row[data-id=bob] [data-von]")                       # bob — серед пріоритетних
+    with pg.expect_response("**/api/voices/choice"):
+        pg.click(".v-row[data-id=bob] [data-vup]")                       # і вище
+    assert "bob" in voices.load_choice(TMP_ROOT)["default"]
+    pg.keyboard.press("Escape")
+    assert pg.locator("#voicesModal").is_hidden()
+
+    voices.save_choice(TMP_ROOT, {"default": ["local"]})                 # тест: типово — власні
+    pg.click("#installBtn")
+    pg.wait_for_selector('details.inst-race[data-key="orc"]')
+    pg.locator('details.inst-race[data-key="orc"] > summary b').click()
+    unit = pg.locator('details.inst-unit[data-key="orc/peon"]')
+    assert unit.locator("select[data-vu]").input_value() == ""
+    with pg.expect_response("**/api/voices/choice"):
+        unit.locator("select[data-vu]").select_option("bob")             # чий голос для юніта
+    pg.wait_for_selector("details.inst-unit")
+    assert voices.load_choice(TMP_ROOT)["unit"] == {"orc/peon": "bob"}
+    unit = pg.locator('details.inst-unit[data-key="orc/peon"]')
+    assert unit.evaluate("d => d.open") is False and pg.locator('details.inst-race[data-key="orc"]').evaluate("d => d.open")   # стан дерева збережено
+    unit.locator("> summary b").click()
+    assert unit.locator("button[data-play]").first.get_attribute("data-a") == "bob"          # звідки файл
+    assert unit.locator("select[data-vl]").count() == 2                                       # є вибір для кожного рядка
+    unit.locator("button[data-play]").first.click()                       # ▶ без помилок (404 ловить перехоплювач)
+    pg.wait_for_timeout(300)
+    pg.click("#installGo")
+    pg.wait_for_selector("#toast >> text=Встановлено файлів: 2")
+    for r in rels:
+        assert pcm(game / r) == bob_pcm[r] != mine[r]
+    assert not pg.errors
