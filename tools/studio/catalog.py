@@ -108,6 +108,23 @@ def _garbage(text: str) -> bool:
     return re.search(r"(.)\1{7,}", text) is not None or HALLUCINATION_RE.search(text) is not None
 
 
+NONVERBAL_WORDS = {"угу", "ага", "хм", "гм", "хе", "ха", "хі", "хи", "ух", "ох", "ах", "ех", "ой", "ай", "ну", "а", "о", "м", "ммм", "ги"}
+_LAUGH_RE = re.compile(r"^(?:ха|хе|хі|хи|ги|го|гу)+$")
+_ALPHA_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
+
+
+def looks_nonverbal(no_speech: bool, *texts: str) -> bool:
+    """Підказка «можна залишити оригінал»: у транскрипті немає слів, або текст — вигук/сміх (≤ 3 слів,
+    усі з NONVERBAL_WORDS чи «ха-ха-ха»), напр. «Угу!», «Хм.», «Ха-ха-ха!»."""
+    if no_speech:
+        return True
+    for t in texts:
+        words = _ALPHA_RE.findall((t or "").lower())
+        if 0 < len(words) <= 3 and all(w in NONVERBAL_WORDS or _LAUGH_RE.match(w) for w in words):
+            return True
+    return False
+
+
 # ---------------------------------------------------------------- voice bible
 def parse_bible(path: Path) -> dict:
     """docs/voice-bible/<race>.md → {unit: {title, traits, rows{kind: (start, [UA], напрям)}, order}}.

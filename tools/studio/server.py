@@ -11,6 +11,10 @@ API:
   POST /api/take?cid=&gid=&lid=   (тіло — wav)    новий дубль
   POST /api/approve   {cid,gid,lid,file[,trim]}    обрати дубль для гри (trim — застарілий override auto_trim)
   POST /api/unapprove {cid,gid,lid}
+  POST /api/original  {cid,gid,lid,lang}          «Залишити оригінал» (lang ru|en): необроблений оригінал → game-files,
+                                             запис у game-files/.originals.json (публікація має ці файли пропускати), вибір дубля знімається;
+                                             400 — погана мова чи немає такого оригіналу
+  POST /api/original/clear {cid,gid,lid}           прибрати оригінал із гри (файл і запис у .originals.json)
   POST /api/delete    {cid,gid,lid,file}           у кошик
   POST /api/restore   {cid,gid,lid,file}
   POST /api/text      {cid,gid,lid,text}
@@ -95,6 +99,8 @@ def make_handler(svc: core.Service):
     actions = {
         "/api/approve": lambda d: svc.approve(d["cid"], d["gid"], d["lid"], d["file"], _opt(d, "trim")),
         "/api/unapprove": lambda d: svc.unapprove(d["cid"], d["gid"], d["lid"]),
+        "/api/original": lambda d: svc.keep_original(d["cid"], d["gid"], d["lid"], d["lang"]),
+        "/api/original/clear": lambda d: svc.clear_original(d["cid"], d["gid"], d["lid"]),
         "/api/delete": lambda d: svc.delete(d["cid"], d["gid"], d["lid"], d["file"]),
         "/api/restore": lambda d: svc.restore(d["cid"], d["gid"], d["lid"], d["file"]),
         "/api/trim": lambda d: svc.set_trim(d["cid"], d["gid"], d["lid"], d["file"], d.get("start"), d.get("end"),

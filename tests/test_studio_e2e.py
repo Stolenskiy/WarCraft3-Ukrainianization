@@ -408,3 +408,32 @@ def test_community_voices_flow(page, tmp_path, monkeypatch):
     for r in rels:
         assert pcm(game / r) == bob_pcm[r] != mine[r]
     assert not pg.errors
+
+
+def test_keep_original_flow(page):
+    pg = page
+    with pg.expect_response(lambda r: "/audio/ref-en/" in r.url):
+        pg.click("#optLang [data-lang='en']")
+    pg.click("#keepOrig")
+    pg.wait_for_selector(".approved-banner.orig")
+    assert "Залишено оригінал (EN)" in pg.inner_text(".approved-banner.orig")
+    assert "ориг. EN" in pg.inner_text(".cue.on")
+    assert GAME.exists() and (TMP_ROOT / "game-files/.originals.json").exists()
+    pg.reload()
+    pg.wait_for_selector(".cue.on")
+    pg.locator(".cue", has_text="ориг. EN").click()      # після перезавантаження відкривається перша незроблена репліка
+    pg.wait_for_selector(".approved-banner.orig")
+    pg.click("#clearOrig")
+    pg.wait_for_selector(".approved-banner.orig", state="detached")
+    assert not GAME.exists()
+    pg.keyboard.press("KeyO")                            # гаряча клавіша
+    pg.wait_for_selector(".approved-banner.orig")
+    pg.click("#clearOrig")
+    pg.wait_for_selector(".approved-banner.orig", state="detached")
+    record(pg)                                           # звичайний вибір дубля працює
+    pg.locator(".take", has_text="Дубль 1").locator("[data-approve]").click()
+    pg.wait_for_selector(".badge-game")
+    pg.click("#keepOrig")                                # оригінал замінює дубль
+    pg.wait_for_selector(".approved-banner.orig")
+    assert pg.locator(".badge-game").count() == 0
+    assert not pg.errors, pg.errors

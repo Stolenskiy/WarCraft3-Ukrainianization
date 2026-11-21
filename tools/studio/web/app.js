@@ -28,6 +28,7 @@ async function post(path, body, isAudio = false) {
   return j;
 }
 const cur = () => S.phrases[S.idx];
+const isDone = (p) => !!(p.approved || p.original);   // дубль обрано або залишено оригінал
 const aurl = (kind, name) => `/audio/${kind}/${S.cat}/${S.unit}/${encodeURIComponent(name)}`;
 // мова оригіналу (налаштування в шапці): "ru" | "en"; якщо англійського файлу немає — рос.
 // без російського мовного пакета (make refs) звучить лише англійський
@@ -495,7 +496,7 @@ async function openUnit(cid, gid) {
   try { localStorage.setItem("studio.pos", JSON.stringify({ cid, gid })); } catch {}
   const data = await getJSON(`/api/group/${cid}/${gid}`);
   S.phrases = data.lines;
-  const i = S.phrases.findIndex((p) => !p.approved && !p.no_speech);
+  const i = S.phrases.findIndex((p) => !isDone(p) && !p.no_speech);
   S.idx = i >= 0 ? i : 0;
   await loadCatalogs();
   const g = groupOf();
@@ -510,17 +511,17 @@ async function openUnit(cid, gid) {
 function visible() {
   return S.phrases.map((p, i) => i).filter((i) => {
     const p = S.phrases[i];
-    return S.filter === "all" || (S.filter === "done" ? !!p.approved : !p.approved);
+    return S.filter === "all" || (S.filter === "done" ? isDone(p) : !isDone(p));
   });
 }
 function renderCues() {
   $("#cues").innerHTML = visible().map((i) => {
     const p = S.phrases[i], n = p.takes.filter((t) => !t.deleted).length;
-    const st = p.approved ? "ok" : n ? "has" : p.no_speech ? "mute" : "";
+    const st = p.approved ? "ok" : p.original ? "orig" : n ? "has" : p.no_speech ? "mute" : "";
     return `<li class="cue ${i === S.idx ? "on" : ""} ${p.no_speech ? "mute" : ""}" data-i="${i}">
       <span class="st ${st}"></span>
       <span><div class="ru">${esc(p.ru)}</div><div class="ua">${esc(p.ua)}</div></span>
-      <span class="tag">${esc(p.kind_ua)}${n ? `<br>${n} дубл.` : ""}</span></li>`;
+      <span class="tag">${esc(p.kind_ua)}${p.original ? `<br><b class="orig-chip" title="У грі лишається оригінал">ориг. ${p.original.lang.toUpperCase()}</b>` : n ? `<br>${n} дубл.` : ""}</span></li>`;
   }).join("") || `<li class="empty">Тут порожньо</li>`;
   $("#cues .cue.on")?.scrollIntoView({ block: "nearest" });
 }
@@ -541,7 +542,7 @@ function nextTodo() {
   const n = S.phrases.length;
   for (let k = 1; k <= n; k++) {
     const j = (S.idx + k) % n;
-    if (!S.phrases[j].approved && !S.phrases[j].no_speech) return select(j);
+    if (!isDone(S.phrases[j]) && !S.phrases[j].no_speech) return select(j);
   }
   toast("Усі репліки цього юніта затверджено 🎉");
 }
@@ -592,13 +593,17 @@ function renderCard(newFile) {
         : S.lang === "en" ? `<div class="ua-meta">англійського оригіналу для цієї репліки немає — звучить російський</div>` : ""}
       ${S.lang === "ru" && !p.has_ru ? `<div class="ua-meta">російського оригіналу немає (потрібен мовний пакет — README) — звучить англійський</div>` : ""}
       <div class="wave-row"><button class="play big" data-play="ref" title="Оригінал (R)">▶</button>
-        <canvas class="wave" data-wave="ref"></canvas><span class="dur" id="refDur">${fmt(p.ru_dur)}</span></div></div></div>
+        <canvas class="wave" data-wave="ref"></canvas><span class="dur" id="refDur">${fmt(p.ru_dur)}</span></div>
+      <div class="orig-row"><button class="btn quiet" id="keepOrig" ${p.original && p.original.lang === refLang(p) ? "disabled" : ""} title="Для звуків без слів (Угу, сміх, крики): у гру піде оригінал без переозвучення (O)">Залишити оригінал (${refLang(p).toUpperCase()})</button>
+        ${p.orig_hint && !p.original ? `<span class="chip hint" title="Короткий вигук чи звук без слів">Можна залишити оригінал</span>` : ""}</div></div></div>
 
     <div class="lang ua-block"><div class="lang-tag">UA</div><div>
       <input class="ua-input" id="ua" value="${esc(p.ua)}" placeholder="Український текст репліки" spellcheck="true">
       <div class="ua-meta"><span id="uaState">${textState}</span>
         ${p.ua_custom && p.ua_hint && p.ua_hint !== p.ua ? `<button class="linkish" id="resetText">повернути «${esc(p.ua_hint)}»</button>` : ""}</div>
       ${p.direction ? `<div class="direction"><b>Як грати</b>${esc(p.direction)}</div>` : ""}
+      ${p.original ? `<div class="approved-banner orig"><span>♪</span><span class="grow">Залишено оригінал (${p.original.lang.toUpperCase()}) — переозвучення не потрібне → <code>game-files/${esc(p.game_rel)}</code></span>
+        <button class="btn quiet" id="playGame">▶ Як у грі</button><button class="btn quiet" id="clearOrig">Скасувати</button></div>` : ""}
       ${p.approved ? `<div class="approved-banner"><span>✓</span><span class="grow">У грі — <b>Дубль ${apprTake ? apprTake.n : "?"}</b> → <code>game-files/${esc(p.game_rel)}</code></span>
         <button class="btn quiet" id="playGame">▶ Як у грі</button><button class="btn quiet" id="unapprove">Скасувати вибір</button></div>` : ""}
     </div></div>
@@ -703,6 +708,8 @@ function bindCard(p) {
   $("#resetText")?.addEventListener("click", () => { ua.value = p.ua_hint; saveText(); });
   $("#recBtn").addEventListener("click", toggleRec);
   $("#unapprove")?.addEventListener("click", unapprove);
+  $("#keepOrig")?.addEventListener("click", () => keepOriginal(p));
+  $("#clearOrig")?.addEventListener("click", clearOriginal);
   $("#playGame")?.addEventListener("click", () => play([{ url: aurl("game", p.id) + `?v=${Date.now()}`, id: "game" }]));
   $("#main").oninput = (e) => { const r = e.target.closest("[data-tempo-range]"); if (r) tempoLabel(r); };
   $("#main").onchange = (e) => { const r = e.target.closest("[data-tempo-range]"); if (r) saveTempo(ids(p), r.dataset.tempoRange, tempoOf(p, r.dataset.tempoRange), +r.value); };
@@ -769,6 +776,28 @@ async function unapprove() {
   if (!res) return;
   putPhrase(where, res);
   toast("Вибір скасовано — дубль лишився у списку", false, 5000, () => undoTo(where, prev));
+}
+// «Залишити оригінал»: у гру йде необроблений оригінал у вибраній мові; взаємовиключно з обраним дублем
+async function keepOriginal(p) {
+  const where = ids(), prev = { approved: p.approved, original: p.original }, lang = refLang(p);
+  const res = await act("/api/original", { lid: p.id, lang });
+  if (!res) return;
+  putPhrase(where, res);
+  toast(`Залишено оригінал (${lang.toUpperCase()}) — переозвучення не потрібне`, false, 5000, () => undoOriginal(where, p.id, prev));
+}
+async function clearOriginal() {
+  const p = cur(), where = ids(), prev = { approved: null, original: p.original };
+  const res = await act("/api/original/clear", { lid: p.id });
+  if (!res) return;
+  putPhrase(where, res);
+  toast("Оригінал прибрано з гри", false, 5000, () => undoOriginal(where, p.id, prev));
+}
+async function undoOriginal(where, lid, prev) {
+  const body = { ...where, lid };
+  const res = prev.approved ? await post("/api/approve", { ...body, file: prev.approved })
+    : prev.original ? await post("/api/original", { ...body, lang: prev.original.lang })
+    : await post("/api/original/clear", body);
+  putPhrase(where, res);
 }
 async function undoTo(where, prevApproved) {
   const res = prevApproved
@@ -984,6 +1013,7 @@ document.addEventListener("keydown", (e) => {
     case "KeyL": if (last) play([takeItem(p, last.file)]); break;
     case "KeyB": if (last) play([{ url: urlRef(p), id: "ref" }, takeItem(p, last.file)]); break;
     case "KeyN": nextTodo(); break;
+    case "KeyO": keepOriginal(p); break;
     case "ArrowDown": e.preventDefault(); step(1); break;
     case "ArrowUp": e.preventDefault(); step(-1); break;
   }
