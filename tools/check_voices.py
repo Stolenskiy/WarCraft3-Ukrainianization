@@ -14,6 +14,8 @@ import json
 import os
 import re
 import sys
+import tempfile
+import wave
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))   # `python -I` не додає теку скрипта
@@ -82,6 +84,7 @@ def _author(root: Path, top: Path, known: set[str]) -> list[str]:
             e.append(f"{pre}/{rel}: сторонній файл")
             continue
         e += _flac(top, p, rel, man, known, pre)
+        e += _original(root, p, rel, pre)
         seen.add(rel)
     for grel in man:
         try:
@@ -90,6 +93,25 @@ def _author(root: Path, top: Path, known: set[str]) -> list[str]:
         except voices.VoiceError:
             e.append(f"{pre}/manifest.json: некоректний ключ {grel!r}")
     return e
+
+
+def _original(root: Path, p: Path, rel: str, pre: str) -> list[str]:
+    """Заборона публікувати оригінал Blizzard: збіг PCM з файлом із game-files/.originals.json (якщо він є локально)."""
+    try:
+        grel = voices.flac_to_rel(rel)
+    except voices.VoiceError:
+        return []
+    ent, local = voices.originals(root).get(grel), root / "game-files" / grel
+    if ent is None or not local.is_file():
+        return []
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            wav = Path(d) / "x.wav"
+            voices._ffmpeg("-i", str(p), "-f", "wav", str(wav))
+            same = voices.wav_pcm(wav) == voices.wav_pcm(local)
+    except (voices.VoiceError, OSError, EOFError, wave.Error):
+        return []
+    return [f"{pre}/{rel}: збігається з оригіналом гри (.originals.json) — публікувати не можна"] if same else []
 
 
 def _json(p: Path, e: list[str], pre: str):
@@ -134,6 +156,8 @@ def _flac(top: Path, p: Path, rel: str, man: dict, known: set[str], pre: str) ->
             e.append(f"{who}: dur у manifest.json не збігається з файлом")
         if not isinstance(ent.get("peak_db"), (int, float)):
             e.append(f"{who}: peak_db у manifest.json має бути числом")
+        if "ai" in ent and ent["ai"] is not True:
+            e.append(f"{who}: ai у manifest.json має бути true або відсутнім")
         if not re.fullmatch(r"[0-9a-f]{64}", str(ent.get("sha256"))):
             e.append(f"{who}: некоректний sha256 у manifest.json")
     return e

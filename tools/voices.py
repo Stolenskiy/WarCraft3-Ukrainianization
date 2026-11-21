@@ -177,6 +177,31 @@ def local_rels(root: Path) -> list[str]:
     return sorted(p.relative_to(g).as_posix() for p in g.rglob("*.wav")) if g.is_dir() else []
 
 
+def originals(root: Path) -> dict:
+    """game-files/.originals.json {rel: {lang, sha256}} — оригінали Blizzard, які користувач залишив; їх не публікуємо."""
+    m = _read_json(Path(root) / "game-files/.originals.json", {})
+    return m if isinstance(m, dict) else {}
+
+
+def ai_rels(root: Path) -> set[str]:
+    """Шляхи, чий обраний дубль має source == "ai" (згенеровано ШІ власним голосом): стан студії data/studio/units-*.json."""
+    out: set[str] = set()
+    for sp in sorted((Path(root) / "data/studio").glob("units-*.json")):
+        st = _read_json(sp, {})
+        for gid, lines in (st.get("groups") or {}).items() if isinstance(st, dict) else []:
+            for lid, e in (lines or {}).items():
+                if not isinstance(e, dict) or not e.get("approved"):
+                    continue
+                if any(isinstance(t, dict) and t.get("file") == e["approved"] and t.get("source") == "ai" for t in e.get("takes", [])):
+                    out.add(f"Units/{sp.stem[6:]}/{gid}/{lid}")
+    return out
+
+
+def wav_pcm(path: Path) -> bytes:
+    with wave.open(str(path), "rb") as w:
+        return w.readframes(w.getnframes())
+
+
 def author_path(root: Path, author: str, rel: str) -> Path | None:
     """Файл автора для rel (wav для local, flac для інших) — лише якщо rel є в маніфесті й sha збігається."""
     if author == LOCAL:
@@ -213,11 +238,12 @@ def author_info(root: Path, author: str) -> dict:
     rels = author_rels(root, author)
     if author == LOCAL:
         return {"id": LOCAL, "name": "Мій голос (локально)", "local": True, "license": "", "files": len(rels),
-                "bytes": 0, "coverage": coverage(rels)}
+                "bytes": 0, "ai": len(ai_rels(root) & set(rels)), "coverage": coverage(rels)}
     vj = _read_json(voices_dir(root) / author / "voice.json", {})
     size = sum(p.stat().st_size for p in (voices_dir(root) / author).rglob("*.flac"))
     return {"id": author, "name": vj.get("name", author), "local": False, "license": vj.get("license", ""),
             "created": vj.get("created"), "updated": vj.get("updated"), "files": len(rels), "bytes": size,
+            "ai": sum(1 for e in manifest(root, author).values() if isinstance(e, dict) and e.get("ai")),
             "coverage": coverage(rels)}
 
 
@@ -236,8 +262,12 @@ def publish(author: str, nickname: str, root: Path, consent: bool = False) -> di
     man: dict[str, dict] = {}
     added = updated = unchanged = 0
     skipped: list[dict] = []
+    own, ai = originals(root), ai_rels(root)
     for rel in local_rels(root):
         src = root / "game-files" / rel
+        if rel in own:
+            skipped.append({"rel": rel, "reason": "оригінал гри (залишено) — не публікується"})
+            continue
         try:
             frel = rel_to_flac(rel)
         except VoiceError as ex:
@@ -263,7 +293,7 @@ def publish(author: str, nickname: str, root: Path, consent: bool = False) -> di
                 os.replace(tmp, dst)
         finally:
             tmp.unlink(missing_ok=True)
-        man[rel] = {"sha256": digest, "dur": dur, "peak_db": peak}
+        man[rel] = {"sha256": digest, "dur": dur, "peak_db": peak, **({"ai": True} if rel in ai else {})}
     if not man:
         raise VoiceError("немає що публікувати: game-files/ порожня або всі файли пропущено")
     removed = 0

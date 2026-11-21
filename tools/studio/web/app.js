@@ -1233,7 +1233,7 @@ function vRender() {
   const rows = Vs.order.map((id, i) => { const a = by[id]; return `<li class="v-row" data-id="${esc(id)}">
     <input type="checkbox" data-von ${Vs.on.has(id) ? "checked" : ""} title="Використовувати при встановленні">
     <span class="v-name"><b>${esc(a.name)}</b><small>${a.local ? "ваші затверджені дублі (game-files/)" : esc(a.license) + " · " + mb(a.bytes)}
-      · ${nFiles(a.files)} · ${vCoverage(a)}</small></span>
+      · ${nFiles(a.files)}${a.ai ? ` · <span class="tag upd" title="Згенеровано ШІ власним голосом автора">ШІ ${a.ai}</span>` : ""} · ${vCoverage(a)}</small></span>
     <button class="ghost" data-vup ${i ? "" : "disabled"} title="Вище (пріоритетніший)">↑</button>
     <button class="ghost" data-vdown ${i < Vs.order.length - 1 ? "" : "disabled"} title="Нижче">↓</button></li>`; }).join("");
   const r = Vs.result;

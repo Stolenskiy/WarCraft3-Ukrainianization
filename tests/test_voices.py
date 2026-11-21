@@ -342,3 +342,38 @@ def test_api_audio_voice_traversal_and_unknown(api):
     f = TMP_ROOT / "voices/alice/units/orc/peon/peonyes1.flac"
     f.write_bytes(f.read_bytes() + b"x")
     assert api("GET", f"/audio/voice/alice/{ok}")[0] == 404
+
+
+# ---------------------------------------------------------------- оригінали Blizzard і ШІ-дублі
+def test_publish_skips_originals_and_check_catches_them(tmp_path):
+    root = mkroot(tmp_path)
+    pub(root)
+    rel = "Units/orc/peon/peonyes1.wav"
+    assert rel in json.loads((root / "voices/alice/manifest.json").read_text())
+    # користувач залишив оригінал: той самий файл тепер у .originals.json
+    (root / "game-files/.originals.json").write_text(json.dumps({rel: {"lang": "ru", "sha256": voices.sha256(root / "game-files" / rel)}}))
+    assert any("збігається з оригіналом" in e for e in check_voices.check(root))      # уже опублікований — CI падає
+    r = voices.publish("alice", "alice", root, consent=True)
+    assert r["removed"] == 1 and rel in {s["rel"] for s in r["skipped"]}             # publish прибирає й пропускає
+    assert rel not in json.loads((root / "voices/alice/manifest.json").read_text())
+    assert not (root / "voices/alice/units/orc/peon/peonyes1.flac").exists()
+    assert check_voices.check(root) == []
+    (root / "game-files" / rel).unlink()                                            # файлу локально немає — перевірити неможливо
+    assert check_voices.check(root) == []
+
+
+def test_ai_takes_marked_in_manifest(tmp_path):
+    root = mkroot(tmp_path)
+    record(root, 440)
+    (root / "data/studio").mkdir(parents=True)
+    (root / "data/studio/units-orc.json").write_text(json.dumps({"version": 3, "groups": {"peon": {
+        "peonyes1.wav": {"approved": "peonyes1.take2.wav", "takes": [
+            {"file": "peonyes1.take1.wav"}, {"file": "peonyes1.take2.wav", "source": "ai"}]},
+        "peonwhat1.wav": {"approved": "peonwhat1.take1.wav", "takes": [{"file": "peonwhat1.take1.wav"}]}}}}))
+    voices.publish("alice", "alice", root, consent=True)
+    man = json.loads((root / "voices/alice/manifest.json").read_text())
+    assert man["Units/orc/peon/peonyes1.wav"]["ai"] is True and "ai" not in man["Units/orc/peon/peonwhat1.wav"]
+    assert voices.author_info(root, "alice")["ai"] == 1 and check_voices.check(root) == []
+    man["Units/orc/peon/peonwhat1.wav"]["ai"] = "yes"
+    (root / "voices/alice/manifest.json").write_text(json.dumps(man))
+    assert any("ai у manifest" in e for e in check_voices.check(root))
