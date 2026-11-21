@@ -1,74 +1,56 @@
 {
   "raiderdeath.wav": {
-    "text": "Играет музыка.",
     "duration": 1.0
   },
   "wolfriderpissed1.wav": {
-    "text": "burn что это так пахнет Плохая собака",
     "duration": 7.68
   },
   "wolfriderpissed2.wav": {
-    "text": "Щас спою.",
     "duration": 1.84
   },
   "wolfriderpissed3.wav": {
-    "text": "Сколько волка не корми, а у меня ноги толще.",
     "duration": 6.24
   },
   "wolfriderpissed4.wav": {
-    "text": "Нортрендский волк тебе, товарищ!",
     "duration": 3.28
   },
   "wolfriderready1.wav": {
-    "text": "Волчья тропа ждет!",
     "duration": 1.76
   },
   "wolfriderwarcry1.wav": {
-    "text": "Во славу вождя!",
     "duration": 1.52
   },
   "wolfriderwhat1.wav": {
-    "text": "Говори, вождь!",
     "duration": 0.98
   },
   "wolfriderwhat2.wav": {
-    "text": "ПРОДОЛЖЕНИЕ",
     "duration": 1.0
   },
   "wolfriderwhat3.wav": {
-    "text": "Что нужно?",
     "duration": 0.74
   },
   "wolfriderwhat4.wav": {
-    "text": "Только скажи.",
     "duration": 0.76
   },
   "wolfrideryes1.wav": {
-    "text": "Не проблема!",
     "duration": 0.9
   },
   "wolfrideryes2.wav": {
-    "text": "Эй!",
     "duration": 2.0
   },
   "wolfrideryes3.wav": {
-    "text": "Ерунда.",
     "duration": 0.7
   },
   "wolfrideryes4.wav": {
-    "text": "Вперёд!",
     "duration": 0.86
   },
   "wolfrideryesattack1.wav": {
-    "text": "Взять его!",
     "duration": 1.26
   },
   "wolfrideryesattack2.wav": {
-    "text": "Отведай стали!",
     "duration": 1.38
   },
   "wolfrideryesattack3.wav": {
-    "text": "ЗАРДУ!",
     "duration": 1.16
   }
 }

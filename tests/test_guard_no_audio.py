@@ -74,3 +74,13 @@ def test_check_voices_and_guard_agree(tmp_path):
     put(root, "voices/alice/units/orc/peon/extra.wav")                  # сторонній файл у пакеті
     git(root, "add", "-f", "voices")
     assert check_voices.check(root) != [] and guard.main(root) == 1     # обидва «проти»
+
+
+def test_blocks_local_dir_and_original_texts_in_tracked_transcripts(repo):
+    assert guard.violations(["data/local/transcripts-orc-peon.json"]) == ["data/local/transcripts-orc-peon.json"]
+    put(repo, "data/transcripts-orc-peon.json", b'{"a.wav": {"duration": 1.0}}')
+    git(repo, "add", "-f", "data")
+    assert guard.main(repo) == 0                                   # лише тривалості — можна
+    put(repo, "data/transcripts-orc-peon.json", '{"a.wav": {"text": "Сделаю.", "duration": 1.0}}'.encode())
+    git(repo, "add", "-f", "data")
+    assert guard.main(repo) == 1                                   # поле text — заборонено

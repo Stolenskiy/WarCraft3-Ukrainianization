@@ -8,6 +8,7 @@
 - ⚠ `Units/orc/<юніт>` у грі — симлінки в `Mods/Reforged Models/...`; не писати крізь них; `install_voices` сам
   матеріалізує такі теки з відкатом (скіл `game-change`).
 - Меню: fdf Reforged 2.x ламають 1.31 — лише fdf рос. пакета 1.31 + укр. значення.
+- Тексти оригіналів (Whisper) — лише в `data/local/` (gitignored, ADR 0005); у git лише тривалості. Без них студія показує плейсхолдер (`catalog.py::NO_TEXT`); відновити: `make transcripts-local` / `make transcribe`.
 - Whisper на звуках без мови «галюцинує» («Продолжение следует…», «Субтитры … DimaTorzok») — це не
   вотермарки; аудіо не різати (`catalog.py::HALLUCINATION_RE`).
 - macOS: `sudo` без TTY → `osascript … with administrator privileges`; zip з кирилицею → `ditto -x -k`;

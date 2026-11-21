@@ -26,4 +26,4 @@
 | студія | `tools/studio/`, `make studio` | локальний веб-застосунок запису |
 | guard | `tools/guard_no_audio.py` | перевірка «у git немає аудіо/секретів» |
 | храповик | `fail_under` у `pyproject.toml` | поріг покриття лише зростає |
-| транскрипт | `data/transcripts-*.json` | текст оригінальної репліки (Whisper) для читання під час запису |
+| транскрипт | `data/local/transcripts-*.json` | текст оригінальної репліки (Whisper) для читання під час запису; лише локально (у git `data/transcripts-*.json` — тривалості) |

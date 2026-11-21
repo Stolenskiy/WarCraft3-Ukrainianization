@@ -32,6 +32,7 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
   owner's explicit permission this session) and the `game-change` procedure. Never touch `Data/` or `Mods/`; delete nothing.
 - Never commit game or proprietary audio, `reference*/`, `audio/`, `models/`, `game-files/`, `backups/`, `data/studio/`, `.env*`,
   `.venv`. No `git add -f`, no blind `git add -A`. Only FLAC voice packs in `voices/<author>/` are allowed (`make guard` enforces it).
+- Original Blizzard line texts (RU/EN transcripts) never go into git: they live in gitignored `data/local/` (ADR 0005); tracked `data/transcripts-*.json` hold durations only (`make guard`).
 - Commit author = the repo-local git config (personal email). Never write an email address or real name into files, commits or PRs.
   No attribution lines (no «Co-Authored-By», no «Generated with»). Push only with `git push origin`; never force-push main.
 - Never edit `.claude/settings.json` and never propose changes to it (owner's rule). Automation goes through git hooks, CI, make targets.

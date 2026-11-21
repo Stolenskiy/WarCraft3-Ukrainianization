@@ -1,102 +1,77 @@
 {
   "herolichattack1.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "herolichpissed1.wav": {
-    "text": "Ох, старые мои кости!",
     "duration": 3.54
   },
   "herolichpissed2.wav": {
-    "text": "Если у вас нет проблем, значит вы уже умерли.",
     "duration": 5.68
   },
   "herolichpissed3.wav": {
-    "text": "Я призрак старого Варкрафта.",
     "duration": 3.82
   },
   "herolichpissed4.wav": {
-    "text": "По щелкой лучше на Банши, Говорят, она здорово визжит.",
     "duration": 5.28
   },
   "herolichpissed5.wav": {
-    "text": "Оставьте в покое мышку, неугомонный вы наш.",
     "duration": 4.72
   },
   "herolichpissed6.wav": {
-    "text": "Хорошо там, где нас пока нет.",
     "duration": 4.14
   },
   "herolichpissed7.wav": {
-    "text": "Я хочу жить вечно. Пока получается.",
     "duration": 4.92
   },
   "herolichpissed8.wav": {
-    "text": "Вы слабое звено. Вы тянете команду назад. До свидания.",
     "duration": 7.62
   },
   "herolichready1.wav": {
-    "text": "Древнее зло непобедимо.",
     "duration": 3.92
   },
   "herolichwarcry1.wav": {
-    "text": "Запылающий легион!",
     "duration": 3.2
   },
   "herolichwhat1.wav": {
-    "text": "Я поклялся служить Нерзулу.",
     "duration": 2.9
   },
   "herolichwhat2.wav": {
-    "text": "Пресси.",
     "duration": 0.68
   },
   "herolichwhat3.wav": {
-    "text": "Приказывай.",
     "duration": 1.3
   },
   "herolichwhat4.wav": {
-    "text": "Слушаю.",
     "duration": 1.08
   },
   "herolichyes1.wav": {
-    "text": "Да будет так.",
     "duration": 1.52
   },
   "herolichyes2.wav": {
-    "text": "Твоя воля исполнится.",
     "duration": 1.98
   },
   "herolichyes3.wav": {
-    "text": "Так предначертано судьбой.",
     "duration": 1.86
   },
   "herolichyes4.wav": {
-    "text": "Мертвые идут.",
     "duration": 1.82
   },
   "herolichyes5.wav": {
-    "text": "Я согласен.",
     "duration": 1.14
   },
   "herolichyesattack1.wav": {
-    "text": "Почувствуй зов могилы.",
     "duration": 2.5
   },
   "herolichyesattack2.wav": {
-    "text": "Во славу тьмы!",
     "duration": 2.08
   },
   "herolichyesattack3.wav": {
-    "text": "Их ждет смерть.",
     "duration": 2.0
   },
   "lichattackeffort2.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "lichattackeffort3.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   }
 }

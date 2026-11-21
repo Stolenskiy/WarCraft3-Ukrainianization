@@ -160,8 +160,9 @@ A/B «З EQ / Без EQ», «Зберегти як новий профіль», 
 ## Розширення
 
 **Нова раса юнітів** (human/undead/nightelf уже підключені): покласти референси в
-`reference/units/<race>/<unit>/`, транскрипти в `data/transcripts-<race>-<unit>.json`
-(`tools/transcribe.py`), аркуші в `docs/voice-bible/<race>.md`; якщо раси немає в
+`reference/units/<race>/<unit>/`, тривалості в `data/transcripts-<race>-<unit>.json` (`{wav: {duration}}`, у git),
+тексти оригіналів у `data/local/transcripts-<race>-<unit>.json` (gitignored, `make transcribe` / `make transcripts-local`; ADR 0005;
+без них студія показує плейсхолдер, а український текст voice bible лишається), аркуші в `docs/voice-bible/<race>.md`; якщо раси немає в
 `UNIT_RACES` (`catalog.py`), додати один рядок. Код UI/ядра не змінюється.
 
 **Нове джерело реплік** (місії кампанії, будівлі, нейтрали): у `catalog.py` створити клас із

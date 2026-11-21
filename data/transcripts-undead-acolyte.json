@@ -1,90 +1,68 @@
 {
   "acolytepissed1.wav": {
-    "text": "Настал час тьмы!",
     "duration": 2.22
   },
   "acolytepissed2.wav": {
-    "text": "Смерть очистит этот мир.",
     "duration": 2.94
   },
   "acolytepissed3.wav": {
-    "text": "Я вижу великую тьму. Тьфу, опять капюшон сполз на глаза.",
     "duration": 5.86
   },
   "acolytepissed4.wav": {
-    "text": "Слабые захлебнутся кровью.",
     "duration": 4.02
   },
   "acolytepissed5.wav": {
-    "text": "Однажды я стану королем мертвых.",
     "duration": 5.6
   },
   "acolytepissed6.wav": {
-    "text": "Я избран. Железная рука спустилась с неба и коснулась меня.",
     "duration": 6.52
   },
   "acolytepissed7.wav": {
-    "text": "Хотите узнать секрет вечного счастья? Откройте страницу 2, 4, 6. Продолжение следует...",
     "duration": 37.18
   },
   "acolytepissed8.wav": {
-    "text": "Вступив на путь тьмы, вы обретете власть над собственной судьбой. Страховку и оплаченный отпуск.",
     "duration": 9.64
   },
   "acolyteready1.wav": {
-    "text": "Дела не ждут.",
     "duration": 1.08
   },
   "acolytewarcry1.wav": {
-    "text": "Я посвященный.",
     "duration": 1.64
   },
   "acolytewhat1.wav": {
-    "text": "Жизнь Занерзула!",
     "duration": 2.0
   },
   "acolytewhat2.wav": {
-    "text": "Я жажду служить.",
     "duration": 1.84
   },
   "acolytewhat3.wav": {
-    "text": "Чего желает мой повелитель?",
     "duration": 2.38
   },
   "acolytewhat4.wav": {
-    "text": "Где прольется моя кровь?",
     "duration": 2.3
   },
   "acolytewhat5.wav": {
-    "text": "Склоняюсь перед вашей волей.",
     "duration": 2.46
   },
   "acolyteyes1.wav": {
-    "text": "Исполню с радостью.",
     "duration": 1.98
   },
   "acolyteyes2.wav": {
-    "text": "Да, повелитель.",
     "duration": 1.64
   },
   "acolyteyes3.wav": {
-    "text": "Да свершится предначертанное.",
     "duration": 2.8
   },
   "acolyteyes4.wav": {
-    "text": "Ваша воля исполнится!",
     "duration": 1.88
   },
   "acolyteyesattack1.wav": {
-    "text": "Да воцарится смерть!",
     "duration": 1.92
   },
   "acolyteyesattack2.wav": {
-    "text": "Байтесь тьмы!",
     "duration": 1.2
   },
   "acolyteyesattack3.wav": {
-    "text": "Смерть всем живым!",
     "duration": 2.0
   }
 }
