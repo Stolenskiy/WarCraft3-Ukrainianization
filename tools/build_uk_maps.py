@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Build Ukrainian-localized standard melee maps for Warcraft III 1.31.
 
 Reads maps extracted from the game's CASC storage (/tmp/wc3-maps-orig/...),
@@ -19,12 +18,11 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import wc3map
-from map_translations import NAMES, DESCS, PLAYERS
+from map_translations import DESCS, NAMES, PLAYERS
 
 ORIG_ROOT = "/tmp/wc3-maps-orig/war3.w3mod"
 DEFAULT_OUT = "/tmp/wc3-maps-uk"
@@ -66,7 +64,7 @@ def build_map(path, rec):
     m = wc3map.MapArchive(path)
     base = wc3map.parse_wts(m.read_file("war3map.wts"))
 
-    en_name = wts_value(base, rec["name"])
+    _en_name = wts_value(base, rec["name"])
     en_desc = wts_value(base, rec["desc"])
     en_players = wts_value(base, rec["players"])
 
@@ -162,7 +160,7 @@ def verify_built(src_path, out_path, rec):
     found = any(t == uk_name for t in strings.values())
     assert found, "ukrainian name not found in rebuilt %s" % rec["path"]
     # every untouched block byte-identical
-    for bi in range(len(m0.block_table)):
+    for _bi in range(len(m0.block_table)):
         pass  # raw-copy is guaranteed by construction; spot check below
     return True
 

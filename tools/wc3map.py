@@ -107,7 +107,7 @@ class MapArchive:
         self.block_table = self._read_table(self.block_pos, block_size_n,
                                             mpq_hash("(block table)", MPQ_HASH_FILE_KEY))
         self.entries = {}  # normalized name -> block index
-        for i, h in enumerate(self.hash_table):
+        for _i, h in enumerate(self.hash_table):
             if h[0] == 0xFFFFFFFF and h[1] == 0xFFFFFFFF and h[3] == 0xFFFFFFFF:
                 continue
             bi = h[3]
@@ -238,9 +238,9 @@ def build_map(header_0x200, files, listfile_names=None):
         cur += len(blob)
 
     # hash table
-    hashtable = [b"\xff" * 16] * hash_count  # filled below
+    _hashtable = [b"\xff" * 16] * hash_count  # filled below
     ht = [(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)] * hash_count
-    free = 0
+    _free = 0
     for i, name in enumerate(names):
         idx = mpq_hash(name, MPQ_HASH_TABLE_INDEX) & (hash_count - 1)
         while ht[idx][3] != 0xFFFFFFFF:
@@ -381,7 +381,7 @@ def rebuild_map(src_path, overrides=None):
 
     hash_count = max(16, 1 << (2 * len(kept) - 1).bit_length())
     ht = [(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)] * hash_count
-    for n, (h, data, be) in enumerate(kept):
+    for n, (h, _data, _be) in enumerate(kept):
         idx = h[0] & (hash_count - 1)
         while ht[idx][3] != 0xFFFFFFFF:
             idx = (idx + 1) % hash_count
@@ -394,7 +394,7 @@ def rebuild_map(src_path, overrides=None):
     blocks = []
     packed = bytearray()
     cur = data_off
-    for h, data, be in kept:
+    for _h, data, be in kept:
         if be is None:
             blocks.append((cur, len(data), len(data), FLAG_EXISTS | FLAG_SINGLE_UNIT))
         else:

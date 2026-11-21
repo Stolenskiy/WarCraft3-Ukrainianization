@@ -11,11 +11,9 @@ Usage:
 import os
 import struct
 import sys
-from io import BytesIO
 
-from PyCASC.utils.CASCUtils import parse_encoding_file, parse_blte, r_cascfile
-from PyCASC.utils.blizzutils import var_int, hexkey_to_bytes
-from PyCASC.rootfiles.warcraft3 import parse_warcraft3_root
+from PyCASC.utils.blizzutils import hexkey_to_bytes, var_int
+from PyCASC.utils.CASCUtils import parse_blte, parse_encoding_file
 
 GAME_ROOT = os.environ.get("WC3_GAME_ROOT", "/Applications/Warcraft III Classic")
 DATA_DIR = os.path.join(GAME_ROOT, "Data")
@@ -90,7 +88,7 @@ class CASC:
         ents = self.idx.get(ekey[:9])
         if not ents:
             raise KeyError("ekey not in local idx: %s" % ekey.hex())
-        for data_file, offset, size, eks in ents:
+        for data_file, offset, size, _eks in ents:
             path = os.path.join(DATA_DIR, "data", "data.%03d" % data_file)
             with open(path, "rb") as f:
                 f.seek(offset + 0x1E)  # local-storage entries carry a 30-byte header
@@ -176,11 +174,11 @@ def parse_tvfs(data, prefix="", out=None, depth=0, read_blob=None):
     assert data[:4] == b"TVFS", "not a TVFS file"
     if out is None:
         out = {}
-    header_size = data[5]
+    _header_size = data[5]
     path_off = be(data, 0x0C, 4)
     path_size = be(data, 0x10, 4)
     vfs_off = be(data, 0x14, 4)
-    vfs_size = be(data, 0x18, 4)
+    _vfs_size = be(data, 0x18, 4)
     cft_off = be(data, 0x1C, 4)
     cft_size = be(data, 0x20, 4)
     if cft_size > 0xFFFFFF:
@@ -229,8 +227,8 @@ def parse_tvfs(data, prefix="", out=None, depth=0, read_blob=None):
                 span_count = data[vp]
                 vp += 1
                 if span_count == 1:
-                    span_off = be(data, vp, 4)
-                    span_size = be(data, vp + 4, 4)
+                    _span_off = be(data, vp, 4)
+                    _span_size = be(data, vp + 4, 4)
                     cft_pos = be(data, vp + 8, cft_offs_size)
                     ekey = data[cft_off + cft_pos: cft_off + cft_pos + 9]
                     blob = None

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Ukrainian translations for standard Warcraft III 1.31 melee maps.
 
 Three tables:
