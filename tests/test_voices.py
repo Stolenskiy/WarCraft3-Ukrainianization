@@ -7,9 +7,10 @@ import wave
 import check_voices
 import install_voices as iv
 import pytest
-import voices
 from conftest import TMP_ROOT, synth
 from studio import server as _studio_server  # noqa: F401  (імпорт до зміни WC3UA_ROOT)
+
+import voices
 
 LINES = ["orc/peon/peonyes1", "orc/peon/peonwhat1", "orc/grunt/gruntyes1", "human/footman/footmanyes1"]
 

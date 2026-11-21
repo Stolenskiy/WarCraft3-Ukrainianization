@@ -345,8 +345,9 @@ def test_community_voices_flow(page, tmp_path, monkeypatch):
     import wave
 
     import install_voices as iv
-    import voices
     from conftest import synth
+
+    import voices
 
     def pcm(p):
         with wave.open(str(p), "rb") as w:
