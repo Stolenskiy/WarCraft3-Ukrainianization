@@ -9,18 +9,24 @@ API:
   GET  /api/group/<cid>/<gid>                усі репліки групи зі станом
   GET  /audio/<ref|ref-en|take|game>/<cid>/<gid>/<name>   аудіо (лише відомі файли)
   POST /api/take?cid=&gid=&lid=   (тіло — wav)    новий дубль
-  POST /api/approve   {cid,gid,lid,file,trim}      обрати дубль для гри
+  POST /api/approve   {cid,gid,lid,file[,trim]}    обрати дубль для гри (trim — застарілий override auto_trim)
   POST /api/unapprove {cid,gid,lid}
   POST /api/delete    {cid,gid,lid,file}           у кошик
   POST /api/restore   {cid,gid,lid,file}
   POST /api/text      {cid,gid,lid,text}
   POST /api/trim      {cid,gid,lid,file,start,end[,auto_trim]}   ручне обрізання дубля (секунди; null,null — скинути)
+  POST /api/tempo     {cid,gid,lid,file,tempo}     темп дубля 0.8–1.3 (atempo, висота та сама; null/1 — скинути)
+  GET  /api/settings                         {auto_trim, denoise, loudness} (data/studio/settings.json)
+  POST /api/settings  {auto_trim?,denoise?,loudness?}  змінити (булеві); діє на нові експорти, обрані файли
+                                             оновлює /api/eq/reexport
+  GET  /api/preview?cid=&gid=&lid=&file=     «Як у грі» для будь-якого дубля: wav, зібраний тим самим
+                                             ланцюжком і налаштуваннями, що й копія для гри (кеш preview-cache/)
   POST /api/open-dir  {cid,gid}                    відкрити теку game-files у Finder
   GET  /api/eq?cid=&gid=                     {selected, default, profiles:[{id,builtin,name,enabled,gain_db,bands}]}
   POST /api/eq/profile {cid,gid,profile,id?,assign?}  створити (без id) / оновити власний профіль
   POST /api/eq/delete {cid,gid,id}                 видалити власний профіль (пресети — ні)
   POST /api/eq/assign {cid,gid,profile_id}         профіль групи (null → типовий)
-  POST /api/eq/reexport {cid,gid,trim}             перезаписати обрані дублі групи з поточним EQ
+  POST /api/eq/reexport {cid,gid[,trim]}           перезаписати обрані дублі групи з поточним EQ
 Кожна дія повертає оновлену репліку (той самий формат, що в /api/group).
 """
 from __future__ import annotations
@@ -41,18 +47,25 @@ WEB = Path(__file__).resolve().parent / "web"
 MAX_UPLOAD = 40 * 1024 * 1024
 
 
+def _opt(d: dict, key: str) -> bool | None:
+    """Застарілий явний параметр запиту (trim/auto_trim); немає → береться з налаштувань."""
+    return None if d.get(key) is None else bool(d[key])
+
+
 def make_handler(svc: core.Service):
     actions = {
-        "/api/approve": lambda d: svc.approve(d["cid"], d["gid"], d["lid"], d["file"], bool(d.get("trim", True))),
+        "/api/approve": lambda d: svc.approve(d["cid"], d["gid"], d["lid"], d["file"], _opt(d, "trim")),
         "/api/unapprove": lambda d: svc.unapprove(d["cid"], d["gid"], d["lid"]),
         "/api/delete": lambda d: svc.delete(d["cid"], d["gid"], d["lid"], d["file"]),
         "/api/restore": lambda d: svc.restore(d["cid"], d["gid"], d["lid"], d["file"]),
         "/api/trim": lambda d: svc.set_trim(d["cid"], d["gid"], d["lid"], d["file"], d.get("start"), d.get("end"),
-                                            bool(d.get("auto_trim", True))),
+                                            _opt(d, "auto_trim")),
+        "/api/tempo": lambda d: svc.set_tempo(d["cid"], d["gid"], d["lid"], d["file"], d.get("tempo")),
+        "/api/settings": lambda d: svc.set_settings(d),
         "/api/eq/profile": lambda d: svc.eq_save(d["cid"], d["gid"], d["profile"], d.get("id"), d.get("assign", True)),
         "/api/eq/delete": lambda d: svc.eq_delete(d["cid"], d["gid"], d["id"]),
         "/api/eq/assign": lambda d: svc.eq_assign(d["cid"], d["gid"], d.get("profile_id")),
-        "/api/eq/reexport": lambda d: svc.reexport_group(d["cid"], d["gid"], bool(d.get("trim", True))),
+        "/api/eq/reexport": lambda d: svc.reexport_group(d["cid"], d["gid"], _opt(d, "trim")),
         "/api/text": lambda d: svc.set_text(d["cid"], d["gid"], d["lid"], d.get("text", "")),
     }
 
@@ -99,6 +112,11 @@ def make_handler(svc: core.Service):
                 if parts == ["api", "eq"]:
                     q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
                     return self._json(svc.eq_json(q["cid"], q["gid"]))
+                if parts == ["api", "settings"]:
+                    return self._json(svc.get_settings())
+                if parts == ["api", "preview"]:
+                    q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
+                    return self._file(svc.preview(q["cid"], q["gid"], q["lid"], q["file"]), "audio/wav")
                 if parts[:2] == ["api", "group"] and len(parts) == 4:
                     return self._json(svc.group_json(parts[2], parts[3]))
                 if parts[0] == "audio" and len(parts) == 5:

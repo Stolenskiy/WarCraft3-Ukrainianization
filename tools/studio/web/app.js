@@ -250,7 +250,7 @@ async function eqReexport() {
   if (eqDirty() || !EQ.data.profiles.find((p) => p.id === EQ.id)) return toast("Спершу збережіть профіль", true);
   if (EQ.data.selected !== EQ.id && !(await eqCommit("/api/eq/assign", { profile_id: EQ.id }))) return;
   try {
-    const r = await post("/api/eq/reexport", { cid: S.cat, gid: S.unit, trim: $("#optTrim").checked });
+    const r = await post("/api/eq/reexport", { cid: S.cat, gid: S.unit });
     const byId = Object.fromEntries(r.lines.map((l) => [l.id, l]));
     S.phrases = S.phrases.map((p) => byId[p.id] || p);
     renderCues(); renderCard();
@@ -268,6 +268,7 @@ async function play(items) {
   for (const it of items) {
     let buf;
     try { buf = await loadBuf(it.url); } catch { toast("Не вдалося відкрити аудіо", true); return; }
+    if (it.nocache) bufCache.delete(it.url);           // «Як у грі»: той самий url не тримаємо, налаштування могли змінитись
     if (playToken !== token) return;
     await new Promise((res) => {
       const src = AC.createBufferSource();
@@ -560,15 +561,17 @@ function takeRow(p, t, isNew) {
   const actions = t.deleted
     ? `<button class="btn" data-restore="${esc(t.file)}">↩ Відновити</button>`
     : `<button class="btn" data-ab="${esc(t.file)}" title="Спершу оригінал, потім цей дубль">Оригінал → дубль</button>
+       <button class="btn quiet" data-preview="${esc(t.file)}" title="Як цей дубль прозвучить у грі: обрізання, темп, шумоговорення, EQ, гучність">▶ Як у грі</button>
+       <button class="btn icon tempo-btn" data-tempo-toggle="${esc(t.file)}" title="Темп: прискорити голос без зміни висоти">⏩</button>
        ${appr ? "" : `<button class="btn primary" data-approve="${esc(t.file)}" title="Цей дубль піде в гру">✓ Обрати</button>`}
        <button class="btn icon" data-del="${esc(t.file)}" title="У кошик (можна відновити)">🗑</button>`;
   return `<div class="take ${appr ? "approved" : ""} ${t.deleted ? "deleted" : ""} ${isNew ? "new" : ""}">
     <button class="play" data-play="${esc(id)}" ${t.exists ? "" : "disabled"}>▶</button>
     <div><div class="take-head"><b>Дубль ${t.n || "?"}</b>
       <span class="fit" data-fit="${esc(t.file)}">${t.exists ? fmt(t.dur) : "файл відсутній"}</span>
-      ${appr ? `<span class="badge-game">У ГРІ</span>` : ""}<span class="trim-info" data-trim-info="${esc(t.file)}"></span>
+      ${appr ? `<span class="badge-game">У ГРІ</span>` : ""}<span class="trim-info" data-trim-info="${esc(t.file)}"></span>${tempoBadge(t)}
       <span class="time">${t.deleted ? "видалено " + timeLabel(t.deleted) : timeLabel(t.created)}</span></div>
-      <div class="wave-box"><canvas class="wave" data-wave="${esc(id)}"></canvas></div></div>
+      <div class="wave-box"><canvas class="wave" data-wave="${esc(id)}"></canvas></div>${t.deleted ? "" : tempoPanel(t)}</div>
     <div class="take-actions">${actions}</div></div>`;
 }
 function renderCard(newFile) {
@@ -617,7 +620,9 @@ function renderCard(newFile) {
           <b class="bad-t">червоний</b> — задовго, краще сказати швидше чи коротше.</p>
         <p><b>Тиша на початку й у кінці</b> (<i class="lg-auto"></i>заштрихована частина хвилі) у файлі для гри обрізається
           автоматично, якщо в шапці увімкнено «Обрізати тишу»; сам дубль не змінюється, тож у студії тишу чути.
-          Почути точно як у грі — «▶ Як у грі» на обраному дублі.</p>
+          Почути точно як у грі — «▶ Як у грі» на будь-якому дублі (з обрізанням, темпом, шумоговоренням, EQ і гучністю оригіналу).</p>
+        <p><b>⏩ Темп</b> — прискорює голос без зміни висоти (×0.8–×1.3). «Під довжину оригіналу» ставить темп так, щоб
+          голос не перевищував оригінал; підпис «голос … с» уже враховує темп. Звичайне ▶ темп не чує — для цього «▶ Як у грі».</p>
         <p><b>Ручки на хвилі</b> — межі того, що піде в гру. З «Обрізати тишу» вони одразу стоять на краях голосу,
           тож ▶ і «Оригінал → дубль» звучать уже обрізаними. Тягніть, щоб обрізати сильніше (затемнене відкидається)
           або розсунути — тоді видно штриховану тишу. ←/→ на ручці — крок 10 мс, подвійний клік — повернути ручку,
@@ -675,10 +680,12 @@ async function loadWaves(p) {
       }
       let a = Math.max(va, tr.start), e = Math.min(vb, tr.end);
       if (e <= a) [a, e] = [tr.start, tr.end];
-      const voice = e - a, fi = fitInfo(voice, refVoice), w = waves.get(wid);
-      if (w) { w.opts.marker = a + refVoice; drawWave(wid); }
-      if (cv) cv.dataset.markerSec = (a + refVoice).toFixed(3);
-      if (f) { f.className = "fit " + fi.cls; f.textContent = fi.text; f.title = `Ваш голос (без тиші на краях і обрізання) — ${fmt(voice)}; голос в оригіналі — ${fmt(refVoice)}. Зелений ≤ +10 %, жовтий ≤ +30 %, червоний — задовго.`; }
+      const voice = e - a, tempo = tempoOf(p, t.file), fi = fitInfo(voice / tempo, refVoice), w = waves.get(wid);
+      FIT.set(t.file, { voice, refVoice });                            // для «Під довжину оригіналу»
+      const mk2 = a + refVoice * tempo;                                // де закінчився б голос оригінальної довжини
+      if (w) { w.opts.marker = mk2; drawWave(wid); }
+      if (cv) cv.dataset.markerSec = mk2.toFixed(3);
+      if (f) { f.className = "fit " + fi.cls; f.textContent = fi.text; f.title = `Ваш голос (без тиші на краях і обрізання) — ${fmt(voice)}; голос в оригіналі — ${fmt(refVoice)}${tempo !== 1 ? `; з темпом ${tempoFmt(tempo)} звучить ${fmt(voice / tempo)}` : ""}. Зелений ≤ +10 %, жовтий ≤ +30 %, червоний — задовго.`; }
     };
     mountTrim(p, t, b.duration, scale, refit);
   }
@@ -696,6 +703,8 @@ function bindCard(p) {
   $("#recBtn").addEventListener("click", toggleRec);
   $("#unapprove")?.addEventListener("click", unapprove);
   $("#playGame")?.addEventListener("click", () => play([{ url: aurl("game", p.id) + `?v=${Date.now()}`, id: "game" }]));
+  $("#main").oninput = (e) => { const r = e.target.closest("[data-tempo-range]"); if (r) tempoLabel(r); };
+  $("#main").onchange = (e) => { const r = e.target.closest("[data-tempo-range]"); if (r) saveTempo(ids(p), r.dataset.tempoRange, tempoOf(p, r.dataset.tempoRange), +r.value); };
   $("#main").onclick = (e) => {
     const b = e.target.closest("button, canvas");
     if (!b) return;
@@ -705,6 +714,8 @@ function bindCard(p) {
       if (playing && playing.id === id) return stopPlay();
       return play([id === "ref" ? { url: urlRef(p), id } : takeItem(p, id.slice(5))]);
     }
+    if (d.preview) return playPreview(p, d.preview);
+    if (d.tempoToggle || d.tempoFit || d.tempoReset) return tempoClick(p, d);
     if (d.ab) return play([{ url: urlRef(p), id: "ref" }, takeItem(p, d.ab)]);
     if (d.trimReset) return resetTrim(p, d.trimReset);
     if (d.approve) return approve(d.approve);
@@ -745,7 +756,7 @@ async function saveText() {
 }
 async function approve(file) {
   const where = ids(), prev = cur().approved;
-  const res = await act("/api/approve", { file, trim: $("#optTrim").checked });
+  const res = await act("/api/approve", { file });
   if (!res) return;
   putPhrase(where, res);
   const n = res.takes.find((t) => t.file === file)?.n;
@@ -760,7 +771,7 @@ async function unapprove() {
 }
 async function undoTo(where, prevApproved) {
   const res = prevApproved
-    ? await post("/api/approve", { ...where, file: prevApproved, trim: $("#optTrim").checked })
+    ? await post("/api/approve", { ...where, file: prevApproved })
     : await post("/api/unapprove", where);
   putPhrase(where, res);
 }
@@ -773,7 +784,7 @@ async function del(file) {
   const n = res.takes.find((t) => t.file === file)?.n;
   toast(`Дубль ${n} у кошику${wasAppr ? " (вибір для гри знято)" : ""}`, false, 7000, async () => {
     let r = await post("/api/restore", { ...where, file });
-    if (wasAppr) r = await post("/api/approve", { ...where, file, trim: $("#optTrim").checked });
+    if (wasAppr) r = await post("/api/approve", { ...where, file });
     putPhrase(where, r);
   });
 }
@@ -860,7 +871,7 @@ function mountTrim(p, t, dur, scale, onChange = () => {}) {
 }
 async function saveTrim(where, file, prev, start, end) {
   let res;
-  try { res = await post("/api/trim", { ...where, file, start, end, auto_trim: $("#optTrim").checked }); }
+  try { res = await post("/api/trim", { ...where, file, start, end }); }
   catch (e) {
     toast(e.message, true);
     if (where.cid === S.cat && where.gid === S.unit) renderCard();
@@ -869,10 +880,69 @@ async function saveTrim(where, file, prev, start, end) {
   putPhrase(where, res);
   const n = res.takes.find((t) => t.file === file)?.n;
   toast(start == null ? `Обрізання дубля ${n} скинуто` : `Дубль ${n} обрізано: ${trimFmt(start, end)}`, false, 5000, async () =>
-    putPhrase(where, await post("/api/trim", { ...where, file, start: prev ? prev.start : null, end: prev ? prev.end : null, auto_trim: $("#optTrim").checked })));
+    putPhrase(where, await post("/api/trim", { ...where, file, start: prev ? prev.start : null, end: prev ? prev.end : null })));
 }
 function resetTrim(p, file) {
   saveTrim(ids(p), file, trimOf(p, file), null, null);
+}
+
+// ------------------------------------------------------------------ обробка для гри: налаштування, темп, «Як у грі»
+// Перемикачі обробки живуть на сервері (data/studio/settings.json): ті самі для затвердження, перезапису й «Як у грі».
+const SETTING_IDS = { optTrim: "auto_trim", optDenoise: "denoise", optLoudness: "loudness" };
+async function settingsSetup() {
+  let cfg = {};
+  try { cfg = await getJSON("/api/settings"); } catch (e) { toast("Налаштування не завантажились: " + e.message, true); }
+  for (const [id, key] of Object.entries(SETTING_IDS)) {
+    const el = $("#" + id);
+    if (key in cfg) el.checked = !!cfg[key];
+    el.onchange = async () => {
+      syncOpts();
+      try { await post("/api/settings", { [key]: el.checked }); } catch (e) { el.checked = !el.checked; syncOpts(); toast(e.message, true); return; }
+      if (key !== "auto_trim") toast("Діє на нові вибори; обрані файли оновить «Застосувати до обраних дублів» (Еквалайзер)", false, 6000);
+    };
+  }
+  syncOpts();
+}
+const TEMPO_MIN = 0.8, TEMPO_MAX = 1.3;
+const FIT = new Map();                                   // файл дубля → {voice, refVoice} без темпу (заповнює refit)
+const tempoOf = (p, file) => p.takes.find((t) => t.file === file)?.tempo || 1;
+const tempoFmt = (x) => `×${(+x).toFixed(2)}`;
+const tempoBadge = (t) => (Math.abs((t.tempo || 1) - 1) > 0.0005 ? `<span class="tempo-t" title="Темп дубля: прискорення без зміни висоти">${tempoFmt(t.tempo)}</span>` : "");
+function tempoPanel(t) {
+  const v = t.tempo || 1;
+  return `<div class="tempo-pop" data-tempo-pop="${esc(t.file)}" ${S.tempoOpen === t.file ? "" : "hidden"}>
+    <label>Темп <input type="range" min="${TEMPO_MIN}" max="${TEMPO_MAX}" step="0.01" value="${v}" data-tempo-range="${esc(t.file)}"><b data-tempo-val>${tempoFmt(v)}</b></label>
+    <button class="btn" data-tempo-fit="${esc(t.file)}" title="Темп = голос / голос оригіналу (1.0–1.3)">Під довжину оригіналу</button>
+    <button class="linkish" data-tempo-reset="${esc(t.file)}">Скинути</button></div>`;
+}
+const tempoLabel = (r) => { const b = r.parentElement.querySelector("[data-tempo-val]"); if (b) b.textContent = tempoFmt(r.value); };
+function tempoClick(p, d) {
+  if (d.tempoToggle) {
+    const open = S.tempoOpen !== d.tempoToggle;
+    S.tempoOpen = open ? d.tempoToggle : null;
+    document.querySelectorAll("[data-tempo-pop]").forEach((x) => { x.hidden = !(open && x.dataset.tempoPop === d.tempoToggle); });
+  } else if (d.tempoReset) saveTempo(ids(p), d.tempoReset, tempoOf(p, d.tempoReset), null);
+  else {
+    const f = FIT.get(d.tempoFit);
+    if (!f || !f.refVoice) return toast("Довжину оригіналу ще не пораховано", true);
+    saveTempo(ids(p), d.tempoFit, tempoOf(p, d.tempoFit), Math.min(TEMPO_MAX, Math.max(1, Math.ceil((f.voice / f.refVoice) * 100) / 100)));
+  }
+}
+async function saveTempo(where, file, prev, tempo) {
+  let res;
+  try { res = await post("/api/tempo", { ...where, file, tempo }); }
+  catch (e) { toast(e.message, true); if (where.cid === S.cat && where.gid === S.unit) renderCard(); return; }
+  putPhrase(where, res);
+  const n = res.takes.find((t) => t.file === file)?.n, none = tempo == null || Math.abs(tempo - 1) < 0.0005;
+  toast(none ? `Темп дубля ${n} скинуто` : `Дубль ${n} прискорено ${tempoFmt(tempo)}`, false, 5000, async () =>
+    putPhrase(where, await post("/api/tempo", { ...where, file, tempo: prev > 1.0005 || prev < 0.9995 ? prev : null })));
+}
+/** «Як у грі» для будь-якого дубля: сервер збирає той самий ланцюжок, що й копія для гри (EQ уже всередині). */
+function playPreview(p, file) {
+  const id = "preview:" + file;
+  if (playing && playing.id === id) return stopPlay();
+  const q = new URLSearchParams({ cid: S.cat, gid: S.unit, lid: p.id, file, v: Date.now() });
+  play([{ url: `/api/preview?${q}`, id, nocache: true }]);
 }
 
 // ------------------------------------------------------------------ toast + undo
@@ -951,10 +1021,10 @@ $("#optLang").addEventListener("click", (e) => {
 });
 renderLang();
 
-for (const id of ["optTrim", "optAutoplay"]) {
-  const el = $("#" + id);
-  try { const v = localStorage.getItem("studio." + id); if (v !== null) el.checked = v === "1"; } catch {}
-  el.onchange = () => { try { localStorage.setItem("studio." + id, el.checked ? "1" : "0"); } catch {} syncOpts(); };
+{ // «Слухати після запису» — лише налаштування цього браузера; решта перемикачів — на сервері (settingsSetup)
+  const el = $("#optAutoplay");
+  try { const v = localStorage.getItem("studio.optAutoplay"); if (v !== null) el.checked = v === "1"; } catch {}
+  el.onchange = () => { try { localStorage.setItem("studio.optAutoplay", el.checked ? "1" : "0"); } catch {} };
 }
 function syncOpts() { document.body.classList.toggle("no-autotrim", !$("#optTrim").checked); }
 $("#optTrim").addEventListener("change", () => { if (cur()) renderCard(); });   // ручки стають на нові авто-межі
@@ -963,6 +1033,7 @@ window.addEventListener("resize", () => waves.forEach((_, id) => drawWave(id)));
 window.addEventListener("beforeunload", (e) => { if (Rec.on) { e.preventDefault(); e.returnValue = ""; } });
 
 (async () => {
+  await settingsSetup();
   S.catalogs = await getJSON("/api/catalogs");
   let pos = null;
   try { pos = JSON.parse(localStorage.getItem("studio.pos") || "null"); } catch {}

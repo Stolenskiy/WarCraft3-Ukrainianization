@@ -241,3 +241,33 @@ def test_trim_moves_marker_and_fit(page):
     assert abs(float(pg.locator(".take canvas.wave").get_attribute("data-marker-sec")) - m1) < 0.01
     assert pg.inner_text(".take .fit") == fit1
     assert not pg.errors, pg.errors
+
+
+def test_tempo_fit_to_original_persists(page):
+    pg = page
+    record(pg, 2.0)                                      # довше за оригінал (0.8 с) → темп > 1
+    pg.locator("[data-tempo-toggle]").first.click()
+    pg.locator("[data-tempo-fit]").first.click()
+    pg.wait_for_selector(".take .tempo-t")
+    label = pg.inner_text(".take .tempo-t")
+    assert label.startswith("×") and 1.0 < float(label[1:]) <= 1.3, label
+    pg.reload()
+    pg.wait_for_selector(".take .tempo-t")
+    assert pg.inner_text(".take .tempo-t") == label
+    assert not pg.errors, pg.errors
+
+
+def test_game_preview_button_and_processing_toggles(page):
+    pg = page
+    record(pg, 1.2)
+    with pg.expect_response(lambda r: "/api/preview" in r.url and r.status == 200):
+        pg.locator("[data-preview]").first.click()
+    pg.wait_for_function("() => typeof playing !== 'undefined' && (playing === null || playing.id.startsWith('preview:'))")
+    pg.click("label:has(#optDenoise)")                            # налаштування — на сервері, а не лише в localStorage
+    pg.wait_for_function("async () => (await (await fetch('/api/settings')).json()).denoise === true")
+    pg.reload()
+    pg.wait_for_selector(".cue.on")
+    assert pg.is_checked("#optDenoise")
+    pg.click("label:has(#optLoudness)")
+    pg.wait_for_function("async () => (await (await fetch('/api/settings')).json()).loudness === false")
+    assert not pg.errors, pg.errors

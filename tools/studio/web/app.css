@@ -339,3 +339,11 @@ details.fold[open] > summary::before { content: "▾ "; }
 .no-autotrim .auto-dim { display: none; }
 .lg-auto { display: inline-block; width: 16px; height: 10px; margin-right: 4px; vertical-align: -1px; border-radius: 2px;
   background: repeating-linear-gradient(135deg, rgba(240,164,65,.45) 0 3px, transparent 3px 6px); }
+
+/* темп дубля: бейдж у рядку + панель зі слайдером */
+.tempo-t { color: var(--gold); font-variant-numeric: tabular-nums; font-size: 12px; }
+.tempo-pop { display: flex; align-items: center; gap: 12px; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--raise); font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.tempo-pop label { display: flex; align-items: center; gap: 8px; }
+.tempo-pop input[type=range] { width: 140px; accent-color: var(--accent); }
+.tempo-pop b { color: var(--text); font-variant-numeric: tabular-nums; min-width: 42px; }
+.btn.icon.tempo-btn:hover { color: var(--gold); border-color: rgba(240,164,65,.5); }

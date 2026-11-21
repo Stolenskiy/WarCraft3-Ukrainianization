@@ -7,7 +7,8 @@
         "ua_text": str | None,          # None = використовується підказка з каталогу
         "approved": <take file> | None, # цей дубль скопійовано в game-files/<game_rel>
         "takes": [{"file", "created", "deleted": iso | None,    # deleted → лежить у _deleted/
-                   "trim": {"start": sec, "end": sec}}],         # trim — необов'язкове ручне обрізання
+                   "trim": {"start": sec, "end": sec},           # trim — необов'язкове ручне обрізання
+                   "tempo": 1.15}],                              # tempo — необов'язкове прискорення 0.8–1.3
         "history": [{"ts", "action"}]}}}}
 
 Інваріанти (перевіряються тестами tests/test_studio_core.py):
@@ -17,10 +18,21 @@
     _export_filters; авто-обрізання тиші, якщо ввімкнене, діє після нього); зміна trim
     затвердженого дубля одразу перезаписує копію для гри;
   * затверджений дубль завжди має копію в game-files, незатверджений — не має.
+
+Темп (tempo, 0.8–1.3, немає ключа = 1.0): ffmpeg atempo зберігає висоту голосу; файл дубля не
+змінюється, зміна темпу затвердженого дубля одразу перезаписує копію для гри (як trim).
+
+Налаштування обробки — data/studio/settings.json {auto_trim, denoise, loudness} (proc.SettingsStore;
+GET/POST /api/settings). Ланцюжок копії для гри (_export_filters, ЄДИНИЙ для затвердження, перезапису
+й «Як у грі» — Service.preview, кеш data/studio/preview-cache/), порядок строгий:
+    ручне обрізання → авто-обрізання тиші → шумоговорення → темп → EQ → вирівнювання гучності
+(volume до гучності оригіналу репліки ±18 дБ + alimiter, щоб не кліпувало). Деталі — proc.py.
+Параметри trim/auto_trim у запитах — застарілий явний override налаштування auto_trim.
 """
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import os
 import re
@@ -32,8 +44,11 @@ from pathlib import Path
 
 from . import catalog as cat_mod
 from . import eq as eq_mod
+from . import proc
 from .catalog import Line, duration
 from .paths import GAME_FILES, MIN_TAKE_SEC, SR, STATE_DIR, TAKES_ROOT
+
+PREVIEW_DIR = STATE_DIR / "preview-cache"
 
 TAKE_RE = re.compile(r"\.take(\d+)\.wav$", re.I)
 
@@ -62,8 +77,7 @@ def new_entry() -> dict:
     return {"ua_text": None, "approved": None, "takes": [], "history": []}
 
 
-AUTO_TRIM = ("silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.08,areverse,"
-             "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.12,areverse")
+AUTO_TRIM = proc.AUTO_TRIM
 
 
 def export_take(src: Path, dst: Path, filters: list[str]) -> bool:
@@ -144,6 +158,7 @@ class Service:
         self._lines: dict[tuple[str, str], list[Line]] = {}
         self._groups: dict[str, list] = {}
         self.eq = eq_mod.EqStore(STATE_DIR / "eq.json")
+        self.settings = proc.SettingsStore(STATE_DIR / "settings.json")
 
     # ---------- доступ
     def catalog(self, cid: str):
@@ -238,7 +253,7 @@ class Service:
         for t in e["takes"]:
             p = self.take_path(cid, gid, t)
             takes.append({"file": t["file"], "n": take_no(t["file"]), "created": t.get("created"),
-                          "deleted": t.get("deleted"), "exists": p.exists(), "trim": t.get("trim"),
+                          "deleted": t.get("deleted"), "exists": p.exists(), "trim": t.get("trim"), "tempo": t.get("tempo") or 1.0,
                           "dur": round(duration(p), 3) if p.exists() else 0})
         return {"id": ln.id, "kind": ln.kind, "kind_ua": ln.kind_ua, "ru": ln.ru, "ru_dur": round(ln.ru_dur, 3),
                 "has_en": ln.ref_en is not None, "has_ru": ln.has_ru,
@@ -295,7 +310,7 @@ class Service:
             st.log(gid, lid, f"записано дубль {take_no(target.name)} ({d:.2f} с)")
             return self._done(cid, gid, ln)
 
-    def approve(self, cid: str, gid: str, lid: str, file: str, trim: bool = True) -> dict:
+    def approve(self, cid: str, gid: str, lid: str, file: str, trim: bool | None = None) -> dict:
         with self.lock:
             ln, st = self.line(cid, gid, lid), self.store(cid)
             e = st.entry(gid, lid)
@@ -311,15 +326,29 @@ class Service:
                    + (f" (замість дубля {take_no(prev)})" if prev and prev != file else ""))
             return self._done(cid, gid, ln)
 
-    def _export_filters(self, cid: str, gid: str, take: dict, auto_trim: bool) -> list[str]:
-        """ffmpeg-фільтри копії для гри, у порядку застосування. Точка розширення обробки:
-        ручне обрізання дубля → авто-обрізання тиші → EQ/обробка персонажа."""
+    def _base_filters(self, cid: str, gid: str, take: dict, auto_trim: bool | None = None,
+                      settings: dict | None = None) -> list[str]:
+        """Ланцюжок до вирівнювання гучності: обрізання → авто-тиша → шумоговорення → темп → EQ."""
+        cfg = settings or self.settings.get()
         tr = take.get("trim")
         manual = [f"atrim=start={tr['start']:.3f}:end={tr['end']:.3f},asetpts=PTS-STARTPTS"] if tr else []
-        return manual + ([AUTO_TRIM] if auto_trim else []) + eq_mod.to_ffmpeg(self.eq.effective(cid, gid))
+        auto = cfg["auto_trim"] if auto_trim is None else auto_trim
+        return (manual + ([AUTO_TRIM] if auto else []) + (proc.DENOISE if cfg["denoise"] else [])
+                + proc.tempo_filter(take.get("tempo")) + eq_mod.to_ffmpeg(self.eq.effective(cid, gid)))
+
+    def _export_filters(self, cid: str, gid: str, take: dict, auto_trim: bool | None = None,
+                        ln: Line | None = None, settings: dict | None = None) -> list[str]:
+        """ffmpeg-фільтри копії для гри, у порядку застосування. Точка розширення обробки:
+        ручне обрізання → авто-обрізання тиші → шумоговорення → темп → EQ → гучність як в оригіналі.
+        auto_trim=None — за налаштуванням; `ln` потрібен для вирівнювання гучності (без нього його немає)."""
+        cfg = settings or self.settings.get()
+        base = self._base_filters(cid, gid, take, auto_trim, cfg)
+        if cfg["loudness"] and ln is not None:
+            base += proc.volume_stage(self.take_path(cid, gid, take), base, ln.ref_path)
+        return base
 
     def set_trim(self, cid: str, gid: str, lid: str, file: str, start: float | None, end: float | None,
-                 auto_trim: bool = True) -> dict:
+                 auto_trim: bool | None = None) -> dict:
         """Ручне обрізання початку/кінця дубля (секунди від початку файлу); None, None — скинути.
         Файл дубля не змінюється; затверджений дубль одразу перекопіюється в game-files."""
         with self.lock:
@@ -362,12 +391,12 @@ class Service:
             st.log(gid, lid, msg)
             return self._done(cid, gid, ln)
 
-    def _write_game(self, cid: str, gid: str, t: dict, ln: Line, auto_trim: bool) -> None:
-        """Записати копію дубля для гри (trim → авто-тиша → EQ). Невдача → StudioError, старий файл гри
+    def _write_game(self, cid: str, gid: str, t: dict, ln: Line, auto_trim: bool | None = None) -> None:
+        """Записати копію дубля для гри (увесь ланцюжок _export_filters). Невдача → StudioError, старий файл гри
         лишається; сира копія — лише коли ffmpeg взагалі немає."""
         src, dst = self.take_path(cid, gid, t), self.game_path(ln)
         dst.parent.mkdir(parents=True, exist_ok=True)
-        if export_take(src, dst, self._export_filters(cid, gid, t, auto_trim)):
+        if export_take(src, dst, self._export_filters(cid, gid, t, auto_trim, ln)):
             return
         if shutil.which("ffmpeg") is None:
             shutil.copy2(src, dst)
@@ -483,7 +512,7 @@ class Service:
             self._eq(self.eq.assign, cid, gid, pid)
             return self.eq_json(cid, gid)
 
-    def reexport_group(self, cid: str, gid: str, trim: bool = True) -> dict:
+    def reexport_group(self, cid: str, gid: str, trim: bool | None = None) -> dict:
         """Перезаписати в game-files усі обрані дублі групи з поточним EQ; запис у журнал кожної репліки."""
         with self.lock:
             st, done, failed = self.store(cid), [], []
@@ -494,11 +523,88 @@ class Service:
                     continue
                 t = self._take(e, e["approved"])
                 src = self.take_path(cid, gid, t)
-                if not src.exists() or not export_take(src, self.game_path(ln), self._export_filters(cid, gid, t, trim)):
+                if not src.exists() or not export_take(src, self.game_path(ln), self._export_filters(cid, gid, t, trim, ln)):
                     failed.append(ln.id)
                     continue
-                st.log(gid, ln.id, f"EQ «{prof}» застосовано до дубля {take_no(t['file'])}")
+                st.log(gid, ln.id, f"обробку (EQ «{prof}») застосовано до дубля {take_no(t['file'])}")
                 done.append(ln.id)
             if done:
                 st.save()
             return {"done": done, "failed": failed, "lines": [self.line_json(cid, gid, ln) for ln in self.lines(cid, gid)]}
+
+    # ---------- налаштування обробки, темп, «Як у грі» (обробка — proc.py)
+    def get_settings(self) -> dict:
+        return self.settings.get()
+
+    def set_settings(self, patch: dict) -> dict:
+        """Змінити налаштування (auto_trim/denoise/loudness). Уже обрані файли не чіпає —
+        їх оновлює «Застосувати до обраних дублів» (reexport_group)."""
+        with self.lock:
+            try:
+                return self.settings.update(patch)
+            except ValueError as ex:
+                raise StudioError(str(ex)) from ex
+
+    def set_tempo(self, cid: str, gid: str, lid: str, file: str, tempo: float | None) -> dict:
+        """Прискорення дубля (atempo, висота не змінюється): 0.8–1.3; None або 1.0 — скинути.
+        Затверджений дубль одразу перекопіюється в game-files."""
+        with self.lock:
+            ln, st = self.line(cid, gid, lid), self.store(cid)
+            e = st.entry(gid, lid)
+            t = self._take(e, file)
+            n, old = take_no(file), t.get("tempo")
+            if tempo is not None:
+                try:
+                    tempo = round(float(tempo), 3)
+                except (TypeError, ValueError):
+                    raise StudioError("темп має бути числом") from None
+                if not proc.TEMPO_MIN <= tempo <= proc.TEMPO_MAX:
+                    raise StudioError(f"темп має бути в межах {proc.TEMPO_MIN}–{proc.TEMPO_MAX}")
+            if tempo is None or tempo == 1.0:
+                if t.pop("tempo", None) is None:
+                    return self._done(cid, gid, ln)
+                msg = f"скинуто темп дубля {n}"
+            else:
+                if t.get("deleted"):
+                    raise StudioError("спершу відновіть дубль із кошика")
+                if not self.take_path(cid, gid, t).exists():
+                    raise StudioError(f"файл дубля не знайдено: {file}")
+                t["tempo"] = tempo
+                msg = f"темп дубля {n}: ×{tempo:.2f}"
+            if e["approved"] == file:
+                try:
+                    self._write_game(cid, gid, t, ln)
+                except StudioError:
+                    t.pop("tempo", None)
+                    if old:
+                        t["tempo"] = old
+                    raise
+            st.log(gid, lid, msg)
+            return self._done(cid, gid, ln)
+
+    def preview(self, cid: str, gid: str, lid: str, file: str) -> Path:
+        """«Як у грі» для будь-якого дубля: той самий ланцюжок і налаштування, що в копії для гри, у кеші
+        data/studio/preview-cache/ (ключ — ланцюжок + mtime дубля й оригіналу; найстаріші понад
+        proc.PREVIEW_MAX видаляються). Повертає шлях до wav."""
+        with self.lock:
+            ln = self.line(cid, gid, lid)
+            t = self._take(self.store(cid).entry(gid, lid), file)
+            src = self.take_path(cid, gid, t)
+            if not src.exists():
+                raise StudioError(f"файл дубля не знайдено: {file}")
+            cfg = self.settings.get()
+            base = self._base_filters(cid, gid, t, None, cfg)
+            try:
+                stamp = (src.stat().st_mtime_ns, ln.ref_path.stat().st_mtime_ns if cfg["loudness"] else 0)
+            except OSError:
+                raise StudioError("файл оригіналу не знайдено") from None
+            key = hashlib.sha1(json.dumps([base, cfg["loudness"], str(src), str(ln.ref_path), stamp]).encode()).hexdigest()
+            out = PREVIEW_DIR / f"{key}.wav"
+            if out.exists():
+                os.utime(out)
+                return out
+            PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
+            if not export_take(src, out, self._export_filters(cid, gid, t, None, ln, cfg)):
+                raise StudioError("не вдалося підготувати прослуховування «Як у грі»")
+            proc.evict_oldest(PREVIEW_DIR, proc.PREVIEW_MAX)
+            return out
