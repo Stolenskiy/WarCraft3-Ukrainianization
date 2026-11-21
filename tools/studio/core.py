@@ -8,7 +8,8 @@
         "approved": <take file> | None, # цей дубль скопійовано в game-files/<game_rel>
         "takes": [{"file", "created", "deleted": iso | None,    # deleted → лежить у _deleted/
                    "trim": {"start": sec, "end": sec},           # trim — необов'язкове ручне обрізання
-                   "tempo": 1.15}],                              # tempo — необов'язкове прискорення 0.8–1.3
+                   "tempo": 1.15,                                # tempo — необов'язкове прискорення 0.8–1.3
+                   "peak_db": dBFS, "clipped": bool}],           # необов'язкові (старі дублі без них)
         "history": [{"ts", "action"}]}}}}
 
 Інваріанти (перевіряються тестами tests/test_studio_core.py):
@@ -31,15 +32,19 @@ GET/POST /api/settings). Ланцюжок копії для гри (_export_filt
 """
 from __future__ import annotations
 
+import array
 import datetime as dt
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
+import wave
 from pathlib import Path
 
 from . import catalog as cat_mod
@@ -78,6 +83,25 @@ def new_entry() -> dict:
 
 
 AUTO_TRIM = proc.AUTO_TRIM
+
+
+CLIP_LEVEL = 0.98     # |x| ≥ цього (частка повної шкали) — перевантаження
+CLIP_MIN_SAMPLES = 3  # одиничний відлік — не кліппінг (передискретизація може «перестрибнути»)
+
+
+def wav_peak(path: Path) -> tuple[float, int]:
+    """(пік у dBFS, кількість відліків з |x| ≥ CLIP_LEVEL) для wav s16; без numpy."""
+    with wave.open(str(path), "rb") as w:
+        if w.getsampwidth() != 2:
+            raise StudioError("очікується 16-бітний WAV")
+        data = array.array("h")
+        data.frombytes(w.readframes(w.getnframes()))
+    if sys.byteorder == "big":
+        data.byteswap()
+    peak = max((max(data), -min(data)), default=0)
+    limit = CLIP_LEVEL * 32768
+    clipped = sum(1 for v in data if v >= limit or -v >= limit)
+    return (round(20 * math.log10(peak / 32768), 2) if peak else -120.0), clipped
 
 
 def export_take(src: Path, dst: Path, filters: list[str]) -> bool:
@@ -254,6 +278,7 @@ class Service:
             p = self.take_path(cid, gid, t)
             takes.append({"file": t["file"], "n": take_no(t["file"]), "created": t.get("created"),
                           "deleted": t.get("deleted"), "exists": p.exists(), "trim": t.get("trim"), "tempo": t.get("tempo") or 1.0,
+                          "peak_db": t.get("peak_db"), "clipped": bool(t.get("clipped", False)),
                           "dur": round(duration(p), 3) if p.exists() else 0})
         return {"id": ln.id, "kind": ln.kind, "kind_ua": ln.kind_ua, "ru": ln.ru, "ru_dur": round(ln.ru_dur, 3),
                 "has_en": ln.ref_en is not None, "has_ru": ln.has_ru,
@@ -306,8 +331,12 @@ class Service:
                 target.unlink(missing_ok=True)
                 raise StudioError("запис порожній або закороткий")
             st = self.store(cid)
-            st.entry(gid, lid)["takes"].append({"file": target.name, "created": now(), "deleted": None})
-            st.log(gid, lid, f"записано дубль {take_no(target.name)} ({d:.2f} с)")
+            peak_db, n_clip = wav_peak(target)
+            clipped = n_clip >= CLIP_MIN_SAMPLES
+            st.entry(gid, lid)["takes"].append({"file": target.name, "created": now(), "deleted": None,
+                                                "peak_db": peak_db, "clipped": clipped})
+            st.log(gid, lid, f"записано дубль {take_no(target.name)} ({d:.2f} с, пік {peak_db:.1f} дБ"
+                   + (", перевантаження)" if clipped else ")"))
             return self._done(cid, gid, ln)
 
     def approve(self, cid: str, gid: str, lid: str, file: str, trim: bool | None = None) -> dict:

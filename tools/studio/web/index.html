@@ -28,6 +28,7 @@
       <label class="switch" title="Програти дубль одразу після запису"><input type="checkbox" id="optAutoplay" checked><span></span>Слухати після запису</label>
       <p class="opts-note">Діє на нові «Обрати для гри». Уже обрані файли оновлює «Застосувати до обраних дублів» в еквалайзері.</p>
     </div></details>
+    <button class="ghost" id="installBtn" title="Скопіювати обрані дублі в теку гри (з бекапом і відкатом)">Встановити в гру</button>
     <button class="ghost" id="openGameDir" title="Відкрити теку з файлами для гри">Файли для гри</button>
   </div>
 </header>
@@ -68,6 +69,18 @@
   <span><kbd>N</kbd> наступна незатверджена</span>
   <span><kbd>⌘Z</kbd> скасувати</span>
 </footer>
+
+<div id="installModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="installTitle">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="installTitle">Дублі й гра</h3>
+      <div class="seg mini" id="installMode"><button data-mode="install" class="on">Встановити</button><button data-mode="uninstall">Прибрати з гри</button></div><button class="ghost" id="installClose" title="Закрити (Esc)">✕</button></div>
+    <div class="modal-body inst-body" id="installBody"></div>
+    <div class="modal-foot">
+      <span class="modal-hint">Позначте, що саме. Оригінали й симлінки повертаються з бекапу.</span>
+      <button class="btn primary" id="installGo">Встановити</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast" class="toast" hidden></div>
 <script src="/static/app.js"></script>

@@ -364,7 +364,7 @@ async function ensureMic() {
   refreshMics();                                   // після дозволу браузер віддає назви пристроїв
   const preN = Math.ceil((0.25 * Rec.sr) / 2048); // 0.25 с «передзапису», щоб не з'їсти перший склад
   Rec.node.port.onmessage = (e) => {
-    if (Rec.on) Rec.chunks.push(e.data);
+    if (Rec.on) { Rec.chunks.push(e.data); clipCheck(e.data); }
     else { Rec.pre.push(e.data); if (Rec.pre.length > preN) Rec.pre.shift(); }
   };
   if (!Rec.meter) { Rec.meter = true; meterLoop(); }
@@ -420,6 +420,7 @@ async function stopRec() {
     const res = await post(`/api/take?${new URLSearchParams(where)}`, encodeWav(pcm, Rec.sr), true);
     const newest = res.takes.filter((t) => !t.deleted).slice(-1)[0];
     putPhrase(where, res, newest && newest.file);
+    if (newest && newest.clipped) toast(CLIP_ADVICE, true, 14000);
     if ($("#optAutoplay").checked && newest && cur()?.id === res.id && S.unit === where.gid) play([takeItem(res, newest.file)]);
   } catch (e) { toast("Не збережено: " + e.message, true); renderCard(); }
   finally { S.busy = false; }
@@ -1057,3 +1058,121 @@ del = async (file) => {
   if (row && !matchMedia("(prefers-reduced-motion: reduce)").matches) { row.classList.add("leaving"); await new Promise((r) => setTimeout(r, 160)); }
   try { return await baseDel(file); } finally { row?.classList.remove("leaving"); }
 };
+
+// ------------------------------------------------------------------ перевантаження мікрофона (clipping)
+// Живо: відлік |x| ≥ 0.98 у воркліті → метр червоніє, у панелі запису — «перевантаження» (раз на дубль, без тостів).
+// Після збереження сервер дає take.clipped/peak_db → червоний бейдж у рядку дубля й тост із порадою.
+const CLIP_LEVEL = 0.98;
+const CLIP_ADVICE = "Голос «рве» мікрофон: відсуньтесь на 10–15 см або зменште гучність входу в Системних параметрах → Звук → Вхід";
+const Clip = { take: null, flagged: false, timer: null };
+function clipCheck(buf) {
+  if (Clip.take !== Rec.t0) { Clip.take = Rec.t0; Clip.flagged = false; $("#clipFlag")?.setAttribute("hidden", ""); }
+  let hit = false;
+  for (let i = 0; i < buf.length; i++) if (buf[i] >= CLIP_LEVEL || buf[i] <= -CLIP_LEVEL) { hit = true; break; }
+  if (!hit) return;
+  const m = $("#meter"); m?.classList.add("clip");
+  clearTimeout(Clip.timer); Clip.timer = setTimeout(() => $("#meter")?.classList.remove("clip"), 700);
+  if (!Clip.flagged) { Clip.flagged = true; $("#clipFlag")?.removeAttribute("hidden"); }
+}
+{
+  const baseRenderCard = renderCard;               // індикатор у панелі запису (після кожної перемальовки картки)
+  renderCard = (...a) => {
+    baseRenderCard(...a);
+    $("#recSub")?.insertAdjacentHTML("afterend", `<span class="clip-flag" id="clipFlag" title="${esc(CLIP_ADVICE)}" hidden>перевантаження</span>`);
+  };
+  const baseTakeRow = takeRow;                     // червоний бейдж у рядку дубля
+  takeRow = (p, t, ...a) => {
+    const html = baseTakeRow(p, t, ...a);
+    return t.clipped ? html.replace('<span class="trim-info"',
+      `<span class="badge-clip" title="${esc(CLIP_ADVICE)}">перевантаження</span><span class="trim-info"`) : html;
+  };
+}
+
+// ------------------------------------------------------------------ встановлення в гру (install_voices через API)
+// Вікно: дерево Раса → Юніт → файли з чекбоксами (стан — самі чекбокси в DOM), режими «Встановити» / «Прибрати з гри».
+const Inst = { mode: "install", busy: false };
+const instModal = () => $("#installModal");
+const instBoxes = (el = instModal()) => [...el.querySelectorAll("input[data-f]")];
+const instShort = (t) => String(t).replace(/\s*\(.*\)\s*$/, "");
+const INST_TAGS = {
+  new: ["нове", "new"], update: ["оновиться", "upd"], same: ["вже в грі", "same"],
+  present: ["у грі", "new"], changed: ["змінено не нами", "same"], missing: ["файлу немає", "same"],
+};
+const nFiles = (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "файл" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "файли" : "файлів"}`;
+
+function instFile(f) {
+  const [txt, cls] = INST_TAGS[f.status] || [f.status, ""];
+  const off = f.status === "same" || f.status === "changed" || f.status === "missing";
+  return `<li class="${off ? "dim" : ""}"><label><input type="checkbox" data-f="${esc(f.rel)}" ${off ? "" : "checked"}>
+    <code>${esc(f.name)}</code><span class="tag ${cls}">${txt}</span></label></li>`;
+}
+function instUnit(r, u) {
+  const mat = u.files.some((f) => f.materialize);
+  return `<details class="inst-unit" data-key="${esc(r.id)}/${esc(u.id)}"><summary>
+    <input type="checkbox" data-g title="Усі файли персонажа"><b>${esc(instShort(u.title))}</b>
+    <small class="cnt"></small>${mat ? `<span class="tag mat" title="Тека юніта в грі — симлінк на Mods/. Її буде замінено реальною текою з симлінками на оригінальні файли; відкат повертає симлінк.">потребує перетворення теки</span>` : ""}</summary>
+    <ul class="inst-list">${u.files.map(instFile).join("")}</ul></details>`;
+}
+function instRender(pl) {
+  const un = Inst.mode === "uninstall";
+  const body = pl.races.map((r) => `<details class="inst-race" data-key="${esc(r.id)}"><summary>
+    <input type="checkbox" data-g title="Усі файли раси"><b>${esc(r.title)}</b><small class="cnt"></small></summary>
+    ${r.units.map((u) => instUnit(r, u)).join("")}</details>`).join("");
+  $("#installBody").innerHTML = `<p class="inst-game">Тека гри: <code>${esc(pl.game)}</code></p>` +
+    (body || `<p class="inst-note">${un ? "Нічого не встановлено нами." : "Немає обраних дублів у game-files/."}</p>`) +
+    (pl.skipped && pl.skipped.length ? `<details class="inst-skip"><summary><b>Пропущено</b> <small>${pl.skipped.length}</small></summary><ul class="inst-list skip">${
+      pl.skipped.map((s) => `<li><code>${esc(s.rel)}</code><small>${esc(s.reason)}</small></li>`).join("")}</ul></details>` : "") +
+    (pl.same && !un ? `<p class="inst-note">Уже в грі й без змін: ${pl.same} (за замовчуванням не обрано)</p>` : "");
+  instSync();
+}
+function instSync() {                          // стани груп (повністю / частково / нічого) і лічильники
+  const m = instModal();
+  for (const d of m.querySelectorAll("details.inst-unit, details.inst-race")) {
+    const bx = instBoxes(d), on = bx.filter((b) => b.checked).length, g = d.querySelector(":scope > summary > input[data-g]");
+    g.checked = bx.length > 0 && on === bx.length; g.indeterminate = on > 0 && on < bx.length;
+    d.querySelector(":scope > summary .cnt").textContent = d.classList.contains("inst-race")
+      ? `· ${on} з ${bx.length} обрано` : `· ${nFiles(bx.length)}` + (on < bx.length ? ` · ${on} обрано` : "");
+  }
+  const n = instBoxes().filter((b) => b.checked).length, un = Inst.mode === "uninstall";
+  const go = $("#installGo");
+  go.textContent = (un ? "Прибрати" : "Встановити") + (n ? ` (${n})` : "");
+  go.classList.toggle("warn", un); go.disabled = !n || Inst.busy;
+}
+async function instLoad() {
+  document.querySelectorAll("#installMode button").forEach((b) => b.classList.toggle("on", b.dataset.mode === Inst.mode));
+  $("#installBody").innerHTML = `<p class="inst-note">Перевіряю…</p>`;
+  $("#installGo").disabled = true;
+  try { instRender(await getJSON(Inst.mode === "install" ? "/api/install/plan" : "/api/uninstall/plan")); }
+  catch (e) { $("#installBody").innerHTML = `<p class="inst-err">${esc(e.message)}</p>`; }
+}
+function openInstall() { instModal().hidden = false; instLoad(); }
+const closeInstall = () => { instModal().hidden = true; };
+async function instRun() {
+  if (Inst.busy) return;
+  const files = instBoxes().filter((b) => b.checked).map((b) => b.dataset.f), un = Inst.mode === "uninstall";
+  if (!files.length) return;
+  Inst.busy = true; $("#installGo").disabled = true;
+  try {
+    const r = await post(un ? "/api/uninstall" : "/api/install", { files });
+    closeInstall();
+    toast(un ? `Прибрано з гри файлів: ${r.removed}` + (r.restored_links.length ? `; симлінків повернуто: ${r.restored_links.length}` : "") + "."
+      : `Встановлено файлів: ${r.installed}` + (r.materialized.length ? `; теки відкріплено від Mods: ${r.materialized.length}` : "") + ". Перезапустіть гру.", false, 9000);
+    if (cur()) { try { renderCard(); } catch {} }
+  } catch (e) { toast("Не вдалося: " + e.message, true, 10000); closeInstall(); }
+  finally { Inst.busy = false; }
+}
+$("#installBtn").onclick = openInstall;
+$("#installClose").onclick = closeInstall;
+$("#installModal").addEventListener("click", (e) => { if (e.target.id === "installModal") closeInstall(); });
+$("#installMode").onclick = (e) => { const b = e.target.closest("button[data-mode]"); if (b && b.dataset.mode !== Inst.mode) { Inst.mode = b.dataset.mode; instLoad(); } };
+$("#installGo").onclick = instRun;
+$("#installBody").addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.matches("input[data-g]")) instBoxes(t.closest("details")).forEach((b) => { b.checked = t.checked; });   // група → усі нащадки
+  instSync();
+});
+document.addEventListener("keydown", (e) => {     // поки відкрито вікно — клавіші студії (Пробіл = запис) не діють
+  if (instModal().hidden) return;
+  if (e.code === "Escape") closeInstall();
+  e.stopImmediatePropagation();
+}, true);

@@ -273,3 +273,68 @@ def test_game_preview_button_and_processing_toggles(page):
     pg.click("label:has(#optLoudness)")
     pg.wait_for_function("async () => (await (await fetch('/api/settings')).json()).loudness === false")
     assert not pg.errors, pg.errors
+
+
+def test_clipping_indicator_and_badge(page):
+    pg = page
+    assert pg.locator("#clipFlag").count() == 1 and pg.locator("#clipFlag").is_hidden()
+    pg.evaluate("Rec.t0 = 123.5; clipCheck(new Float32Array([0.2, -0.5]))")          # без перевантаження
+    assert pg.locator("#clipFlag").is_hidden() and "clip" not in pg.get_attribute("#meter", "class")
+    pg.evaluate("clipCheck(new Float32Array([0.2, -0.99]))")
+    assert pg.locator("#clipFlag").is_visible() and "clip" in pg.get_attribute("#meter", "class")
+    pg.wait_for_function("() => !document.querySelector('#meter').classList.contains('clip')", timeout=3000)   # спалах згасає
+    assert pg.locator("#clipFlag").is_visible()                                       # індикатор лишається до кінця дубля
+    pg.evaluate("Rec.t0 = 999; clipCheck(new Float32Array([0.1]))")                  # новий дубль → скинуто
+    assert pg.locator("#clipFlag").is_hidden()
+    row = pg.evaluate("takeRow(cur(), {file: 'x.take1.wav', n: 1, clipped: true, exists: true, dur: 1}, false)")
+    assert 'class="badge-clip"' in row and "10–15 см" in row
+    assert "badge-clip" not in pg.evaluate("takeRow(cur(), {file: 'y.take1.wav', n: 2, clipped: false, exists: true, dur: 1}, false)")
+
+
+def test_install_modal(page, tmp_path, monkeypatch):
+    import install_voices as iv
+    from conftest import synth
+    game, root = tmp_path / "game", tmp_path / "repo"
+    (game / "Mods/m/grunt").mkdir(parents=True)
+    (game / "Mods/m/grunt/g.mdx").write_bytes(b"M")
+    (game / "Units/orc/peon").mkdir(parents=True)
+    (game / "Units/human/footman").mkdir(parents=True)
+    os.symlink("../../Mods/m/grunt", game / "Units/orc/grunt")
+    for rel in ("orc/peon/peonyes1", "orc/peon/peonwhat1", "orc/grunt/gruntyes1", "human/footman/footmanyes1"):
+        synth(root / f"game-files/Units/{rel}.wav")
+    monkeypatch.setattr(iv, "GAME", game)
+    monkeypatch.setattr(iv, "ROOT", root)
+    pg = page
+    pg.click("#installBtn")
+    pg.wait_for_selector("details.inst-race")
+    assert pg.locator("details.inst-race[open]").count() == 0                         # усе згорнуто
+    orc = pg.locator('details.inst-race[data-key="orc"]')
+    assert "Орда" in orc.inner_text() and "3 з 3 обрано" in orc.locator("> summary").inner_text()
+    assert "потребує перетворення теки" in orc.text_content()
+    orc.locator("> summary b").click()                                                  # розгорнути / згорнути
+    assert orc.evaluate("d => d.open") is True
+    orc.locator("> summary b").click()
+    assert orc.evaluate("d => d.open") is False
+    orc.locator("> summary b").click()
+    grunt = pg.locator('details.inst-unit[data-key="orc/grunt"]')
+    grunt.locator("> summary input[data-g]").uncheck()                                 # зняти персонажа цілком
+    assert "2 з 3 обрано" in orc.locator("> summary").inner_text()
+    assert orc.locator("> summary input[data-g]").evaluate("e => e.indeterminate") is True
+    pg.evaluate("document.activeElement.blur()")
+    pg.keyboard.press("Space")                                                       # у вікні Пробіл не пише
+    assert not pg.locator("#recBtn.on").count()
+    pg.click("#installGo")
+    pg.wait_for_selector("#toast >> text=Встановлено файлів: 3")
+    assert (game / "Units/orc/grunt").is_symlink()                                   # не обрано → симлінк лишився
+    landed = sorted(p.relative_to(game).as_posix() for p in (game / "Units").rglob("*.wav"))
+    assert landed == ["Units/human/footman/footmanyes1.wav", "Units/orc/peon/peonwhat1.wav", "Units/orc/peon/peonyes1.wav"]
+
+    pg.click("#installBtn")                                                           # прибрати лише Альянс
+    pg.click("#installMode button[data-mode=uninstall]")
+    pg.wait_for_selector('details.inst-race[data-key="orc"]')
+    assert pg.locator("details.inst-race").count() == 2
+    pg.locator('details.inst-race[data-key="orc"] > summary input[data-g]').uncheck()
+    pg.click("#installGo")
+    pg.wait_for_selector("#toast >> text=Прибрано з гри файлів: 1")
+    assert not (game / "Units/human/footman/footmanyes1.wav").exists() and (game / "Units/orc/peon/peonyes1.wav").exists()
+    assert pg.locator("#installModal").is_hidden()
