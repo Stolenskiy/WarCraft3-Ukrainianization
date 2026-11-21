@@ -2,7 +2,7 @@ reference/
 audio/
 audio-raw/
 models/
-.venv/
+.venv
 .venv-fish/
 tools/fish-speech/
 game-files/
