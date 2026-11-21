@@ -1,0 +1,51 @@
+# Перевірки якості на кожен push і PR (безкоштовно: GitHub Actions для публічних репозиторіїв).
+# «Краще, а не гірше»: лінтер без помилок, усі тести зелені, покриття не нижче порогу
+# (fail_under у pyproject.toml — підіймається разом із покриттям, ніколи не знижується).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install "ruff>=0.6"
+      - run: ruff check --output-format=github .
+      - name: JS syntax
+        run: node --check tools/studio/web/app.js
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip, cache-dependency-path: requirements-dev.txt }
+      - name: ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: pip install -r requirements-dev.txt
+      - name: Тести (ядро, API, UI у Chrome з фейковим мікрофоном) + покриття
+        env:
+          STUDIO_SCREENSHOT: ${{ runner.temp }}/studio.png
+        run: |
+          python -m pytest -q -s --cov --cov-report=term --cov-report=markdown:cov.md
+          { echo "## Покриття"; cat cov.md; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Скріншот студії
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-screenshot
+          path: ${{ runner.temp }}/studio.png
+          if-no-files-found: ignore

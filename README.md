@@ -1,5 +1,7 @@
 # Українська AI-озвучка Warcraft III
 
+[![CI](https://github.com/Stolenskiy/WarCraft3-Ukrainianization/actions/workflows/ci.yml/badge.svg)](https://github.com/Stolenskiy/WarCraft3-Ukrainianization/actions/workflows/ci.yml)
+
 **wc3-ua-voice** — фанатський проєкт, який створює повноцінну українську
 озвучку юнітів Warcraft III Classic за допомогою AI-синтезу мовлення
 (TTS з клонуванням тембру). Грає у melee/локальній грі сьогодні;
@@ -45,6 +47,28 @@
 безкоштовні локальні моделі свого стелі досягли. Наступний крок —
 ElevenLabs (офіційна підтримка української + клонування тембру,
 ~$22–50 на весь проєкт) — план у `docs/improve-and-elevenlabs.md`.
+
+## Озвучте власним голосом — студія запису
+
+Не лише AI: будь-хто може озвучити юнітів **своїм голосом** у локальній студії
+(веб-застосунок у браузері, працює офлайн, нічого не надсилає в інтернет).
+
+![Студія запису](docs/img/studio.png)
+
+1. Потрібні: macOS або Linux, Python 3.11, `ffmpeg`, Google Chrome, мікрофон,
+   і **власна копія гри** (російські/англійські оригінали витягуються з неї —
+   в репозиторії аудіо гри немає): `tools/casc_read.py`, `tools/build_en_refs.py`.
+2. `make studio` — відкриється http://127.0.0.1:8765.
+3. Оберіть расу та юніта → послухайте оригінал (**RU або EN** — перемикач
+   «Оригінал» у шапці) → прочитайте підказку «Як грати» → `Пробіл` — запис,
+   ще раз `Пробіл` — стоп. Записуйте скільки завгодно дублів, порівнюйте з
+   оригіналом (`B`), обирайте найкращий (**✓ Обрати**). Усе можна змінити:
+   видалений дубль іде в кошик, `⌘Z` скасовує дію.
+4. Обрані дублі складаються в `game-files/` у форматі гри (WAV 22050 Hz mono,
+   без тиші на краях) — їх можна покласти в корінь гри (`docs/install-local.md`).
+
+Як влаштована студія і як її розширювати (інші раси, місії):
+[tools/studio/README.md](tools/studio/README.md).
 
 ## Як влаштований конвеєр
 
@@ -144,7 +168,8 @@ Warcraft III Classic            (loose-файл поверх CASC,
 - **Не клонуємо голоси реальних акторів** для публічного поширення —
   ні оригінальних англійських, ні російських акторів озвучки. Еталонні
   російські wav використовуються лише як технічний референс тембру в межах
-  команди; у реліз потрапляють тільки синтезовані голоси.
+  команди; у реліз потрапляють тільки синтезовані голоси або записані учасниками
+  власним голосом (за їхньою згодою).
 - Ліцензії моделей: **XTTS-v2 — Coqui Public Model License (CPML)**;
   **Fish Speech S2-Pro — Fish Audio Community License** (ваги — Fish Audio
   Research License). Обидві дозволяють некомерційне використання такого роду;
@@ -158,6 +183,10 @@ Warcraft III Classic            (loose-файл поверх CASC,
 **wc3-ua-voice** is a non-commercial fan project building a full Ukrainian
 AI voice-over for Warcraft III Classic (melee/local play first, campaign
 missions later). No Ukrainian voice localization has ever existed for the game.
+
+**Record it yourself:** `make studio` opens a local browser studio to voice units with your
+own microphone — listen to the Russian or English original, record takes, pick the best one;
+it is exported in the game's format (see `tools/studio/README.md`).
 
 **How it works:** Russian reference voice files are extracted from the game
 repack, transcribed with Whisper, and adapted into Ukrainian scripts with

@@ -1,0 +1,22 @@
+# Конфіг інструментів якості (код проєкту — скрипти в tools/, не пакет).
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+include = ["tools/studio/**/*.py", "tools/record_studio.py", "tools/build_en_refs.py", "tests/**/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["tools/studio"]
+branch = true
+
+[tool.coverage.report]
+# «Храповик»: CI падає, якщо покриття нижче. Покриття виросло → підніміть число (ніколи не знижуйте).
+fail_under = 91
+show_missing = true
+skip_covered = true

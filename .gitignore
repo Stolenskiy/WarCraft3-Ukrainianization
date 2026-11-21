@@ -15,3 +15,11 @@ reference-clean/
 # локальний прогрес студії запису (посилається на неопубліковані аудіо)
 data/record-session-*.json
 data/record-studio-*.json
+backups/
+reference-en/
+reference-en-raw/
+data/studio/
+.coverage
+cov.md
+.ruff_cache/
+.pytest_cache/

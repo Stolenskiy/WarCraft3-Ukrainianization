@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make test:*)",
+      "Bash(make check:*)", "Bash(make lint:*)", "Bash(make test-core:*)",
+      "Bash(make studio:*)",
+      "Bash(.venv/bin/python -I tools/:*)",
+      "Bash(.venv/bin/python tools/casc_read.py list:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push origin:*)",
+      "Bash(afinfo:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(ffprobe:*)",
+      "Bash(afplay:*)"
+    ]
+  }
+}
