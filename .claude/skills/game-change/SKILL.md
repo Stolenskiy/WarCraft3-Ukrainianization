@@ -1,6 +1,6 @@
 ---
 name: game-change
-description: Safe procedure for ANY write to the installed game folder (/Applications/Warcraft III Classic) — installing approved voice files from game-files/, UI fdf/fonts, maps, txt. Use before copying, replacing or symlinking anything there; covers backup, change log, symlink pitfalls, verification and rollback.
+description: Use before ANY write to the installed game folder (/Applications/Warcraft III Classic) — installing approved voice files from game-files/, UI fdf/fonts, maps, txt, copying, replacing or symlinking. Safe procedure covering backup, change log, symlink pitfalls, verification and rollback.
 ---
 
 # Зміна файлів у теці гри
@@ -34,7 +34,7 @@ description: Safe procedure for ANY write to the installed game folder (/Applica
    sha256: `shasum -a 256 <file>`.
 6. **Перевірка:** `defaults read com.blizzard.WarcraftIII "Allow Local Files"` = 1; файли на місці;
    попросити користувача перевірити в грі (агент гру не запускає й не бачить).
-7. **Документація:** рядок у `docs/STATUS.md`; якщо з'явилась нова пастка — у `CLAUDE.md` (1 рядок).
+7. **Документація:** рядок у `docs/STATUS.md`; якщо з'явилась нова пастка — у `docs/gotchas.md` (1 рядок).
 
 ## Відкат
 Виконати ROLLBACK із CHANGE-LOG.txt; перевірити sha256 відновлених файлів проти BACKED UP.

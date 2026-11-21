@@ -148,14 +148,17 @@ Warcraft III Classic            (loose-файл поверх CASC,
   перед релізом звіримо умови ще раз.
 - Розповсюдження — тільки як мод-файли до легальної копії гри, окремо від неї.
 
+## Ліцензії
+
+- **Код і документація** — MIT ([LICENSE](LICENSE)).
+- **Пакети голосів** (`voices/<автор>/`) — CC BY 4.0, лише власний голос автора, без аудіо Blizzard, ШІ-репліки позначені
+  ([voices/LICENSE.md](voices/LICENSE.md)).
+- **Ігрові ресурси** (аудіо, тексти, моделі Warcraft III) належать Blizzard Entertainment і сюди **не входять**:
+  потрібна власна копія гри.
+
 ## Для AI-агентів
 
-- Почати з [CLAUDE.md](CLAUDE.md) (правила, карта документації) і [docs/STATUS.md](docs/STATUS.md)
-  (що зроблено / що далі — оновлювати в кінці сесії).
-- Студія: архітектура, дані, як додати расу чи місії — [tools/studio/README.md](tools/studio/README.md).
-- Перед комітом — `make check` (те саме, що CI: ruff, тести з Chrome, покриття не нижче порогу).
-- Аудіо гри, записи, `reference*/`, `game-files/` — **ніколи не комітити**. Зміни в теці гри —
-  лише за процедурою [.claude/skills/game-change/SKILL.md](.claude/skills/game-change/SKILL.md).
+Єдине джерело інструкцій — [AGENTS.md](AGENTS.md) (команди, карта, межі, процес); стан — [docs/STATUS.md](docs/STATUS.md).
 
 ## English summary
 
@@ -164,4 +167,4 @@ Non-commercial fan project: a full **Ukrainian voice-over** for Warcraft III Cla
 **with their own voice** in a local browser studio (`make setup && make refs && make studio`):
 listen to the Russian or English original, record takes, pick the best one — it is exported
 in the game's format and dropped into the game root as a loose file. Requires your own copy of
-the game; no game audio is published here. Agents: start with `CLAUDE.md` and `docs/STATUS.md`.
+the game; no game audio is published here. Agents: start with `AGENTS.md` and `docs/STATUS.md`.

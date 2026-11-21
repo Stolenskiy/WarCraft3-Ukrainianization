@@ -157,6 +157,22 @@ A/B «З EQ / Без EQ», «Зберегти як новий профіль», 
 **Нова дія** (напр. «інверсія фази»): метод у `Service` (під `self.lock`, лог у журнал,
 повертає `line_json`), маршрут у `server.py` (`actions`), кнопка в `app.js`, тест на інваріант.
 
+## API (маршрути)
+
+Повний опис тіл і відповідей — docstring `server.py`; тест `tests/test_docs_sync.py` стежить, щоб кожен маршрут був і там, і тут.
+
+| Маршрут | Призначення |
+|---|---|
+| `GET /api/catalogs`, `GET /api/group/<cid>/<gid>` | каталоги з прогресом; репліки групи |
+| `GET /audio/<ref\|ref-en\|take\|game>/…`, `GET /audio/voice/<автор>/…` | аудіо (лише відомі файли) |
+| `POST /api/take` | новий дубль (тіло — wav) |
+| `POST /api/approve`, `/api/unapprove`, `/api/delete`, `/api/restore`, `/api/text` | вибір, кошик, текст репліки |
+| `POST /api/trim`, `/api/tempo`, `GET /api/preview` | обрізання, темп, «Як у грі» |
+| `GET/POST /api/settings` | налаштування обробки |
+| `GET /api/eq`, `POST /api/eq/profile`, `/api/eq/delete`, `/api/eq/assign`, `/api/eq/reexport` | еквалайзер |
+| `GET /api/install/plan`, `POST /api/install`, `GET /api/uninstall/plan`, `POST /api/uninstall`, `POST /api/open-dir` | встановлення в гру |
+| `GET /api/voices`, `POST /api/voices/choice`, `POST /api/voices/publish` | голоси спільноти |
+
 ## Пастки (вже наступали)
 
 - `AudioContext.resume()` після `await` (діалог дозволу мікрофона) зависає — контекст будимо
