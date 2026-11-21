@@ -28,12 +28,12 @@ def _parse_format4_lenient(data, base, chars):
     range_off = delta_off + segX2
     ends = struct.unpack_from(f">{seg}H", data, end_off)
     starts = struct.unpack_from(f">{seg}H", data, start_off)
-    deltas = struct.unpack_from(f">{seg}H", data, delta_off)
+    _deltas = struct.unpack_from(f">{seg}H", data, delta_off)
     try:
         ranges = struct.unpack_from(f">{seg}H", data, range_off)
     except struct.error:
         ranges = [0] * seg
-    limit = min(length, len(data) - base)
+    _limit = min(length, len(data) - base)
     for i in range(seg):
         if ranges[i] == 0:
             for cp in range(starts[i], min(ends[i], 0xFFFF) + 1):

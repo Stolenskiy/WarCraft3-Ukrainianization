@@ -1,0 +1,15 @@
+name: Репліка / переклад
+description: Помилка в тексті репліки, характері персонажа чи voice bible
+labels: [text]
+body:
+  - type: input
+    id: line
+    attributes: { label: Репліка, description: "Файл, напр. orc/peon/peonyes1" }
+    validations: { required: true }
+  - type: textarea
+    id: now
+    attributes: { label: Що зараз }
+  - type: textarea
+    id: proposal
+    attributes: { label: Пропозиція, description: "Живою українською, без суржику й русизмів; вкладається в тривалість оригіналу" }
+    validations: { required: true }

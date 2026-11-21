@@ -2,11 +2,17 @@
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-include = ["tools/studio/**/*.py", "tools/record_studio.py", "tools/build_refs.py", "tools/install_voices.py", "tools/voices.py", "tools/check_voices.py", "tests/**/*.py"]
+include = ["tools/*.py", "tools/studio/**/*.py", "tests/**/*.py"]  # усі скрипти; vendored tools/fish-speech поза include
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# старі PoC-скрипти: printf-форматування та zip без strict не переписуємо без потреби
+"tools/build_uk_maps.py" = ["UP031", "B905"]
+"tools/casc_read.py" = ["UP031", "B905"]
+"tools/wc3map.py" = ["UP031", "B905"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

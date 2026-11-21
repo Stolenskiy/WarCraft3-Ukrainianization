@@ -1,7 +1,15 @@
 PY := .venv/bin/python -I
 PYTHON311 ?= python3.11
+CORE_TESTS_A := tests/test_studio_core.py tests/test_eq.py tests/test_install_voices.py tests/test_guard_no_audio.py tests/test_docs_sync.py tests/test_doctor.py
+CORE_TESTS_B := tests/test_studio_proc.py tests/test_voices.py
 
-.PHONY: studio test test-core lint check check-voices publish-voice refs setup install-voices uninstall-voices
+.PHONY: studio test test-core lint guard check check-voices verify doctor hooks publish-voice refs \
+        setup setup-dev setup-refs install-voices uninstall-voices
+
+verify:      ## «перевір мою зміну» (≤ 20 с, без Chrome): lint + guard + check-voices + test-core
+	$(MAKE) --no-print-directory lint guard check-voices test-core
+
+check: lint guard check-voices test   ## те саме, що CI на GitHub (+ e2e у Chrome, покриття) — запускати перед пушем
 
 studio:      ## веб-студія запису озвучки (http://127.0.0.1:8765)
 	$(PY) tools/record_studio.py
@@ -9,25 +17,40 @@ studio:      ## веб-студія запису озвучки (http://127.0.0.
 test:        ## усі тести (ядро, API, UI у Chrome з фейковим мікрофоном) + покриття з порогом
 	$(PY) -m pytest -q -s --cov
 
-test-core:   ## швидко: лише ядро + API, без браузера
-	$(PY) -m pytest -q tests/test_studio_core.py tests/test_eq.py tests/test_install_voices.py tests/test_voices.py
+test-core:   ## швидко, без браузера: ядро, API, обробка, голоси, guard, дрейф доків (дві групи паралельно)
+	@$(PY) -m pytest -q $(CORE_TESTS_A) & a=$$!; $(PY) -m pytest -q $(CORE_TESTS_B) & b=$$!; \
+	  r=0; wait $$a || r=1; wait $$b || r=1; exit $$r
 
-lint:        ## ruff + синтаксис JS
+lint:        ## ruff (усі tools/*.py, tests) + синтаксис JS
 	.venv/bin/ruff check . && node --check tools/studio/web/app.js
+
+guard:       ## у git немає аудіо / ресурсів гри / секретів (дозволені лише FLAC пакетів voices/)
+	$(PY) tools/guard_no_audio.py
 
 check-voices: ## пакети голосів спільноти (voices/): формат, маніфест, ліцензія, зайві файли
 	$(PY) tools/check_voices.py
 
-check: lint check-voices test   ## те саме, що CI на GitHub — запускати перед комітом
+doctor:      ## чого бракує в середовищі (python 3.11/uv, ffmpeg, node, Chrome/playwright) + підказки
+	python3 tools/doctor.py
+
+hooks:       ## увімкнути git-хуки репозиторію (.githooks/pre-commit: guard + ruff)
+	git config core.hooksPath .githooks
 
 refs:        ## оригінали: EN з CASC гри → reference-en/; RU з мовного пакета (RU_PACK=…/ruru.w3mod) → reference/
 	$(PY) tools/build_refs.py
 
-setup:       ## створити .venv на Python 3.11 (PyCASC несумісний з 3.12+) і поставити залежності
+setup: setup-dev setup-refs hooks   ## усе: dev-залежності + PyCASC + git-хуки
+
+setup-dev:   ## .venv на Python 3.11 + requirements-dev (досить для verify/check; без PyCASC)
 	test -x .venv/bin/python || (command -v uv >/dev/null && uv venv -q -p 3.11 .venv) || $(PYTHON311) -m venv .venv
 	.venv/bin/python -c "import sys; assert sys.version_info[:2] == (3, 11), 'потрібен Python 3.11 у .venv'"
-	(command -v uv >/dev/null && uv pip install -q --python .venv/bin/python -r requirements.txt -r requirements-dev.txt) \
-	  || .venv/bin/python -m pip install -q -r requirements.txt -r requirements-dev.txt
+	(command -v uv >/dev/null && uv pip install -q --python .venv/bin/python -r requirements-dev.txt) \
+	  || .venv/bin/python -m pip install -q -r requirements-dev.txt
+
+setup-refs:  ## PyCASC і решта requirements.txt (для make refs; PyCASC несумісний з Python 3.12+)
+	test -x .venv/bin/python || $(MAKE) setup-dev
+	(command -v uv >/dev/null && uv pip install -q --python .venv/bin/python -r requirements.txt) \
+	  || .venv/bin/python -m pip install -q -r requirements.txt
 
 install-voices:   ## обрані дублі → гра (без APPLY=1 лише план); бекап і журнал у <гра>/Backups/ua-voices/
 	$(PY) tools/install_voices.py $(if $(APPLY),--apply,)

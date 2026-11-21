@@ -4,6 +4,11 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly }
+    groups:
+      actions: { patterns: ["*"] }
   - package-ecosystem: pip
     directory: /
     schedule: { interval: monthly }
+    groups:
+      dev-tools: { patterns: ["pytest*", "ruff", "playwright"] }
+      runtime: { patterns: ["*"], exclude-patterns: ["pytest*", "ruff", "playwright"] }
