@@ -11,3 +11,7 @@ __pycache__/
 .DS_Store
 reference-orig-watermarked/
 reference-clean/
+
+# локальний прогрес студії запису (посилається на неопубліковані аудіо)
+data/record-session-*.json
+data/record-studio-*.json
