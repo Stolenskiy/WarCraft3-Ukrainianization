@@ -520,7 +520,7 @@ function renderCues() {
     return `<li class="cue ${i === S.idx ? "on" : ""} ${p.no_speech ? "mute" : ""}" data-i="${i}">
       <span class="st ${st}"></span>
       <span><div class="ru">${esc(p.ru)}</div><div class="ua">${esc(p.ua)}</div></span>
-      <span class="tag">${esc(p.kind_ua)}${n ? `<br>${n} дубл.` : ""}</span></li>`;
+      <span class="tag">${esc(p.kind_ua)}${n ? `<br>${n} дубл.` : ""}${AI.cueMark(p)}</span></li>`;
   }).join("") || `<li class="empty">Тут порожньо</li>`;
   $("#cues .cue.on")?.scrollIntoView({ block: "nearest" });
 }
@@ -570,7 +570,7 @@ function takeRow(p, t, isNew) {
     <button class="play" data-play="${esc(id)}" ${t.exists ? "" : "disabled"}>▶</button>
     <div><div class="take-head"><b>Дубль ${t.n || "?"}</b>
       <span class="fit" data-fit="${esc(t.file)}">${t.exists ? fmt(t.dur) : "файл відсутній"}</span>
-      ${appr ? `<span class="badge-game">У ГРІ</span>` : ""}<span class="trim-info" data-trim-info="${esc(t.file)}"></span>${tempoBadge(t)}
+      ${appr ? `<span class="badge-game">У ГРІ</span>` : ""}${t.source === "ai" ? `<span class="badge-ai" title="Взято з ШІ-варіантів (${esc(t.engine || "ШІ")})">ШІ</span>` : ""}<span class="trim-info" data-trim-info="${esc(t.file)}"></span>${tempoBadge(t)}
       <span class="time">${t.deleted ? "видалено " + timeLabel(t.deleted) : timeLabel(t.created)}</span></div>
       <div class="wave-box"><canvas class="wave" data-wave="${esc(id)}"></canvas></div>${t.deleted ? "" : tempoPanel(t)}</div>
     <div class="take-actions">${actions}</div></div>`;
@@ -642,6 +642,7 @@ function renderCard(newFile) {
   $("#micSel").onchange = (e) => { e.target.blur(); switchMic(e.target.value); };  // Пробіл знову = запис
   bindCard(p);
   loadWaves(p);
+  AI.mount(p);
 }
 
 async function loadWaves(p) {

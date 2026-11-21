@@ -1,7 +1,7 @@
 PY := .venv/bin/python -I
 PYTHON311 ?= python3.11
 
-.PHONY: studio test test-core lint check refs setup install-voices uninstall-voices
+.PHONY: studio test test-core lint check refs setup install-voices uninstall-voices ai-voice
 
 studio:      ## веб-студія запису озвучки (http://127.0.0.1:8765)
 	$(PY) tools/record_studio.py
@@ -13,7 +13,7 @@ test-core:   ## швидко: лише ядро + API, без браузера
 	$(PY) -m pytest -q tests/test_studio_core.py tests/test_eq.py tests/test_install_voices.py
 
 lint:        ## ruff + синтаксис JS
-	.venv/bin/ruff check . && node --check tools/studio/web/app.js
+	.venv/bin/ruff check . && node --check tools/studio/web/app.js && node --check tools/studio/web/ai.js
 
 check: lint test   ## те саме, що CI на GitHub — запускати перед комітом
 
@@ -31,3 +31,6 @@ install-voices:   ## обрані дублі → гра (без APPLY=1 лише
 
 uninstall-voices: ## прибрати встановлені нами голоси, повернути оригінали
 	$(PY) tools/install_voices.py --uninstall
+
+ai-voice:     ## ШІ-варіанти реплік юніта власним голосом (Fish S2-Pro, локально): make ai-voice UNIT=peon [VARIANTS=3]
+	$(PY) tools/ai_voice.py --unit $(or $(UNIT),peon) --variants $(or $(VARIANTS),3)

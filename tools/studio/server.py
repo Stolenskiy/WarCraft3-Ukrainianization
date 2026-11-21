@@ -7,13 +7,15 @@
 API:
   GET  /api/catalogs                         каталоги → групи з прогресом і характером
   GET  /api/group/<cid>/<gid>                усі репліки групи зі станом
-  GET  /audio/<ref|ref-en|take|game>/<cid>/<gid>/<name>   аудіо (лише відомі файли)
+  GET  /audio/<ref|ref-en|take|game|ai>/<cid>/<gid>/<name>   аудіо (лише відомі файли; ai — ШІ-варіанти з audio/ai/)
   POST /api/take?cid=&gid=&lid=   (тіло — wav)    новий дубль
   POST /api/approve   {cid,gid,lid,file[,trim]}    обрати дубль для гри (trim — застарілий override auto_trim)
   POST /api/unapprove {cid,gid,lid}
   POST /api/delete    {cid,gid,lid,file}           у кошик
   POST /api/restore   {cid,gid,lid,file}
   POST /api/text      {cid,gid,lid,text}
+  POST /api/ai/adopt  {cid,gid,lid,file}           КОПІЮЄ ШІ-варіант у дублі: новий дубль `source:"ai"` (далі як будь-який)
+  POST /api/ai/discard {cid,gid,lid,file}          сховати ШІ-варіант (репліка містить `ai:[{file,n,engine,cer,similarity,dur,style,adopted}]`)
   POST /api/trim      {cid,gid,lid,file,start,end[,auto_trim]}   ручне обрізання дубля (секунди; null,null — скинути)
   POST /api/tempo     {cid,gid,lid,file,tempo}     темп дубля 0.8–1.3 (atempo, висота та сама; null/1 — скинути)
   GET  /api/settings                         {auto_trim, denoise, loudness} (data/studio/settings.json)
@@ -97,6 +99,8 @@ def make_handler(svc: core.Service):
         "/api/eq/delete": lambda d: svc.eq_delete(d["cid"], d["gid"], d["id"]),
         "/api/eq/assign": lambda d: svc.eq_assign(d["cid"], d["gid"], d.get("profile_id")),
         "/api/eq/reexport": lambda d: svc.reexport_group(d["cid"], d["gid"], _opt(d, "trim")),
+        "/api/ai/adopt": lambda d: svc.adopt_ai(d["cid"], d["gid"], d["lid"], d["file"]),
+        "/api/ai/discard": lambda d: svc.discard_ai(d["cid"], d["gid"], d["lid"], d["file"]),
         "/api/text": lambda d: svc.set_text(d["cid"], d["gid"], d["lid"], d.get("text", "")),
     }
 
