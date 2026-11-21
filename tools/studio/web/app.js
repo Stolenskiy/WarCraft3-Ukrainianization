@@ -618,8 +618,10 @@ function renderCard(newFile) {
         <p><b>Тиша на початку й у кінці</b> (<i class="lg-auto"></i>заштрихована частина хвилі) у файлі для гри обрізається
           автоматично, якщо в шапці увімкнено «Обрізати тишу»; сам дубль не змінюється, тож у студії тишу чути.
           Почути точно як у грі — «▶ Як у грі» на обраному дублі.</p>
-        <p><b>Ручки на краях хвилі</b> — перетягніть, щоб обрізати початок чи кінець дубля для гри (затемнена частина
-          відкидається; ←/→ на ручці — крок 10 мс, подвійний клік — скинути ручку, «Скинути» — все). Файл дубля не змінюється.</p>
+        <p><b>Ручки на хвилі</b> — межі того, що піде в гру. З «Обрізати тишу» вони одразу стоять на краях голосу,
+          тож ▶ і «Оригінал → дубль» звучать уже обрізаними. Тягніть, щоб обрізати сильніше (затемнене відкидається)
+          або розсунути — тоді видно штриховану тишу. ←/→ на ручці — крок 10 мс, подвійний клік — повернути ручку,
+          «Скинути» — обидві. Файл дубля не змінюється.</p>
         <p><b>Еквалайзер</b> (ліва панель) — дублі в студії звучать уже з EQ персонажа; «Слухаю без EQ» — порівняти.
           Новий вибір для гри отримує поточний профіль; уже обрані файли оновлює «Застосувати до обраних дублів».</p></div></details>` : ""}</div>
     <div class="takes">${active.length ? active.map((t) => takeRow(p, t, t.file === newFile)).join("")
@@ -654,6 +656,7 @@ async function loadWaves(p) {
   if (refBuf) { mk("ref", refBuf, { color: "#5a6270", played: "#e4572e", scale }); const d = $("#refDur"); if (d) d.textContent = fmt(refBuf.duration); }
   for (const [t, b] of tbufs) {
     const [va, vb] = voiceSpan(b);
+    AUTO.set(t.file, [va, vb]);
     const appr = p.approved === t.file;
     const cv = document.querySelector(`canvas[data-wave="${CSS.escape("take:" + t.file)}"]`);
     if (cv) cv.title = "Помаранчевий пунктир — довжина голосу в оригіналі, відкладена від початку вашого голосу";
@@ -784,8 +787,14 @@ async function restore(file) {
 // Файл дубля не змінюється: сервер зберігає {start, end} і застосовує їх при копіюванні в гру.
 const MIN_TRIM = 0.25; // = MIN_TAKE_SEC на сервері
 const trimOf = (p, file) => p.takes.find((t) => t.file === file)?.trim || null;
-/** Елемент для play(): дубль, який звучить лише в межах обрізання. */
-const takeItem = (p, file) => { const tr = trimOf(p, file); return { url: urlTake(file), id: "take:" + file, ...(tr ? { start: tr.start, end: tr.end } : {}) }; };
+// Межі голосу дубля (voiceSpan, той самий поріг, що в ffmpeg) — заповнюється при малюванні хвиль.
+const AUTO = new Map();
+/** Межі без ручного обрізання: з «Обрізати тишу» — краї голосу (те, що й так піде в гру), інакше весь файл. */
+const autoEdges = (file, dur) => ($("#optTrim")?.checked && AUTO.has(file) ? { start: AUTO.get(file)[0], end: AUTO.get(file)[1] } : { start: 0, end: dur });
+/** Що звучить у грі: ручне обрізання, інакше авто-межі (якщо їх уже пораховано). */
+const effTrim = (p, file) => trimOf(p, file) || (AUTO.has(file) && $("#optTrim")?.checked ? autoEdges(file, 0) : null);
+/** Елемент для play(): дубль звучить так, як піде в гру (у межах обрізання). */
+const takeItem = (p, file) => { const tr = effTrim(p, file); return { url: urlTake(file), id: "take:" + file, ...(tr ? { start: tr.start, end: tr.end } : {}) }; };
 const trimFmt = (a, b) => `${a.toFixed(2)}–${b.toFixed(2)} с`;
 
 function autoDim(cv, title) {
@@ -795,7 +804,7 @@ function mountTrim(p, t, dur, scale, onChange = () => {}) {
   const cv = document.querySelector(`canvas[data-wave="${CSS.escape("take:" + t.file)}"]`);
   const info = document.querySelector(`[data-trim-info="${CSS.escape(t.file)}"]`);
   if (!cv || t.deleted) return;
-  const box = cv.parentElement, where = ids(p), tr = { start: t.trim?.start ?? 0, end: t.trim?.end ?? dur };
+  const box = cv.parentElement, where = ids(p), base = autoEdges(t.file, dur), tr = { start: t.trim?.start ?? base.start, end: t.trim?.end ?? base.end };
   const el = (cls, html = "") => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; box.appendChild(d); return d; };
   const dimL = el("trim-dim"), dimR = el("trim-dim");
   const hS = el("trim-h start"), hE = el("trim-h end");
@@ -812,7 +821,7 @@ function mountTrim(p, t, dur, scale, onChange = () => {}) {
     hS.title = `Початок ${tr.start.toFixed(2)} с — тягніть; ←/→ крок 10 мс; подвійний клік — скинути`;
     hE.title = `Кінець ${tr.end.toFixed(2)} с — тягніть; ←/→ крок 10 мс; подвійний клік — скинути`;
     onChange(tr);
-    const on = tr.start > 0.0005 || tr.end < dur - 0.0005;
+    const on = Math.abs(tr.start - base.start) > 0.0005 || Math.abs(tr.end - base.end) > 0.0005;
     if (info) info.innerHTML = on ? `<span class="trim-t">✂ ${trimFmt(tr.start, tr.end)}</span><button class="linkish" data-trim-reset="${esc(t.file)}">Скинути</button>` : "";
   };
   const setEdge = (which, x) => {
@@ -824,9 +833,9 @@ function mountTrim(p, t, dur, scale, onChange = () => {}) {
   let timer = null;
   const commit = (which) => {
     clearTimeout(timer);
-    const cur0 = trimOf(S.phrases.find((x) => x.id === p.id) || p, t.file), a = cur0 ? cur0.start : 0, b = cur0 ? cur0.end : dur;
+    const cur0 = trimOf(S.phrases.find((x) => x.id === p.id) || p, t.file), a = cur0 ? cur0.start : base.start, b = cur0 ? cur0.end : base.end;
     if (Math.abs(tr.start - a) < 0.0005 && Math.abs(tr.end - b) < 0.0005) return;
-    const full = tr.start < 0.0005 && tr.end > dur - 0.0005;
+    const full = Math.abs(tr.start - base.start) < 0.0005 && Math.abs(tr.end - base.end) < 0.0005;  // = авто-межі → без ручного
     S.refocus = { file: t.file, which };
     saveTrim(where, t.file, cur0, full ? null : tr.start, full ? null : tr.end);
   };
@@ -838,7 +847,7 @@ function mountTrim(p, t, dur, scale, onChange = () => {}) {
       setEdge(which, ((e.clientX - r.left) / r.width) * scale);
     };
     h.onpointerup = h.onpointercancel = (e) => { h.classList.remove("drag"); if (h.hasPointerCapture(e.pointerId)) { h.releasePointerCapture(e.pointerId); commit(which); } };
-    h.ondblclick = () => { setEdge(which, which === "start" ? 0 : dur); commit(which); };
+    h.ondblclick = () => { setEdge(which, base[which]); commit(which); };
     h.onkeydown = (e) => {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       e.preventDefault(); e.stopPropagation();                        // глобальні стрілки міняють репліку
@@ -948,6 +957,7 @@ for (const id of ["optTrim", "optAutoplay"]) {
   el.onchange = () => { try { localStorage.setItem("studio." + id, el.checked ? "1" : "0"); } catch {} syncOpts(); };
 }
 function syncOpts() { document.body.classList.toggle("no-autotrim", !$("#optTrim").checked); }
+$("#optTrim").addEventListener("change", () => { if (cur()) renderCard(); });   // ручки стають на нові авто-межі
 syncOpts();
 window.addEventListener("resize", () => waves.forEach((_, id) => drawWave(id)));
 window.addEventListener("beforeunload", (e) => { if (Rec.on) { e.preventDefault(); e.returnValue = ""; } });
