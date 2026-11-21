@@ -85,6 +85,17 @@ def test_full_flow(page):
     record(pg)                                           # дубль 2 (миттєвий старт, мікрофон уже відкритий)
     assert pg.locator(".take:not(.deleted)").count() == 2
 
+    # вибір мікрофона: після дозволу є пристрої з назвами; перемикання → запис іде далі
+    pg.wait_for_function("() => document.querySelectorAll('#micSel option').length > 1")
+    dev = pg.eval_on_selector("#micSel", "s => s.options[s.options.length - 1].value")
+    pg.select_option("#micSel", dev)
+    pg.wait_for_selector("text=Запис із:")
+    record(pg)
+    assert pg.locator(".take:not(.deleted)").count() == 3
+    pg.reload()
+    pg.wait_for_selector(".cue.on")
+    assert pg.eval_on_selector("#micSel", "s => s.value") == dev          # запам'ятовано
+
     pg.locator(".take", has_text="Дубль 1").locator("[data-approve]").click()
     pg.wait_for_selector(".badge-game")
     assert GAME.exists()

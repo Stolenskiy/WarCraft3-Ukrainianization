@@ -262,3 +262,7 @@ details.fold[open] > summary::before { content: "▾ "; }
 .seg.mini { margin: 0; padding: 2px; align-items: center; gap: 2px; }
 .seg.mini span { color: var(--muted); font-size: 12px; padding: 0 8px 0 6px; }
 .seg.mini button { flex: none; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+.mic-pick { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; color: var(--muted); font-size: 12px; }
+.mic-pick select { max-width: 320px; background: var(--bg); color: var(--text); border: 1px solid var(--line);
+  border-radius: 7px; padding: 4px 8px; font: inherit; }
+.mic-pick select:disabled { opacity: .5; }

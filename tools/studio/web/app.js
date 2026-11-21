@@ -134,33 +134,78 @@ function markPlaying() {
 })();
 
 // ------------------------------------------------------------------ запис (мікрофон тримаємо відкритим → старт миттєвий)
-const Rec = { node: null, analyser: null, on: false, chunks: [], pre: [], t0: 0, sr: 48000 };
+// Джерело звуку обирає користувач (#micSel, localStorage "studio.mic"); "" = системний за замовчуванням.
+const Rec = { node: null, analyser: null, stream: null, src: null, label: "", worklet: false, meter: false,
+  on: false, chunks: [], pre: [], t0: 0, sr: 48000, devices: [] };
+let micId = ""; try { micId = localStorage.getItem("studio.mic") || ""; } catch {}
+const MIC_OPTS = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
+
+async function refreshMics() {
+  try { Rec.devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "audioinput" && d.deviceId !== "default"); }
+  catch { Rec.devices = []; }
+  renderMicSel();
+}
+function renderMicSel() {
+  const sel = $("#micSel");
+  if (!sel) return;
+  const opts = [`<option value="">Системний (за замовчуванням)</option>`].concat(Rec.devices.map((d, i) =>
+    `<option value="${esc(d.deviceId)}">${esc(d.label || `Мікрофон ${i + 1}`)}</option>`));
+  sel.innerHTML = opts.join("");
+  sel.value = Rec.devices.some((d) => d.deviceId === micId) ? micId : "";
+  sel.disabled = Rec.on;
+}
+function closeMic() {
+  Rec.stream?.getTracks().forEach((t) => t.stop());
+  try { Rec.src?.disconnect(); Rec.node?.disconnect(); } catch {}
+  Rec.stream = Rec.src = Rec.node = Rec.analyser = null; Rec.pre = []; Rec.label = "";
+}
+async function switchMic(id) {
+  if (Rec.on) return;
+  micId = id; try { localStorage.setItem("studio.mic", id); } catch {}
+  closeMic();
+  try { await ensureMic(); toast(`Запис із: ${Rec.label || "системного мікрофона"}`); }
+  catch (e) { toast(`Не вдалося відкрити цей мікрофон: ${e.message || e.name}`, true); }
+  setRecUI(false);
+}
+navigator.mediaDevices?.addEventListener?.("devicechange", refreshMics);
+
 async function ensureMic() {
   if (Rec.node) return;
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
-  });
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: micId ? { ...MIC_OPTS, deviceId: { exact: micId } } : MIC_OPTS });
+  } catch (e) {
+    if (!micId || e.name !== "OverconstrainedError" && e.name !== "NotFoundError") throw e;
+    micId = "";                                    // обраний пристрій від'єднано → системний
+    stream = await navigator.mediaDevices.getUserMedia({ audio: MIC_OPTS });
+  }
   if (AC.state !== "running") AC.resume();
-  const code = `class Cap extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(2048);this.i=0}
+  if (!Rec.worklet) {
+    const code = `class Cap extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(2048);this.i=0}
     process(inp){const c=inp[0]&&inp[0][0];if(c){for(let k=0;k<c.length;k++){this.b[this.i++]=c[k];
     if(this.i===this.b.length){this.port.postMessage(this.b.slice(0));this.i=0}}}return true}}registerProcessor('cap',Cap)`;
-  await AC.audioWorklet.addModule(URL.createObjectURL(new Blob([code], { type: "application/javascript" })));
+    await AC.audioWorklet.addModule(URL.createObjectURL(new Blob([code], { type: "application/javascript" })));
+    Rec.worklet = true;
+  }
   const src = AC.createMediaStreamSource(stream);
+  Rec.stream = stream; Rec.src = src; Rec.label = stream.getAudioTracks()[0]?.label || "";
   Rec.sr = AC.sampleRate;
   Rec.node = new AudioWorkletNode(AC, "cap");
   const mute = AC.createGain(); mute.gain.value = 0;
   src.connect(Rec.node); Rec.node.connect(mute); mute.connect(AC.destination);
   Rec.analyser = AC.createAnalyser(); Rec.analyser.fftSize = 1024; src.connect(Rec.analyser);
+  refreshMics();                                   // після дозволу браузер віддає назви пристроїв
   const preN = Math.ceil((0.25 * Rec.sr) / 2048); // 0.25 с «передзапису», щоб не з'їсти перший склад
   Rec.node.port.onmessage = (e) => {
     if (Rec.on) Rec.chunks.push(e.data);
     else { Rec.pre.push(e.data); if (Rec.pre.length > preN) Rec.pre.shift(); }
   };
-  meterLoop();
+  if (!Rec.meter) { Rec.meter = true; meterLoop(); }
 }
 function meterLoop() {
-  const data = new Float32Array(Rec.analyser.fftSize);
+  const data = new Float32Array(1024);
   const tick = () => {
+    if (!Rec.analyser) { requestAnimationFrame(tick); return; }
     Rec.analyser.getFloatTimeDomainData(data);
     let pk = 0; for (const v of data) pk = Math.max(pk, Math.abs(v));
     const db = 20 * Math.log10(pk || 1e-6), lit = Math.round(Math.max(0, Math.min(1, (db + 60) / 60)) * 20);
@@ -217,6 +262,7 @@ function setRecUI(on) {
   const t = $("#recTitle"), sub = $("#recSub"), tm = $("#timer");
   if (t) { t.textContent = on ? "Іде запис — говоріть" : "Готові записати дубль"; t.classList.toggle("live", on); }
   if (sub) sub.innerHTML = on ? "<kbd>Пробіл</kbd> — зупинити" : Rec.node ? "Мікрофон увімкнено — індикатор показує рівень. <kbd>Пробіл</kbd> — почати" : "<kbd>Пробіл</kbd> або кнопка — браузер попросить доступ до мікрофона";
+  const sel = $("#micSel"); if (sel) sel.disabled = on;
   if (tm) { tm.classList.toggle("live", on); if (!on) tm.firstChild.nodeValue = "0.0 с"; }
   document.body.classList.toggle("recording", on);
 }
@@ -389,7 +435,8 @@ function renderCard(newFile) {
     <div class="rec-zone">
       <button class="rec-btn" id="recBtn" title="Запис / стоп (Пробіл)"></button>
       <div class="rec-info"><div class="rec-title" id="recTitle"></div><div class="rec-sub" id="recSub"></div>
-        <div class="meter" id="meter">${"<i></i>".repeat(20)}</div></div>
+        <div class="meter" id="meter">${"<i></i>".repeat(20)}</div>
+        <label class="mic-pick" title="Звідки записувати звук">🎙 <select id="micSel"></select></label></div>
       <div class="timer" id="timer">0.0 с<small>макс. ${MAX_REC} с</small></div>
     </div>
 
@@ -402,6 +449,8 @@ function renderCard(newFile) {
       ${p.history.slice().reverse().map((h) => `<li><time>${esc(timeLabel(h.ts))}</time><span>${esc(h.action)}</span></li>`).join("") || "<li>—</li>"}</ul></details>
   </div>`;
   setRecUI(false);
+  renderMicSel();
+  $("#micSel").onchange = (e) => switchMic(e.target.value);
   bindCard(p);
   loadWaves(p);
 }
@@ -588,6 +637,8 @@ $("#filter").onclick = (e) => {
 };
 $("#cues").onclick = (e) => { const li = e.target.closest("[data-i]"); if (li) select(+li.dataset.i); };
 $("#openGameDir").onclick = () => post("/api/open-dir", { cid: S.cat, gid: S.unit }).catch((e) => toast(e.message, true));
+refreshMics();
+
 // мова оригіналу
 try { S.lang = localStorage.getItem("studio.lang") || "ru"; } catch { S.lang = "ru"; }
 function renderLang() {
