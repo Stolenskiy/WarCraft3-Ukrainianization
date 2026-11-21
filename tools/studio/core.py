@@ -31,6 +31,7 @@ import threading
 from pathlib import Path
 
 from . import catalog as cat_mod
+from . import eq as eq_mod
 from .catalog import Line, duration
 from .paths import GAME_FILES, MIN_TAKE_SEC, SR, STATE_DIR, TAKES_ROOT
 
@@ -142,6 +143,7 @@ class Service:
         self._stores: dict[str, Store] = {}
         self._lines: dict[tuple[str, str], list[Line]] = {}
         self._groups: dict[str, list] = {}
+        self.eq = eq_mod.EqStore(STATE_DIR / "eq.json")
 
     # ---------- доступ
     def catalog(self, cid: str):
@@ -317,7 +319,7 @@ class Service:
         ручне обрізання дубля → авто-обрізання тиші → EQ/обробка персонажа."""
         tr = take.get("trim")
         manual = [f"atrim=start={tr['start']:.3f}:end={tr['end']:.3f},asetpts=PTS-STARTPTS"] if tr else []
-        return manual + ([AUTO_TRIM] if auto_trim else [])
+        return manual + ([AUTO_TRIM] if auto_trim else []) + eq_mod.to_ffmpeg(self.eq.effective(cid, gid))
 
     def set_trim(self, cid: str, gid: str, lid: str, file: str, start: float | None, end: float | None,
                  auto_trim: bool = True) -> dict:
@@ -431,3 +433,57 @@ class Service:
                         if t["file"] == name:
                             return self.take_path(cid, gid, t)
             raise StudioError("невідомий файл")
+
+    # ---------- еквалайзер (профілі — eq.py; змінений профіль НЕ перезаписує файли мовчки)
+    def eq_json(self, cid: str, gid: str) -> dict:
+        with self.lock:
+            self.groups(cid)
+            sel = self.eq.effective_id(cid, gid)
+            return {"selected": sel, "default": eq_mod.default_id(cid, gid, self.eq.presets),
+                    "profiles": self.eq.listing()}
+
+    def _eq(self, fn, *a):
+        try:
+            return fn(*a)
+        except eq_mod.EqError as ex:
+            raise StudioError(str(ex)) from ex
+
+    def eq_save(self, cid: str, gid: str, profile: dict, pid: str | None = None, assign: bool = True) -> dict:
+        """Створити (pid None) чи оновити власний профіль; новий одразу призначається групі."""
+        with self.lock:
+            self.groups(cid)
+            new = self._eq(self.eq.save_profile, profile, pid)
+            if assign:
+                self.eq.assign(cid, gid, new)
+            return {**self.eq_json(cid, gid), "saved_id": new}
+
+    def eq_delete(self, cid: str, gid: str, pid: str) -> dict:
+        with self.lock:
+            self._eq(self.eq.delete_profile, pid)
+            return self.eq_json(cid, gid)
+
+    def eq_assign(self, cid: str, gid: str, pid: str | None) -> dict:
+        with self.lock:
+            self.groups(cid)
+            self._eq(self.eq.assign, cid, gid, pid)
+            return self.eq_json(cid, gid)
+
+    def reexport_group(self, cid: str, gid: str, trim: bool = True) -> dict:
+        """Перезаписати в game-files усі обрані дублі групи з поточним EQ; запис у журнал кожної репліки."""
+        with self.lock:
+            st, done, failed = self.store(cid), [], []
+            prof = self.eq.get(self.eq.effective_id(cid, gid))["name"]
+            for ln in self.lines(cid, gid):
+                e = st.entry(gid, ln.id)
+                if not e["approved"]:
+                    continue
+                t = self._take(e, e["approved"])
+                src = self.take_path(cid, gid, t)
+                if not src.exists() or not export_take(src, self.game_path(ln), self._export_filters(cid, gid, t, trim)):
+                    failed.append(ln.id)
+                    continue
+                st.log(gid, ln.id, f"EQ «{prof}» застосовано до дубля {take_no(t['file'])}")
+                done.append(ln.id)
+            if done:
+                st.save()
+            return {"done": done, "failed": failed, "lines": [self.line_json(cid, gid, ln) for ln in self.lines(cid, gid)]}

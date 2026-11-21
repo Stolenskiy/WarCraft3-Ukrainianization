@@ -16,6 +16,11 @@ API:
   POST /api/text      {cid,gid,lid,text}
   POST /api/trim      {cid,gid,lid,file,start,end[,auto_trim]}   ручне обрізання дубля (секунди; null,null — скинути)
   POST /api/open-dir  {cid,gid}                    відкрити теку game-files у Finder
+  GET  /api/eq?cid=&gid=                     {selected, default, profiles:[{id,builtin,name,enabled,gain_db,bands}]}
+  POST /api/eq/profile {cid,gid,profile,id?,assign?}  створити (без id) / оновити власний профіль
+  POST /api/eq/delete {cid,gid,id}                 видалити власний профіль (пресети — ні)
+  POST /api/eq/assign {cid,gid,profile_id}         профіль групи (null → типовий)
+  POST /api/eq/reexport {cid,gid,trim}             перезаписати обрані дублі групи з поточним EQ
 Кожна дія повертає оновлену репліку (той самий формат, що в /api/group).
 """
 from __future__ import annotations
@@ -44,6 +49,10 @@ def make_handler(svc: core.Service):
         "/api/restore": lambda d: svc.restore(d["cid"], d["gid"], d["lid"], d["file"]),
         "/api/trim": lambda d: svc.set_trim(d["cid"], d["gid"], d["lid"], d["file"], d.get("start"), d.get("end"),
                                             bool(d.get("auto_trim", True))),
+        "/api/eq/profile": lambda d: svc.eq_save(d["cid"], d["gid"], d["profile"], d.get("id"), d.get("assign", True)),
+        "/api/eq/delete": lambda d: svc.eq_delete(d["cid"], d["gid"], d["id"]),
+        "/api/eq/assign": lambda d: svc.eq_assign(d["cid"], d["gid"], d.get("profile_id")),
+        "/api/eq/reexport": lambda d: svc.reexport_group(d["cid"], d["gid"], bool(d.get("trim", True))),
         "/api/text": lambda d: svc.set_text(d["cid"], d["gid"], d["lid"], d.get("text", "")),
     }
 
@@ -87,12 +96,17 @@ def make_handler(svc: core.Service):
                     return self._file(WEB / Path(parts[1]).name)
                 if parts == ["api", "catalogs"]:
                     return self._json(svc.catalogs_json())
+                if parts == ["api", "eq"]:
+                    q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
+                    return self._json(svc.eq_json(q["cid"], q["gid"]))
                 if parts[:2] == ["api", "group"] and len(parts) == 4:
                     return self._json(svc.group_json(parts[2], parts[3]))
                 if parts[0] == "audio" and len(parts) == 5:
                     return self._file(svc.audio_path(*parts[1:]), "audio/wav")
             except core.StudioError as ex:
                 return self._json({"error": str(ex)}, 404)
+            except KeyError as ex:
+                return self._json({"error": f"bad request: {ex}"}, 400)
             self._json({"error": "not found"}, 404)
 
         def do_POST(self) -> None:

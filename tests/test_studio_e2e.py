@@ -31,6 +31,7 @@ def page(svc):
             pytest.skip(f"Chrome недоступний: {e}")
         ctx = browser.new_context(viewport={"width": 1440, "height": 900}, permissions=["microphone"])
         pg = ctx.new_page()
+        pg.on("dialog", lambda d: d.accept())
         errors = []
         pg.on("pageerror", lambda e: errors.append(str(e)))
         pg.on("console", lambda m: m.type == "error" and "Failed to load resource" not in m.text
@@ -132,6 +133,28 @@ def test_full_flow(page):
     assert pg.locator(".cue").count() == 3
     assert pg.inner_text("#refTag") == "RU"              # англійського немає → російський
 
+    assert not pg.errors, pg.errors
+
+
+def test_equalizer_panel(page):
+    pg = page
+    pg.click("#eqPanel summary")
+    assert pg.input_value("#eqSel") == "orc-peon"
+    pg.wait_for_function("() => document.querySelector('#eqCurve').getContext('2d').getImageData(0,0,248,72).data.some(v => v)")
+    pg.locator("input[data-eq='gain'][data-i='1']").fill("-4")                 # рух слайдера → профіль змінено
+    pg.click("#eqBypass")
+    pg.click("#eqBypass")
+    pg.click("#eqNew")
+    pg.fill("#eqName", "Мій peon")
+    pg.click("#eqSaveNew")
+    pg.wait_for_selector("#eqDel")
+    assert pg.eval_on_selector("#eqSel", "s => s.selectedOptions[0].text") == "Мій peon"
+    pg.reload()
+    pg.wait_for_selector(".cue.on")
+    pg.click("#eqPanel summary")
+    assert pg.eval_on_selector("#eqSel", "s => s.selectedOptions[0].text") == "Мій peon"
+    assert pg.input_value("input[data-eq='gain'][data-i='1']") == "-4"
+    pg.click("#eqDel")                                                         # confirm → діалог
     assert not pg.errors, pg.errors
 
 
