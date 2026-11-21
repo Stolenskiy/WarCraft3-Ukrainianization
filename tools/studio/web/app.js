@@ -99,7 +99,7 @@ function drawWave(id, progress = -1) {
 // Прослуховування дублів іде через BiquadFilterNode з тими самими параметрами; файл для гри
 // змінюється лише кнопкою «Застосувати до обраних дублів».
 const EQ = { data: null, id: null, prof: null, bypass: false, live: null, naming: false };
-const EQ_TYPES = { highpass: "Верхні частоти (HP)", lowshelf: "Низька полиця", peaking: "Пік", highshelf: "Висока полиця", lowpass: "Нижні частоти (LP)" };
+const EQ_TYPES = { highpass: "Зріз низів (гул)", lowshelf: "Низи (полиця)", peaking: "Смуга", highshelf: "Верхи (полиця)", lowpass: "Зріз верхів (шипіння)" };
 const eqClone = (o) => JSON.parse(JSON.stringify(o));
 const eqLog = (v) => Math.round(Math.log(v / 20) / Math.log(1000) * 1000);      // 20 Гц…20 кГц → 0…1000
 const eqFromLog = (x) => Math.round(20 * Math.pow(1000, x / 1000));
