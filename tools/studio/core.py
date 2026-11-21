@@ -57,14 +57,21 @@ def new_entry() -> dict:
     return {"ua_text": None, "approved": None, "takes": [], "history": []}
 
 
-def export_trimmed(src: Path, dst: Path) -> bool:
-    """Копія для гри без тиші на краях (−45 dB), 22050 Hz mono s16. False — не вдалося."""
-    flt = ("silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.08,areverse,"
-           "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.12,areverse")
+AUTO_TRIM = ("silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.08,areverse,"
+             "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.12,areverse")
+
+
+def export_take(src: Path, dst: Path, filters: list[str]) -> bool:
+    """Копія дубля для гри: ланцюжок ffmpeg-фільтрів `filters` (через кому) → 22050 Hz mono s16.
+
+    Порожній ланцюжок → звичайна конвертація. False — не вдалося (викликач робить просту копію).
+    Фільтри збирає Service._export_filters (ручне обрізання, авто-обрізання тиші, EQ персонажа).
+    """
     tmp = dst.with_suffix(".tmp.wav")
     try:
         r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(src),
-                            "-af", flt, "-ar", str(SR), "-ac", "1", "-sample_fmt", "s16", str(tmp)],
+                            *(["-af", ",".join(filters)] if filters else []),
+                            "-ar", str(SR), "-ac", "1", "-sample_fmt", "s16", str(tmp)],
                            capture_output=True, timeout=30)
         if r.returncode == 0 and duration(tmp) >= MIN_TAKE_SEC:
             os.replace(tmp, dst)
@@ -294,12 +301,17 @@ class Service:
                 raise StudioError(f"файл дубля не знайдено: {src.name}")
             dst = self.game_path(ln)
             dst.parent.mkdir(parents=True, exist_ok=True)
-            if not (trim and export_trimmed(src, dst)):
+            if not export_take(src, dst, self._export_filters(cid, gid, t, trim)):
                 shutil.copy2(src, dst)
             prev, e["approved"] = e["approved"], file
             st.log(gid, lid, f"обрано дубль {take_no(file)} для гри"
                    + (f" (замість дубля {take_no(prev)})" if prev and prev != file else ""))
             return self._done(cid, gid, ln)
+
+    def _export_filters(self, cid: str, gid: str, take: dict, auto_trim: bool) -> list[str]:
+        """ffmpeg-фільтри копії для гри, у порядку застосування. Точка розширення обробки:
+        ручне обрізання дубля → авто-обрізання тиші → EQ/обробка персонажа."""
+        return [AUTO_TRIM] if auto_trim else []
 
     def _drop_approval(self, cid: str, gid: str, ln: Line, e: dict, reason: str) -> None:
         prev, e["approved"] = e["approved"], None

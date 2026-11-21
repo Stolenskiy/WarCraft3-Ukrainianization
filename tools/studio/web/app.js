@@ -440,7 +440,16 @@ function renderCard(newFile) {
       <div class="timer" id="timer">0.0 с<small>макс. ${MAX_REC} с</small></div>
     </div>
 
-    <div class="section-h"><h3>Дублі</h3><span>${active.length ? `${active.length} · новіші зверху · пунктир = довжина оригіналу` : ""}</span></div>
+    <div class="section-h"><h3>Дублі</h3><span>${active.length ? `${active.length} · новіші зверху` : ""}</span>
+      ${active.length ? `<details class="legend"><summary title="Що означають позначки">? Як читати</summary><div>
+        <p><i class="lg-mark"></i><b>Помаранчевий пунктир «оригінал»</b> — де закінчився б голос, якби ви говорили
+          так само довго, як в оригіналі (відлік від початку вашого голосу). Ваша хвиля помітно далі за пунктир —
+          репліка задовга, у грі звучатиме повільніше за анімацію.</p>
+        <p><span class="fit good">голос 0.80 с · +0.05 с</span> довжина вашого голосу без тиші на краях і різниця з оригіналом:
+          <b class="ok-t">зелений</b> — вкладаєтесь (до +10 %), <b class="warn-t">жовтий</b> — трохи довше (до +30 %),
+          <b class="bad-t">червоний</b> — задовго, краще сказати швидше чи коротше.</p>
+        <p><b>Тиша на початку й у кінці</b> у файлі для гри обрізається автоматично (перемикач «Обрізати тишу»
+          у шапці); сам дубль не змінюється.</p></div></details>` : ""}</div>
     <div class="takes">${active.length ? active.map((t) => takeRow(p, t, t.file === newFile)).join("")
       : `<div class="empty-takes">Ще немає дублів. Послухайте оригінал і запишіть перший — <kbd>Пробіл</kbd></div>`}</div>
 
@@ -473,9 +482,11 @@ async function loadWaves(p) {
   for (const [t, b] of tbufs) {
     const [va, vb] = voiceSpan(b), voice = vb - va;
     const appr = p.approved === t.file;
+    const cv = document.querySelector(`canvas[data-wave="${CSS.escape("take:" + t.file)}"]`);
+    if (cv) cv.title = "Помаранчевий пунктир — довжина голосу в оригіналі, відкладена від початку вашого голосу";
     mk("take:" + t.file, b, { color: appr ? "#3f8f57" : "#4f5765", played: appr ? "#46c46a" : "#e4572e", scale, marker: va + refVoice });
     const f = document.querySelector(`[data-fit="${CSS.escape(t.file)}"]`), fi = fitInfo(voice, refVoice);
-    if (f) { f.className = "fit " + fi.cls; f.textContent = fi.text; f.title = `Довжина голосу без тиші на краях; оригінал — ${fmt(refVoice)}`; }
+    if (f) { f.className = "fit " + fi.cls; f.textContent = fi.text; f.title = `Ваш голос (без тиші на краях) — ${fmt(voice)}; голос в оригіналі — ${fmt(refVoice)}. Зелений ≤ +10 %, жовтий ≤ +30 %, червоний — задовго.`; }
   }
 }
 
