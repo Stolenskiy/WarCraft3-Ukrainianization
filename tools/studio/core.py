@@ -28,7 +28,7 @@ from pathlib import Path
 
 from . import catalog as cat_mod
 from .catalog import Line, duration
-from .paths import GAME_FILES, MIN_TAKE_SEC, ROOT, SR, STATE_DIR, TAKES_ROOT
+from .paths import GAME_FILES, MIN_TAKE_SEC, SR, STATE_DIR, TAKES_ROOT
 
 TAKE_RE = re.compile(r"\.take(\d+)\.wav$", re.I)
 
@@ -81,44 +81,31 @@ class Store:
         self.catalog_id = catalog_id
         self.path = STATE_DIR / f"{catalog_id}.json"
         self.data = {"version": 3, "groups": {}}
-        if self.path.exists():
-            self.data = json.loads(self.path.read_text(encoding="utf-8"))
+        for p in (self.path, self.bak):           # зіпсований основний файл → остання добра копія
+            if p.exists():
+                try:
+                    self.data = json.loads(p.read_text(encoding="utf-8"))
+                    break
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    continue
         else:
-            self._migrate_legacy()
+            if self.path.exists():
+                raise StudioError(f"стан {self.path.name} зіпсований, резервної копії немає — "
+                                  "відновіть з git-ігнорованого бекапу або видаліть файл")
 
-    def _migrate_legacy(self) -> None:
-        """Перенести стан і файли студій v1/v2 (лише units-orc). Нічого не видаляє."""
-        if self.catalog_id != "units-orc":
-            return
-        v2 = ROOT / "data/record-studio-orc.json"
-        v1 = ROOT / "data/record-session-peon.json"
-        groups: dict = {}
-        if v2.exists():
-            groups = json.loads(v2.read_text(encoding="utf-8")).get("units", {})
-        elif v1.exists():
-            g = groups.setdefault("peon", {})
-            for gname, v in json.loads(v1.read_text(encoding="utf-8")).items():
-                e = g.setdefault(gname.lower(), new_entry())
-                e["takes"] = [{"file": t, "created": now(), "deleted": None} for t in v.get("takes", [])]
-                e["approved"] = v.get("approved")
-        # файли дублів: audio/self-recorded/<unit>/ → audio/self-recorded/units-orc/<unit>/
-        for gid in list(groups) + ["peon"]:
-            old, new = TAKES_ROOT / gid, TAKES_ROOT / self.catalog_id / gid
-            if old.is_dir() and not new.exists():
-                new.parent.mkdir(parents=True, exist_ok=True)
-                shutil.move(str(old), str(new))
-        if groups:
-            self.data["groups"] = groups
-            for lines in groups.values():
-                for e in lines.values():
-                    e.setdefault("history", []).append({"ts": now(), "action": "перенесено у студію v3"})
-            self.save()
+    @property
+    def bak(self) -> Path:
+        return self.path.with_suffix(".json.bak")
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=self.path.parent, prefix=".tmp-", suffix=".json")
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(self.data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        if self.path.exists():
+            shutil.copy2(self.path, self.bak)      # попередня версія — резерв
         os.replace(tmp, self.path)  # атомарно: стан не зіпсується при збої
 
     def entry(self, group: str, line: str) -> dict:
@@ -241,7 +228,7 @@ class Service:
                           "deleted": t.get("deleted"), "exists": p.exists(),
                           "dur": round(duration(p), 3) if p.exists() else 0})
         return {"id": ln.id, "kind": ln.kind, "kind_ua": ln.kind_ua, "ru": ln.ru, "ru_dur": round(ln.ru_dur, 3),
-                "has_en": ln.ref_en is not None,
+                "has_en": ln.ref_en is not None, "has_ru": ln.has_ru,
                 "no_speech": ln.no_speech, "game_rel": ln.game_rel,
                 "ua": e["ua_text"] if e["ua_text"] is not None else ln.ua_hint,
                 "ua_custom": e["ua_text"] is not None, "ua_hint": ln.ua_hint, "direction": ln.direction,
@@ -273,13 +260,15 @@ class Service:
         """Зберегти запис (будь-який wav від браузера) як новий дубль у форматі гри."""
         with self.lock:
             ln = self.line(cid, gid, lid)
+            if wav_bytes[:4] != b"RIFF" or wav_bytes[8:12] != b"WAVE":
+                raise StudioError("очікується WAV")      # ffmpeg не вгадує формат чужих байтів
             target = self.next_take_file(cid, gid, ln)
             target.parent.mkdir(parents=True, exist_ok=True)
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
                 f.write(wav_bytes)
                 raw = Path(f.name)
             try:
-                r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(raw),
+                r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "wav", "-i", str(raw),
                                     "-ar", str(SR), "-ac", "1", "-sample_fmt", "s16", str(target)],
                                    capture_output=True, timeout=60)
             finally:

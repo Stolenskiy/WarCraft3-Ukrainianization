@@ -5,12 +5,7 @@
 
 Відкриється http://127.0.0.1:8765 — сервер слухає лише цей комп'ютер.
 Зупинити: Ctrl+C у терміналі.
-
-Де що лежить:
-  * дублі — audio/self-recorded/<каталог>/<група>/<репліка>.takeN.wav; кошик — .../_deleted/;
-  * обрані для гри — game-files/<шлях як у грі>, напр. game-files/Units/orc/peon/peonyes1.wav;
-  * тексти, дублі, рішення, журнал — data/studio/<каталог>.json.
-Архітектура й розширення: tools/studio/README.md
+Де лежать дані, архітектура й розширення: tools/studio/README.md
 """
 import sys
 from pathlib import Path

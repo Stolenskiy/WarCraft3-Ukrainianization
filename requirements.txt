@@ -1,0 +1,2 @@
+# Робочі залежності (студія — лише stdlib; це для витягування оригіналів із гри)
+PyCASC @ git+https://github.com/raidandfade/pycasc@e19e2a8a774aaf3fa3f08fa961c1ea96a4a38b94  # закріплено на коміт; тягне requests 2.21 → лише Python 3.11

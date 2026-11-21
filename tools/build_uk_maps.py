@@ -174,10 +174,12 @@ def install(rel, out_path):
     dest = os.path.join(GAME_MAPS, sub)
     dest = os.path.normpath(dest)
     # safety: destination must be inside game Maps/
-    assert os.path.abspath(dest).startswith(os.path.abspath(GAME_MAPS) + os.sep), dest
     os.makedirs(os.path.dirname(dest), exist_ok=True)
-    if os.path.exists(dest):
-        bak = os.path.join(BACKUP_DIR, sub)
+    # realpath: симлінк у дорозі не має вивести за межі Maps/
+    assert os.path.realpath(dest).startswith(os.path.realpath(GAME_MAPS) + os.sep), dest
+    bak = os.path.join(BACKUP_DIR, sub)
+    if os.path.exists(dest) and not os.path.exists(bak):
+        # бекап лише ОРИГІНАЛУ: повторний --install не має затерти його вже українською картою
         os.makedirs(os.path.dirname(bak), exist_ok=True)
         shutil.copy2(dest, bak)
         print("backup:", dest, "->", bak)

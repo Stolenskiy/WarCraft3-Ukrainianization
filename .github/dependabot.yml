@@ -1,0 +1,9 @@
+# Безкоштовні PR з оновленнями закріплених (за SHA) дій і залежностей — CI перевірить кожен.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+  - package-ecosystem: pip
+    directory: /
+    schedule: { interval: monthly }

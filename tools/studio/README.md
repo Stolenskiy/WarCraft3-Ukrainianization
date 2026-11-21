@@ -25,7 +25,7 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 
 | Що | Де |
 |---|---|
-| Стан каталогу (тексти, дублі, вибір, журнал) | `data/studio/<catalog>.json` (gitignored) |
+| Стан каталогу (тексти, дублі, вибір, журнал) | `data/studio/<catalog>.json` + `.bak` (попередня версія; gitignored) |
 | Дублі | `audio/self-recorded/<catalog>/<group>/<line-stem>.takeN.wav` |
 | Кошик (відновлюється) | `audio/self-recorded/<catalog>/<group>/_deleted/` |
 | Обраний дубль для гри | `game-files/<Line.game_rel>`, напр. `game-files/Units/orc/peon/peonyes1.wav` |
@@ -33,15 +33,16 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 Формат гри: WAV PCM s16, 22050 Hz, mono. Копія для гри за замовчуванням без тиші на краях.
 
 Оригінал звучить російською або англійською (перемикач у шапці, `localStorage`). Англійські файли —
-`reference-en/units/<race>/<unit>/` (`make en-refs`); `Line.ref_en`, API `/audio/ref-en/...`;
-якщо пари немає — звучить російський.
+`reference-en/units/<race>/<unit>/` (`make refs`); `Line.ref_en`, API `/audio/ref-en/...`;
+якщо пари немає — звучить інша мова. Без російського мовного пакета (`reference/` порожня) студія
+працює лише з англійськими (`Line.has_ru = False`).
 
 ## Тести (`tests/`)
 
 | Файл | Що | Час |
 |---|---|---|
 | `conftest.py` | тимчасовий `WC3UA_ROOT` із **синтетичними** референсами (справжні імена, синус) | — |
-| `test_studio_core.py` | Service + HTTP API: інваріанти дублів, міграції, безпека | ~2 с |
+| `test_studio_core.py` | Service + HTTP API: інваріанти дублів, відновлення стану, безпека | ~2 с |
 | `test_studio_e2e.py` | Chrome + фейковий мікрофон: запис, хвилі, вибір, кошик/undo, RU/EN, раси; друкує покриття app.js і шлях скріншота | ~9 с |
 
 Аудіо гри в тестах і CI не потрібне. Нова поведінка → тест; покриття Python ≥ `fail_under`.
@@ -57,6 +58,8 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 полями `id`, `title` і методами `available()`, `groups() -> list[Group]`, `lines(gid) -> list[Line]`
 (див. `UnitCatalog` як зразок) і додати його в `all_catalogs()`. Головне — правильний
 `Line.game_rel` (шлях файлу в корені гри) і унікальний `Line.id` у межах групи.
+Обмеження: формат дубля спільний для всіх (`paths.py`: WAV 22050 mono), а `/api/open-dir`
+відкриває теку першої репліки групи — якщо місії потребують іншого, винести це в Catalog.
 Додати тест у `tests/test_studio_core.py` (каталог з'являється, репліки вантажаться).
 
 **Нова дія** (напр. «нормалізувати гучність»): метод у `Service` (під `self.lock`, лог у журнал,

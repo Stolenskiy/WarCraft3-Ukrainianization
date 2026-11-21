@@ -12,7 +12,7 @@ __pycache__/
 reference-orig-watermarked/
 reference-clean/
 
-# локальний прогрес студії запису (посилається на неопубліковані аудіо)
+# локальний прогрес студії запису (посилається на неопубліковані аудіо; record-* — старі версії)
 data/record-session-*.json
 data/record-studio-*.json
 backups/
@@ -23,3 +23,12 @@ data/studio/
 cov.md
 .ruff_cache/
 .pytest_cache/
+
+# захист від випадкової публікації аудіо й секретів
+*.wav
+*.mp3
+*.flac
+*.ogg
+.env*
+*.key
+*.pem

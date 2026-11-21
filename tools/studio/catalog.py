@@ -36,8 +36,9 @@ KIND_UA = {
 @dataclass
 class Line:
     id: str                 # унікальний у межах групи (для юнітів — ім'я файлу)
-    ref_path: Path          # російський оригінал (референс)
-    ref_en: Path | None = None  # англійський оригінал, якщо витягнуто (tools/build_en_refs.py)
+    ref_path: Path          # оригінал за замовчуванням: російський, якщо є, інакше англійський
+    ref_en: Path | None = None  # англійський оригінал, якщо витягнуто (tools/build_refs.py)
+    has_ru: bool = True     # чи є російський оригінал (без мовного пакета — лише англійський)
     game_rel: str = ""      # шлях відносно кореня гри, напр. Units/orc/peon/peonyes1.wav
     ru: str = ""            # текст оригіналу (транскрипт)
     ru_dur: float = 0.0
@@ -45,7 +46,7 @@ class Line:
     direction: str = ""     # «як озвучувати»
     kind: str | None = None
     num: int = 0
-    no_speech: bool = False  # у референсі немає мови (вирізана вотермарка)
+    no_speech: bool = False  # у транскрипті немає слів (крик / звук) — записати все одно треба
 
     @property
     def kind_ua(self) -> str:
@@ -98,8 +99,13 @@ def line_kind(fname: str) -> tuple[str | None, int]:
     return (m.group(1).lower(), int(m.group(2) or 1)) if m else (None, 0)
 
 
+# Whisper «галюцинує» ці фрази на звуках без мови (крики, смерть) — це НЕ вотермарки в аудіо.
+HALLUCINATION_RE = re.compile(r"продолжение следует|субтитр|dimatorzok|семкин|редактор", re.I)
+
+
 def _garbage(text: str) -> bool:
-    return re.search(r"(.)\1{7,}", text) is not None
+    """Транскрипт без розбірливих слів: повтори символів або відома галюцинація Whisper."""
+    return re.search(r"(.)\1{7,}", text) is not None or HALLUCINATION_RE.search(text) is not None
 
 
 # ---------------------------------------------------------------- voice bible
@@ -166,7 +172,7 @@ class UnitCatalog:
     """Голоси юнітів однієї раси: reference/units/<race>/<unit>/*.wav.
 
     Тексти: data/transcripts-<race>-<unit>.json (або transcripts-<unit>.json);
-    підказки/характер: docs/voice-bible/<race>.md; без мови: data/watermark-quarantine.json.
+    підказки/характер: docs/voice-bible/<race>.md.
     Файл для гри: Units/<race>/<unit>/<file>.wav (той самий шлях, що в CASC гри).
     """
 
@@ -181,19 +187,12 @@ class UnitCatalog:
     def bible(self) -> dict:
         return parse_bible(self.root / f"docs/voice-bible/{self.race}.md")
 
-    @cached_property
-    def quarantine(self) -> set[str]:
-        p = self.root / "data/watermark-quarantine.json"
-        if not p.exists():
-            return set()
-        q = json.loads(p.read_text(encoding="utf-8"))
-        return {f["file"] for f in q.get("files", []) if f.get("cleaned_duration_sec", 0) < 0.2}
-
     def available(self) -> bool:
-        return self.ref_root.is_dir()
+        return self.ref_root.is_dir() or self.ref_en_root.is_dir()
 
     def groups(self) -> list[Group]:
-        have = sorted(p.name for p in self.ref_root.iterdir() if p.is_dir()) if self.available() else []
+        have = sorted({p.name for r in (self.ref_root, self.ref_en_root) if r.is_dir()
+                       for p in r.iterdir() if p.is_dir()})
         b = self.bible
 
         def key(u: str):  # спершу аркуші voice bible у їхньому порядку, потім решта
@@ -219,20 +218,23 @@ class UnitCatalog:
         tr = self._transcripts(group_id)
         binfo = self.bible.get(group_id)
         out = []
-        for p in sorted((self.ref_root / group_id).glob("*.wav")):
+        names = sorted({f.name for r in (self.ref_root, self.ref_en_root) for f in (r / group_id).glob("*.wav")})
+        for name in names:
+            ru_p, en = self.ref_root / group_id / name, self.ref_en_root / group_id / name
+            p = ru_p if ru_p.exists() else en
             info = tr.get(p.name, {})
             ru = (info.get("text") or "").strip()
+            no_speech = bool(ru) and _garbage(ru)
             if not ru:
                 ru = "(транскрипту ще немає — послухайте оригінал)"
-            elif _garbage(ru):
+            elif no_speech:
                 ru = "(без розбірливих слів — крик / звук)"
             hint, direction = bible_hint(binfo, p.name)
             kind, num = line_kind(p.name)
-            en = self.ref_en_root / group_id / p.name
             out.append(Line(
-                id=p.name, ref_path=p, ref_en=en if en.exists() else None, game_rel=f"Units/{self.race}/{group_id}/{p.name}",
+                id=p.name, ref_path=p, ref_en=en if en.exists() else None, has_ru=ru_p.exists(), game_rel=f"Units/{self.race}/{group_id}/{p.name}",
                 ru=ru, ru_dur=info.get("duration") or duration(p), ua_hint=hint, direction=direction,
-                kind=kind, num=num, no_speech=f"units/{self.race}/{group_id}/{p.name}" in self.quarantine))
+                kind=kind, num=num, no_speech=no_speech))
         out.sort(key=lambda ln: (KIND_ORDER.index(ln.kind), ln.num, ln.id))
         return out
 

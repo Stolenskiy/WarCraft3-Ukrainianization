@@ -32,6 +32,23 @@ def test_lines_have_russian_text_and_ukrainian_hint(svc):
     assert lines[LID].direction
 
 
+def test_whisper_hallucination_is_not_text(svc):
+    ln = svc.line(CID, GID, "peondeath.wav")
+    assert ln.no_speech and "без розбірливих слів" in ln.ru
+
+
+def test_real_data_parses():
+    """Справжні аркуші voice bible і транскрипти з репозиторію читаються (без аудіо)."""
+    from conftest import REPO
+    from studio.catalog import parse_bible
+    for md in (REPO / "docs/voice-bible").glob("*.md"):
+        if md.name != "README.md":
+            units = parse_bible(md)
+            assert units and any(u["rows"] for u in units.values()), md.name
+    for f in (REPO / "data").glob("transcripts-*.json"):
+        assert all("text" in v for v in json.loads(f.read_text(encoding="utf-8")).values()), f.name
+
+
 def test_every_group_loads(svc):
     for c in svc.catalogs_json():
         for g in c["groups"]:
@@ -46,6 +63,15 @@ def test_english_original_optional(svc):
     from studio.core import StudioError
     with pytest.raises(StudioError):
         svc.audio_path("ref-en", CID, "grunt", "gruntyes1.wav")
+
+
+def test_english_only_unit_works_without_russian_pack(svc):
+    assert "hellscream" in [g["id"] for g in svc.catalogs_json()[0]["groups"]]
+    ln = svc.line(CID, "hellscream", "gromyes1.wav")
+    j = svc.line_json(CID, "hellscream", ln)
+    assert not j["has_ru"] and j["has_en"]
+    assert svc.audio_path("ref", CID, "hellscream", "gromyes1.wav").parts[-5] == "reference-en"
+    assert svc.add_take(CID, "hellscream", "gromyes1.wav", wav_bytes())["takes"]
 
 
 # ---------------------------------------------------------------- дублі
@@ -120,18 +146,6 @@ def test_orphan_files_adopted(clean_root):
     assert s.add_take(CID, GID, "peonyes2.wav", wav_bytes())["takes"][-1]["file"] == "peonyes2.take8.wav"
 
 
-def test_legacy_v2_migration(clean_root):
-    synth(clean_root / "audio/self-recorded/peon/peonyes1.take5.wav")
-    (clean_root / "data/record-studio-orc.json").write_text(json.dumps({"version": 2, "units": {"peon": {
-        LID: {"ua_text": None, "approved": None, "history": [],
-              "takes": [{"file": "peonyes1.take5.wav", "created": "2026-11-21T22:00:00", "deleted": None}]}}}}))
-    from studio import core
-    s = core.Service()
-    e = s.line_json(CID, GID, s.line(CID, GID, LID))
-    assert e["takes"][0]["file"] == "peonyes1.take5.wav" and e["takes"][0]["exists"]
-    assert not (clean_root / "audio/self-recorded/peon").exists()
-
-
 # ---------------------------------------------------------------- HTTP API
 @pytest.fixture
 def api(svc):
@@ -179,16 +193,6 @@ def test_api_security(api):
     assert code == 400
 
 
-def test_legacy_v1_migration(clean_root):
-    synth(clean_root / "audio/self-recorded/peon/peonyes2.take1.wav")
-    (clean_root / "data/record-session-peon.json").write_text(json.dumps(
-        {"PeonYes2.wav": {"takes": ["peonyes2.take1.wav"], "approved": None}}))
-    from studio import core
-    s = core.Service()
-    e = s.line_json(CID, GID, s.line(CID, GID, "peonyes2.wav"))
-    assert [t["file"] for t in e["takes"]] == ["peonyes2.take1.wav"] and e["takes"][0]["exists"]
-
-
 def test_errors_are_explicit(svc):
     from studio.core import StudioError
     for call in (lambda: svc.lines("units-nope", GID),
@@ -209,3 +213,45 @@ def test_api_bad_requests(api):
     assert api("/nope")[0] == 404
     assert api("/static/../core.py")[0] == 404
     assert api("/api/take?cid=units-orc&gid=peon&lid=peonyes1.wav", raw=b"not a wav")[0] == 400
+
+
+def test_build_refs_unmangles_casc_names(tmp_path):
+    import build_refs
+    raw, out = tmp_path / "raw", tmp_path / "out"
+    for n in ("orc/heheadhunteryes1.wav", "orc/grunt/gruntyes1.wav", "orc/swhitetaurenwhat1.wav",
+              "orc/taurenwhat1.wav"):
+        (raw / n).parent.mkdir(parents=True, exist_ok=True)
+        (raw / n).write_bytes(n.encode())
+    done, missing = build_refs.layout(raw, out, ["orc/headhunter/headhunteryes1.wav", "orc/grunt/gruntyes1.wav",
+                                                 "orc/tauren/taurenwhat1.wav", "orc/peon/peonyes1.wav"])
+    assert (done, missing) == (3, 1)
+    assert (out / "orc/headhunter/headhunteryes1.wav").read_bytes() == b"orc/heheadhunteryes1.wav"
+    assert (out / "orc/tauren/taurenwhat1.wav").read_bytes() == b"orc/taurenwhat1.wav"   # не swhitetauren
+
+
+def test_api_rejects_foreign_host_origin_and_bad_length(api):
+    assert api("/api/catalogs", headers={"Host": "attacker.example"})[0] == 403          # DNS-rebinding
+    body = {"cid": CID, "gid": GID, "lid": LID, "text": "x"}
+    assert api("/api/text", body, headers={"Origin": "http://attacker.example"})[0] == 403
+    assert api("/api/text", body, headers={"Content-Length": "-1"})[0] in (400, 413)
+    assert api("/api/text", {"cid": CID, "gid": GID, "lid": LID, "text": 1})[0] == 400
+
+
+def test_non_wav_upload_rejected_before_ffmpeg(svc):
+    from studio.core import StudioError
+    with pytest.raises(StudioError, match="WAV"):
+        svc.add_take(CID, GID, LID, b"#EXTM3U\n#EXT-X-VERSION:3\nfile:///etc/passwd\n")
+
+
+def test_corrupt_state_falls_back_to_backup(clean_root):
+    from studio import core
+    s = core.Service()
+    s.set_text(CID, GID, LID, "перший")
+    s.set_text(CID, GID, LID, "другий")                    # .bak = стан із «перший»
+    st = clean_root / "data/studio/units-orc.json"
+    st.write_text("{зіпсовано", encoding="utf-8")
+    s2 = core.Service()
+    assert s2.line_json(CID, GID, s2.line(CID, GID, LID))["ua"] == "перший"
+    st.with_suffix(".json.bak").unlink()
+    with pytest.raises(core.StudioError):
+        core.Service().line(CID, GID, LID)

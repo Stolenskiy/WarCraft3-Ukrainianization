@@ -30,7 +30,8 @@ async function post(path, body, isAudio = false) {
 const cur = () => S.phrases[S.idx];
 const aurl = (kind, name) => `/audio/${kind}/${S.cat}/${S.unit}/${encodeURIComponent(name)}`;
 // мова оригіналу (налаштування в шапці): "ru" | "en"; якщо англійського файлу немає — рос.
-const refLang = (p) => (S.lang === "en" && p.has_en ? "en" : "ru");
+// без російського мовного пакета (make refs) звучить лише англійський
+const refLang = (p) => ((S.lang === "en" && p.has_en) || !p.has_ru ? "en" : "ru");
 const urlRef = (p) => aurl(refLang(p) === "en" ? "ref-en" : "ref", p.id);
 const urlTake = (f) => aurl("take", f);
 
@@ -203,11 +204,11 @@ async function stopRec() {
   S.busy = true;
   $("#recTitle").textContent = "Зберігаю…";
   try {
-    const q = new URLSearchParams(ids(p)).toString();
-    const res = await post(`/api/take?${q}`, encodeWav(pcm, Rec.sr), true);
+    const where = ids(p);
+    const res = await post(`/api/take?${new URLSearchParams(where)}`, encodeWav(pcm, Rec.sr), true);
     const newest = res.takes.filter((t) => !t.deleted).slice(-1)[0];
-    applyPhrase(res, newest && newest.file);
-    if ($("#optAutoplay").checked && newest) play([{ url: urlTake(newest.file), id: "take:" + newest.file }]);
+    putPhrase(where, res, newest && newest.file);
+    if ($("#optAutoplay").checked && newest && cur()?.id === res.id && S.unit === where.gid) play([{ url: urlTake(newest.file), id: "take:" + newest.file }]);
   } catch (e) { toast("Не збережено: " + e.message, true); renderCard(); }
   finally { S.busy = false; }
 }
@@ -256,11 +257,11 @@ function renderUnitGrid() {
   const c = catOf(popCat) || catOf();
   const tabs = S.catalogs.map((x) => {
     const d = x.groups.reduce((a, g) => a + g.done, 0), t = x.groups.reduce((a, g) => a + g.total, 0);
-    return `<button class="${x.id === c.id ? "on" : ""}" data-cat="${x.id}">${esc(x.title.split(" — ")[0])} <small>${d}/${t}</small></button>`;
+    return `<button class="${x.id === c.id ? "on" : ""}" data-cat="${esc(x.id)}">${esc(x.title.split(" — ")[0])} <small>${d}/${t}</small></button>`;
   }).join("");
-  const card = (g) => `<button class="unit-card ${c.id === S.cat && g.id === S.unit ? "on" : ""} ${g.done === g.total ? "complete" : ""}" data-unit="${g.id}" data-unit-cat="${c.id}">
+  const card = (g) => `<button class="unit-card ${c.id === S.cat && g.id === S.unit ? "on" : ""} ${g.done === g.total ? "complete" : ""}" data-unit="${esc(g.id)}" data-unit-cat="${esc(c.id)}">
       <span class="avatar">${esc(initials(g.title))}</span>
-      <span class="meta"><b>${esc(g.title)}</b><small>${g.done} / ${g.total} · ${g.id}</small>
+      <span class="meta"><b>${esc(g.title)}</b><small>${g.done} / ${g.total} · ${esc(g.id)}</small>
       <div class="bar"><i style="width:${(100 * g.done) / Math.max(1, g.total)}%"></i></div></span></button>`;
   const sections = [...new Set(c.groups.map((g) => g.section))];
   $("#unitGrid").innerHTML = `<div class="seg cat-tabs">${tabs}</div>` + sections.map((sec) =>
@@ -366,12 +367,13 @@ function renderCard(newFile) {
   main.innerHTML = `<div class="card">
     <div class="eyebrow"><span class="chip type">${esc(p.kind_ua)}</span>
       <span>Репліка ${S.idx + 1} з ${S.phrases.length}</span><span class="dot-sep">${esc(p.id)}</span>
-      ${p.no_speech ? `<span class="chip warn">у референсі немає мови</span>` : ""}</div>
+      ${p.no_speech ? `<span class="chip warn">без слів — крик / звук</span>` : ""}</div>
 
     <div class="lang"><div class="lang-tag" id="refTag">${refLang(p).toUpperCase()}</div><div>
       <h1 class="ru-text">«${esc(p.ru)}»</h1>
-      ${refLang(p) === "en" ? `<div class="ua-meta">звук — англійський оригінал; текст — з російського транскрипту</div>`
+      ${S.lang === "en" && p.has_en ? `<div class="ua-meta">звук — англійський оригінал; текст — з російського транскрипту</div>`
         : S.lang === "en" ? `<div class="ua-meta">англійського оригіналу для цієї репліки немає — звучить російський</div>` : ""}
+      ${S.lang === "ru" && !p.has_ru ? `<div class="ua-meta">російського оригіналу немає (потрібен мовний пакет — README) — звучить англійський</div>` : ""}
       <div class="wave-row"><button class="play big" data-play="ref" title="Оригінал (R)">▶</button>
         <canvas class="wave" data-wave="ref"></canvas><span class="dur" id="refDur">${fmt(p.ru_dur)}</span></div></div></div>
 
@@ -457,9 +459,16 @@ function bindCard(p) {
 }
 
 // ------------------------------------------------------------------ дії
-function applyPhrase(res, newFile) {
-  S.phrases[S.idx] = res;
-  renderCues(); renderCard(newFile); loadCatalogs();
+// Відповідь сервера кладемо за (каталог, юніт, id репліки), а не за поточним індексом:
+// поки йшов запит, користувач міг перейти на іншу репліку чи юніт.
+function putPhrase(where, res, newFile) {
+  if (!res || where.cid !== S.cat || where.gid !== S.unit) { loadCatalogs(); return; }
+  const i = S.phrases.findIndex((x) => x.id === res.id);
+  if (i < 0) return;
+  S.phrases[i] = res;
+  renderCues();
+  if (i === S.idx) renderCard(newFile);
+  loadCatalogs();
 }
 async function act(path, body) {
   try { return await post(path, { ...ids(), ...body }); }
@@ -468,61 +477,71 @@ async function act(path, body) {
 async function saveText() {
   const ua = $("#ua"), p = cur();
   if (!ua || !p || ua.value.trim() === p.ua) return;
-  const idx = S.idx, prev = p.ua;
+  const where = ids(), prev = p.ua;
   const res = await act("/api/text", { text: ua.value });
-  if (res && S.idx === idx) { S.phrases[idx] = res; renderCues(); const st = $("#uaState"); if (st) st.textContent = "✓ збережено"; }
-  else if (res) S.phrases[idx] = res;
-  if (res) setUndo(`Текст змінено`, async () => { const r = await post("/api/text", { cid: S.cat, gid: S.unit, lid: res.id, text: prev }); S.phrases[idx] = r; if (S.idx === idx) renderCard(); renderCues(); });
+  if (!res) return;
+  if (where.cid === S.cat && where.gid === S.unit) {
+    const i = S.phrases.findIndex((x) => x.id === res.id);
+    if (i >= 0) S.phrases[i] = res;
+    renderCues();
+    if (cur()?.id === res.id) { const st = $("#uaState"); if (st) st.textContent = "✓ збережено"; }
+  }
+  setUndo("Текст змінено", async () => putPhrase(where, await post("/api/text", { ...where, text: prev })));
 }
 async function approve(file) {
-  const prev = cur().approved, idx = S.idx;
+  const where = ids(), prev = cur().approved;
   const res = await act("/api/approve", { file, trim: $("#optTrim").checked });
   if (!res) return;
-  applyPhrase(res);
+  putPhrase(where, res);
   const n = res.takes.find((t) => t.file === file)?.n;
-  toast(`Дубль ${n} обрано для гри`, false, 5000, () => undoTo(idx, prev));
+  toast(`Дубль ${n} обрано для гри`, false, 5000, () => undoTo(where, prev));
 }
 async function unapprove() {
-  const prev = cur().approved, idx = S.idx;
+  const where = ids(), prev = cur().approved;
   const res = await act("/api/unapprove", {});
   if (!res) return;
-  applyPhrase(res);
-  toast("Вибір скасовано — дубль лишився у списку", false, 5000, () => undoTo(idx, prev));
+  putPhrase(where, res);
+  toast("Вибір скасовано — дубль лишився у списку", false, 5000, () => undoTo(where, prev));
 }
-async function undoTo(idx, prevApproved) {
-  const base = ids(S.phrases[idx]);
+async function undoTo(where, prevApproved) {
   const res = prevApproved
-    ? await post("/api/approve", { ...base, file: prevApproved, trim: $("#optTrim").checked })
-    : await post("/api/unapprove", base);
-  S.phrases[idx] = res; if (S.idx === idx) renderCard(); renderCues(); loadCatalogs();
+    ? await post("/api/approve", { ...where, file: prevApproved, trim: $("#optTrim").checked })
+    : await post("/api/unapprove", where);
+  putPhrase(where, res);
 }
 async function del(file) {
   stopPlay();
-  const p = cur(), idx = S.idx, wasAppr = p.approved === file;
+  const where = ids(), wasAppr = cur().approved === file;
   const res = await act("/api/delete", { file });
   if (!res) return;
-  applyPhrase(res);
+  putPhrase(where, res);
   const n = res.takes.find((t) => t.file === file)?.n;
   toast(`Дубль ${n} у кошику${wasAppr ? " (вибір для гри знято)" : ""}`, false, 7000, async () => {
-    let r = await post("/api/restore", { ...ids(p), file });
-    if (wasAppr) r = await post("/api/approve", { ...ids(p), file, trim: $("#optTrim").checked });
-    S.phrases[idx] = r; if (S.idx === idx) renderCard(); renderCues(); loadCatalogs();
+    let r = await post("/api/restore", { ...where, file });
+    if (wasAppr) r = await post("/api/approve", { ...where, file, trim: $("#optTrim").checked });
+    putPhrase(where, r);
   });
 }
 async function restore(file) {
+  const where = ids();
   const res = await act("/api/restore", { file });
-  if (res) { applyPhrase(res, file); toast("Дубль відновлено"); }
+  if (res) { putPhrase(where, res, file); toast("Дубль відновлено"); }
 }
 
 // ------------------------------------------------------------------ toast + undo
-let toastTimer = null;
-function setUndo(label, fn) { S.undo = fn ? { label, fn } : null; }
+// ⌘Z діє лише поки видно підказку (або кілька секунд після зміни тексту) — не «через хвилини».
+let toastTimer = null, undoTimer = null;
+function setUndo(label, fn, ms = 7000) {
+  S.undo = fn ? { label, fn } : null;
+  clearTimeout(undoTimer);
+  if (fn) undoTimer = setTimeout(() => { S.undo = null; }, ms);
+}
 function toast(msg, err = false, ms = 4000, undoFn = null) {
   const t = $("#toast");
   t.className = "toast" + (err ? " err" : "");
   t.innerHTML = `<span>${esc(msg)}</span>` + (undoFn ? `<button id="undoBtn">Скасувати <small>⌘Z</small></button>` : "");
   t.hidden = false;
-  if (undoFn) { setUndo(msg, undoFn); $("#undoBtn").onclick = runUndo; }
+  if (undoFn) { setUndo(msg, undoFn, ms); $("#undoBtn").onclick = runUndo; }
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.hidden = true; }, ms);
 }

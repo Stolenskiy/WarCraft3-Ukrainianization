@@ -16,20 +16,23 @@
 
 ## Команди
 `make check` — те саме, що CI (ruff + усі тести + поріг покриття); запускати перед кожним комітом.
-`make test-core` — швидко без браузера. `make studio` — студія. `make en-refs` — англ. оригінали.
+`make test-core` — швидко без браузера. `make studio` — студія. `make refs` — оригінали (EN з CASC; RU лише з рос. мовного пакета, `RU_PACK=`).
 CASC: `.venv/bin/python tools/casc_read.py list "UNITS\\ORC\\"` (фільтр позиційний; `extract --filter … --out …`).
 Python — завжди `.venv/bin/python -I`.
 
 ## Факти, які дорого відкривати заново
 - Гра: `/Applications/Warcraft III Classic`; loose-файли в корені перекривають CASC ("Allow Local Files"=1, увімкнено).
 - Голоси: `Units/<раса>/<юніт>/<файл>.wav` (lowercase), WAV s16 22050 Hz mono. `casc_read` «склеює»
-  теку з префіксом імені (`heheadhunteryes1.wav`) — реальний шлях з текою (`tools/build_en_refs.py::find`).
+  теку з префіксом імені (`heheadhunteryes1.wav`) — реальний шлях з текою (`tools/build_refs.py::find`).
 - ⚠ `Units/orc/<юніт>` у грі — симлінки в `Mods/Reforged Models/...`; не писати крізь них (скіл `game-change`).
 - Меню: fdf Reforged 2.x ламають 1.31 — лише fdf рос. пакета 1.31 + укр. значення.
+- Whisper на звуках без мови «галюцинує» («Продолжение следует…», «Субтитры … DimaTorzok») — це не
+  вотермарки; аудіо не різати (`catalog.py::HALLUCINATION_RE`).
 - macOS: `sudo` без TTY → `osascript … with administrator privileges`; zip з кирилицею → `ditto -x -k`;
   `screencapture` з агента не працює → UI перевіряти `make test` (друкує шлях скріншота).
 
 ## Правила
+- Автор комітів — лише особиста пошта `yiksnelots@gmail.com` (вже в локальному `git config`); корпоративну — ніколи.
 - Комміти без рядків атрибуції. Пуш лише `git push origin` (SSH-аліас `github-ua`); корпоративний акаунт не використовувати.
 - Не комітити `reference*/`, `audio/`, `models/`, `game-files/`, `data/studio/`, `.venv*` — аудіо гри й записи не публікуємо.
 - Тека гри: лише за скілом `game-change` (бекап + CHANGE-LOG, `Data/` не чіпати, нічого не видаляти).

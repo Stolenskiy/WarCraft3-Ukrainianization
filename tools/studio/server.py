@@ -1,6 +1,10 @@
 """Локальний HTTP-сервер студії (stdlib, без залежностей). Слухає лише 127.0.0.1.
 
-API (усі POST вимагають заголовок X-Studio: 1 — захист від запитів з інших сайтів):
+Захист (студія лише для цього комп'ютера):
+  - Host має бути 127.0.0.1:<port> або localhost:<port> — інакше 403 (DNS-rebinding);
+  - POST вимагає X-Studio: 1 (браузер не надішле його з чужого сайту без CORS) і, якщо є, Origin
+    із тим самим хостом; тіло ≤ MAX_UPLOAD.
+API:
   GET  /api/catalogs                         каталоги → групи з прогресом і характером
   GET  /api/group/<cid>/<gid>                усі репліки групи зі станом
   GET  /audio/<ref|ref-en|take|game>/<cid>/<gid>/<name>   аудіо (лише відомі файли)
@@ -18,6 +22,8 @@ from __future__ import annotations
 import json
 import mimetypes
 import subprocess
+import sys
+import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -63,7 +69,13 @@ def make_handler(svc: core.Service):
                 ctype += "; charset=utf-8"
             self._send(200, p.read_bytes(), ctype)
 
+        def _host_ok(self) -> bool:
+            port = self.server.server_address[1]
+            return self.headers.get("Host", "") in (f"127.0.0.1:{port}", f"localhost:{port}")
+
         def do_GET(self) -> None:
+            if not self._host_ok():
+                return self._json({"error": "forbidden host"}, 403)
             parts = [unquote(p) for p in urlparse(self.path).path.strip("/").split("/") if p]
             try:
                 if not parts:
@@ -81,10 +93,15 @@ def make_handler(svc: core.Service):
             self._json({"error": "not found"}, 404)
 
         def do_POST(self) -> None:
-            if self.headers.get("X-Studio") != "1":
+            origin = self.headers.get("Origin")
+            if (not self._host_ok() or self.headers.get("X-Studio") != "1"
+                    or (origin and urlparse(origin).netloc != self.headers.get("Host"))):
                 return self._json({"error": "forbidden"}, 403)
-            n = int(self.headers.get("Content-Length") or 0)
-            if n > MAX_UPLOAD:
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                return self._json({"error": "bad length"}, 400)
+            if not 0 <= n <= MAX_UPLOAD:
                 return self._json({"error": "too large"}, 413)
             body = self.rfile.read(n)
             url = urlparse(self.path)
@@ -100,11 +117,11 @@ def make_handler(svc: core.Service):
                     rel = Path(svc.lines(data["cid"], data["gid"])[0].game_rel).parent
                     d = GAME_FILES / rel
                     d.mkdir(parents=True, exist_ok=True)
-                    subprocess.run(["open", str(d)], check=False)
+                    subprocess.run(["open" if sys.platform == "darwin" else "xdg-open", str(d)], check=False)
                     return self._json({"ok": True})
             except core.StudioError as ex:
                 return self._json({"error": str(ex)}, 400)
-            except (KeyError, ValueError, TypeError) as ex:
+            except (KeyError, ValueError, TypeError, AttributeError) as ex:
                 return self._json({"error": f"bad request: {ex}"}, 400)
             self._json({"error": "not found"}, 404)
 
@@ -116,5 +133,5 @@ def serve(port: int = 8765, open_browser: bool = True, svc: core.Service | None 
     httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(svc))
     httpd.svc = svc
     if open_browser:
-        subprocess.Popen(["open", f"http://127.0.0.1:{httpd.server_address[1]}/"])
+        webbrowser.open(f"http://127.0.0.1:{httpd.server_address[1]}/")
     return httpd

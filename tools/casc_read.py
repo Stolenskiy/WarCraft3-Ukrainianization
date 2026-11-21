@@ -17,9 +17,24 @@ from PyCASC.utils.CASCUtils import parse_encoding_file, parse_blte, r_cascfile
 from PyCASC.utils.blizzutils import var_int, hexkey_to_bytes
 from PyCASC.rootfiles.warcraft3 import parse_warcraft3_root
 
-GAME_ROOT = "/Applications/Warcraft III Classic"
+GAME_ROOT = os.environ.get("WC3_GAME_ROOT", "/Applications/Warcraft III Classic")
 DATA_DIR = os.path.join(GAME_ROOT, "Data")
-BUILD_KEY = "9a75938c4606d6393fe0960c4ad5d9d5"
+def _active_build_key(default: str = "9a75938c4606d6393fe0960c4ad5d9d5") -> str:
+    """Build Key активної збірки з <гра>/.build.info (інші збірки гри теж працюють)."""
+    try:
+        with open(os.path.join(GAME_ROOT, ".build.info"), encoding="utf-8") as f:
+            lines = [ln.rstrip("\n").split("|") for ln in f if ln.strip()]
+        cols = [c.split("!")[0] for c in lines[0]]
+        for row in lines[1:]:
+            rec = dict(zip(cols, row))
+            if rec.get("Active") == "1" and rec.get("Build Key"):
+                return rec["Build Key"]
+    except (OSError, IndexError):
+        pass
+    return default
+
+
+BUILD_KEY = _active_build_key()
 
 
 def read_config(name):
