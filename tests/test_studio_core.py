@@ -434,3 +434,45 @@ def test_direction_is_per_phrase():
     assert direction_for(d, "У-ху!") == "хоробрість мимоволі"
     assert direction_for(d, "Спробуємо.") == "хоробрість мимоволі; «Спробуємо.» — зі зітхом"
     assert direction_for("«А» — тихо", "Б") == "«А» — тихо"            # нічого не лишилось → увесь напрям
+
+
+# ---------------------------------------------------------------- перевантаження (clipping)
+def _tone_wav(amp, sec=0.8):
+    import subprocess
+    r = subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+                        f"sine=frequency=300:sample_rate=22050:duration={sec}", "-af", f"volume={amp}",
+                        "-ac", "1", "-sample_fmt", "s16", "-f", "wav", "-"], capture_output=True, check=True)
+    return r.stdout
+
+
+def test_wav_peak_detects_clipping(tmp_path):
+    from studio.core import wav_peak
+    loud, quiet = tmp_path / "loud.wav", tmp_path / "quiet.wav"
+    loud.write_bytes(_tone_wav(16))        # синус ×2 від повної шкали → зрізаний на повній шкалі
+    quiet.write_bytes(_tone_wav(4))
+    pk, n = wav_peak(loud)
+    assert pk > -0.2 and n > 10
+    pk, n = wav_peak(quiet)
+    assert -7 < pk < -5 and n == 0
+
+
+def test_add_take_flags_clipped_and_normal(svc):
+    r = svc.add_take(CID, GID, LID, _tone_wav(16))
+    t = r["takes"][-1]
+    assert t["clipped"] is True and t["peak_db"] > -0.2
+    r = svc.add_take(CID, GID, LID, _tone_wav(4))
+    t = r["takes"][-1]
+    assert t["clipped"] is False and -7 < t["peak_db"] < -5
+
+
+def test_old_takes_without_peak_fields_ok(svc):
+    r = svc.add_take(CID, GID, LID, wav_bytes())
+    for t in svc.store(CID).entry(GID, LID)["takes"]:
+        t.pop("peak_db", None), t.pop("clipped", None)
+    t = svc.group_json(CID, GID)["lines"][0]["takes"][0]
+    assert t["peak_db"] is None and t["clipped"] is False and r["takes"]
+
+
+def test_api_take_reports_clipping(api):
+    code, ln = api(f"/api/take?cid={CID}&gid={GID}&lid={LID}", raw=_tone_wav(16))
+    assert code == 200 and ln["takes"][-1]["clipped"] is True

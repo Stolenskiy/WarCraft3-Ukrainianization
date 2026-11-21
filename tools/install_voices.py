@@ -3,10 +3,15 @@
   make install-voices            # показати план (нічого не змінює)
   make install-voices APPLY=1    # встановити
   make uninstall-voices          # прибрати встановлене нами й повернути оригінали з бекапу
+Те саме робить кнопка «Встановити в гру» в студії (plan/apply/uninstall нижче; без shell).
 
 Безпека (див. .claude/skills/game-change/SKILL.md):
-  * ціль має реально (realpath) лежати в корені гри, але не в Mods/ чи Data/ — інакше пропуск
-    (типово: Units/orc/<юніт> — симлінк на Mods/…; такі юніти поки не встановлюються, див. вивід);
+  * писати можна лише в реальну (realpath) теку всередині кореня гри, не в Mods/ чи Data/;
+  * теку юніта, що є СИМЛІНКОМ (типово Units/orc/<юніт> → Mods/Reforged Models/...), «матеріалізуємо»:
+    симлінк замінюється реальною текою з симлінками (абсолютні цілі, як у Units/orc/peon) на кожен
+    елемент оригінальної цілі; наш wav — звичайний файл поруч. Оригінальний шлях і readlink
+    записуються в manifest.json; при відкаті, якщо в теці лишились лише наші симлінки,
+    її видалено, а симлінк повернено з тим самим рядком readlink. У Mods/ нічого не пишемо;
   * чужий файл, що перезаписується, спершу копіюється в Backups/ua-voices/originals/;
   * усе встановлене записується в Backups/ua-voices/manifest.json і CHANGE-LOG.txt.
 """
@@ -19,10 +24,16 @@ import json
 import os
 import shutil
 import sys
+import threading
 from pathlib import Path
 
 ROOT = Path(os.environ.get("WC3UA_ROOT") or Path(__file__).resolve().parent.parent)
 GAME = Path(os.environ.get("WC3_GAME_ROOT", "/Applications/Warcraft III Classic"))
+LOCK = threading.Lock()
+
+
+class InstallError(Exception):
+    pass
 
 
 def sha(p: Path) -> str:
@@ -37,65 +48,239 @@ def safe_target(game: Path, rel: str) -> Path | None:
     return game / rel
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--apply", action="store_true")
-    ap.add_argument("--uninstall", action="store_true")
-    a = ap.parse_args(argv)
-    bdir = GAME / "Backups/ua-voices"
-    man_p = bdir / "manifest.json"
-    manifest = json.loads(man_p.read_text()) if man_p.exists() else {}
-    log = []
+# ---------------------------------------------------------------- маніфест
+def _load(game: Path) -> dict:
+    p = game / "Backups/ua-voices/manifest.json"
+    m = json.loads(p.read_text()) if p.exists() else {}
+    if "files" not in m and "materialized" not in m:      # старий формат: {rel: {sha256, backup}}
+        m = {"files": m}
+    m.setdefault("files", {})
+    m.setdefault("materialized", {})
+    return m
 
-    if a.uninstall:
-        for rel, info in sorted(manifest.items()):
-            t = GAME / rel
-            if t.exists() and sha(t) == info["sha256"]:
+
+def _save(game: Path, m: dict) -> None:
+    bdir = game / "Backups/ua-voices"
+    bdir.mkdir(parents=True, exist_ok=True)
+    (bdir / "manifest.json").write_text(json.dumps(m, indent=2, ensure_ascii=False))
+
+
+def _sources(root: Path) -> list[Path]:
+    src = root / "game-files"
+    files = sorted(src.rglob("*.wav")) if src.is_dir() else []
+    if not files:
+        raise InstallError("game-files/ порожня — оберіть дублі в студії (✓ Обрати)")
+    return files
+
+
+# ---------------------------------------------------------------- класифікація цілі
+def classify(game: Path, rel: str, mat: dict | None = None) -> tuple[str, str, str]:
+    """('ok'|'materialize'|'skip', rel теки-симлінка або '', причина). mat — матеріалізовані нами теки (з маніфесту)."""
+    parts = Path(rel).parts
+    cur = game
+    for i, part in enumerate(parts[:-1]):
+        cur = cur / part
+        if not cur.is_symlink():
+            continue
+        lrel = "/".join(parts[: i + 1])
+        if i != len(parts) - 2:
+            return "skip", "", f"симлінк {lrel} не є текою юніта (вкладені шляхи не підтримуються)"
+        if not cur.is_dir():
+            return "skip", "", f"симлінк {lrel} веде не в теку"
+        if safe_target(game, "/".join(parts[:i])) is None and i > 0:
+            return "skip", "", f"батьківська тека {'/'.join(parts[:i])} — не безпечна"
+        return "materialize", lrel, ""
+    parent = Path(rel).parent.as_posix()
+    if parent in (mat or {}) and (game / rel).is_symlink() and safe_target(game, parent) is not None:
+        return "ok", "", ""                      # наш відтворений симлінк-елемент: замінюємо, а не пишемо крізь нього
+    if safe_target(game, rel) is None:
+        return "skip", "", "ціль веде в Mods/ або Data/ чи поза грою"
+    return "ok", "", ""
+
+
+def _link_info(game: Path, lrel: str) -> tuple[str, str, list[str]]:
+    """(рядок readlink, абсолютна ціль, імена елементів цілі)."""
+    link = game / lrel
+    raw = os.readlink(link)
+    absdir = os.path.normpath(os.path.join(os.path.realpath(link.parent), raw))
+    return raw, absdir, sorted(os.listdir(link))
+
+
+# ---------------------------------------------------------------- план
+def plan(game: Path | None = None, root: Path | None = None) -> dict:
+    game = Path(game or GAME)
+    if not game.is_dir():
+        raise InstallError(f"тека гри не знайдена: {game}")
+    man = _load(game)
+    out = {"game": str(game), "copy": [], "materialize": [], "skipped": [], "same": 0}
+    mat: dict[str, dict] = {}
+    for src in _sources(root or ROOT):
+        rel = src.relative_to((root or ROOT) / "game-files").as_posix()
+        kind, lrel, why = classify(game, rel, man["materialized"])
+        if kind == "skip":
+            out["skipped"].append({"rel": rel, "reason": why})
+            continue
+        t = game / rel
+        if kind == "materialize":
+            if lrel not in mat:
+                raw, absdir, names = _link_info(game, lrel)
+                mat[lrel] = {"rel": lrel, "link": raw, "entries": len(names)}
+            status = "replace" if os.path.lexists(os.path.join(os.path.realpath(game / lrel), t.name)) else "new"
+        elif t.exists() and rel in man["files"] and sha(t) == sha(src):
+            out["same"] += 1
+            continue
+        else:
+            status = "replace" if t.exists() else "new"
+        out["copy"].append({"rel": rel, "status": status})
+    out["materialize"] = list(mat.values())
+    return out
+
+
+# ---------------------------------------------------------------- встановлення
+def _materialize(game: Path, lrel: str, man: dict, log: list[str]) -> None:
+    link = game / lrel
+    raw, absdir, names = _link_info(game, lrel)
+    tmp = link.with_name(link.name + ".ua-tmp")
+    shutil.rmtree(tmp, ignore_errors=True)
+    entries = {n: f"{absdir}/{n}" for n in names}
+    tmp.mkdir()
+    try:
+        for n, tgt in entries.items():
+            os.symlink(tgt, tmp / n)
+        os.unlink(link)
+        try:
+            os.rename(tmp, link)
+        except OSError:
+            os.symlink(raw, link)                # відкат: повернути оригінальний симлінк
+            raise
+    except OSError:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
+    man["materialized"][lrel] = {"link_target": raw, "entries": entries}
+    log.append(f"MATERIALIZED {lrel} (was symlink -> {raw}; {len(entries)} symlinks recreated)")
+
+
+def apply(game: Path | None = None, root: Path | None = None) -> dict:
+    game = Path(game or GAME)
+    with LOCK:
+        pl = plan(game, root)             # перевірки + _sources
+        root = root or ROOT
+        bdir = game / "Backups/ua-voices"
+        man = _load(game)
+        log: list[str] = []
+        installed = skipped = 0
+        for src in _sources(root):
+            rel = src.relative_to(root / "game-files").as_posix()
+            kind, lrel, _ = classify(game, rel, man["materialized"])
+            if kind == "skip":
+                skipped += 1
+                continue
+            t = game / rel
+            if kind == "materialize":
+                _materialize(game, lrel, man, log)
+                _save(game, man)                  # маніфест одразу: матеріалізація має відкат
+                if safe_target(game, rel) is None or not t.parent.resolve().is_relative_to(game.resolve() / lrel):
+                    raise InstallError(f"{rel}: після матеріалізації ціль небезпечна — зупинено")
+            if t.exists() and rel in man["files"] and sha(t) == sha(src):
+                continue
+            backup = False
+            if t.is_symlink():                      # наш власний відтворений симлінк — просто замінюємо
+                t.unlink()
+            elif t.exists() and rel not in man["files"]:   # чужий файл → бекап оригіналу
+                (bdir / "originals" / rel).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(t, bdir / "originals" / rel)
+                backup = True
+            t.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, t)
+            man["files"][rel] = {"sha256": sha(t), "backup": backup or man["files"].get(rel, {}).get("backup", False)}
+            installed += 1
+            log.append(f"INSTALLED {rel} sha256={man['files'][rel]['sha256']}" + (" (original backed up)" if backup else ""))
+        _save(game, man)
+        _changelog(game, "install", log, man)
+        return {"installed": installed, "unchanged": pl["same"], "materialized": [m["rel"] for m in pl["materialize"]],
+                "skipped": pl["skipped"], "log": log}
+
+
+# ---------------------------------------------------------------- відкат
+def _unmaterialize(game: Path, lrel: str, info: dict, log: list[str]) -> bool:
+    d = game / lrel
+    if d.is_symlink() or not d.is_dir():
+        log.append(f"SKIP {lrel}: не матеріалізована тека — не чіпаю")
+        return False
+    entries = info["entries"]
+    for n, tgt in entries.items():                 # елементи, замінені нашими файлами (вже прибрані)
+        if not os.path.lexists(d / n):
+            os.symlink(tgt, d / n)
+    names = set(os.listdir(d))
+    if names != set(entries) or any(not (d / n).is_symlink() or os.readlink(d / n) != entries[n] for n in names):
+        log.append(f"SKIP {lrel}: у теці є сторонні файли — лишаю матеріалізованою")
+        return False
+    for n in names:
+        os.unlink(d / n)
+    d.rmdir()
+    os.symlink(info["link_target"], d)
+    log.append(f"RESTORED SYMLINK {lrel} -> {info['link_target']}")
+    return True
+
+
+def uninstall(game: Path | None = None) -> dict:
+    game = Path(game or GAME)
+    with LOCK:
+        bdir = game / "Backups/ua-voices"
+        man = _load(game)
+        log: list[str] = []
+        for rel, info in sorted(man["files"].items()):
+            t = game / rel
+            if t.exists() and not t.is_symlink() and sha(t) == info["sha256"]:
                 t.unlink()
                 if info.get("backup"):
                     shutil.copy2(bdir / "originals" / rel, t)
                 log.append(f"REMOVED {rel}" + (" (original restored)" if info.get("backup") else ""))
             else:
                 log.append(f"SKIP {rel}: змінений не нами — не чіпаю")
-        manifest = {}
-    else:
-        src_root = ROOT / "game-files"
-        files = sorted(p for p in src_root.rglob("*.wav"))
-        if not files:
-            print("game-files/ порожня — оберіть дублі в студії (✓ Обрати)")
-            return 1
-        for src in files:
-            rel = src.relative_to(src_root).as_posix()
-            t = safe_target(GAME, rel)
-            if t is None:
-                print(f"ПРОПУСК {rel}: тека в грі — симлінк у Mods/ (потрібна процедура game-change)")
-                continue
-            if t.exists() and rel in manifest and sha(t) == sha(src):
-                print(f"вже є   {rel}")
-                continue
-            print(f"{'СТАВЛЮ' if a.apply else 'буде'}  {rel}")
-            if not a.apply:
-                continue
-            backup = False
-            if t.exists() and rel not in manifest:          # чужий файл → бекап оригіналу
-                (bdir / "originals" / rel).parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(t, bdir / "originals" / rel)
-                backup = True
-            t.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, t)
-            manifest[rel] = {"sha256": sha(t), "backup": backup or manifest.get(rel, {}).get("backup", False)}
-            log.append(f"INSTALLED {rel} sha256={manifest[rel]['sha256']}" + (" (original backed up)" if backup else ""))
-        if not a.apply:
-            print("\nЦе план. Встановити: make install-voices APPLY=1")
-            return 0
+        left = {lrel: i for lrel, i in sorted(man["materialized"].items(), reverse=True)
+                if not _unmaterialize(game, lrel, i, log)}
+        _save(game, {"files": {}, "materialized": left})
+        _changelog(game, "uninstall", log, {"materialized": {}})
+        return {"removed": sum(x.startswith("REMOVED") for x in log), "restored_links": [
+            x.split()[2] for x in log if x.startswith("RESTORED SYMLINK")], "log": log}
 
+
+def _changelog(game: Path, what: str, log: list[str], man: dict) -> None:
+    bdir = game / "Backups/ua-voices"
     bdir.mkdir(parents=True, exist_ok=True)
-    man_p.write_text(json.dumps(manifest, indent=2, ensure_ascii=False))
     with open(bdir / "CHANGE-LOG.txt", "a", encoding="utf-8") as f:
-        f.write(f"\n== {dt.datetime.now().isoformat(timespec='seconds')} "
-                f"{'uninstall' if a.uninstall else 'install'} (tools/install_voices.py)\n")
-        f.write("ROLLBACK: make uninstall-voices\n" + "".join(x + "\n" for x in log))
-    print("\n".join(log) or "нічого не змінено")
+        f.write(f"\n== {dt.datetime.now().isoformat(timespec='seconds')} {what} (tools/install_voices.py)\n")
+        f.write("ROLLBACK: make uninstall-voices\n")
+        if what == "install":
+            for lrel, i in man["materialized"].items():
+                f.write(f"ROLLBACK (вручну, {lrel}): rm -r '{game / lrel}' && ln -s '{i['link_target']}' '{game / lrel}'\n")
+        f.write("".join(x + "\n" for x in log))
+
+
+# ---------------------------------------------------------------- CLI
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--uninstall", action="store_true")
+    a = ap.parse_args(argv)
+    try:
+        if a.uninstall:
+            print("\n".join(uninstall(GAME)["log"]) or "нічого не змінено")
+        elif a.apply:
+            print("\n".join(apply(GAME, ROOT)["log"]) or "нічого не змінено")
+        else:
+            pl = plan(GAME, ROOT)
+            for m in pl["materialize"]:
+                print(f"МАТЕРІАЛІЗУЮ {m['rel']} (симлінк → {m['link']}, {m['entries']} елементів)")
+            for c in pl["copy"]:
+                print(f"буде  {c['rel']}" + (" (замінить файл, оригінал у бекап)" if c["status"] == "replace" else ""))
+            for s in pl["skipped"]:
+                print(f"ПРОПУСК {s['rel']}: {s['reason']}")
+            print(f"вже є: {pl['same']}\n\nЦе план. Встановити: make install-voices APPLY=1")
+    except InstallError as e:
+        print(e)
+        return 1
     return 0
 
 

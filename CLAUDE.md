@@ -25,7 +25,7 @@ Python — завжди `.venv/bin/python -I`.
 - Гра: `/Applications/Warcraft III Classic`; loose-файли в корені перекривають CASC ("Allow Local Files"=1, увімкнено).
 - Голоси: `Units/<раса>/<юніт>/<файл>.wav` (lowercase), WAV s16 22050 Hz mono. `casc_read` «склеює»
   теку з префіксом імені (`heheadhunteryes1.wav`) — реальний шлях з текою (`tools/build_refs.py::find`).
-- ⚠ `Units/orc/<юніт>` у грі — симлінки в `Mods/Reforged Models/...`; не писати крізь них (скіл `game-change`).
+- ⚠ `Units/orc/<юніт>` у грі — симлінки в `Mods/Reforged Models/...`; не писати крізь них; `install_voices` сам матеріалізує такі теки з відкатом (скіл `game-change`).
 - Меню: fdf Reforged 2.x ламають 1.31 — лише fdf рос. пакета 1.31 + укр. значення.
 - Whisper на звуках без мови «галюцинує» («Продолжение следует…», «Субтитры … DimaTorzok») — це не
   вотермарки; аудіо не різати (`catalog.py::HALLUCINATION_RE`).

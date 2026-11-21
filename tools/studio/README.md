@@ -50,10 +50,27 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 | Файл | Що | Час |
 |---|---|---|
 | `conftest.py` | тимчасовий `WC3UA_ROOT` із **синтетичними** референсами (справжні імена, синус) | — |
-| `test_studio_core.py` | Service + HTTP API: інваріанти дублів, відновлення стану, безпека | ~2 с |
-| `test_studio_e2e.py` | Chrome + фейковий мікрофон: запис, хвилі, вибір, кошик/undo, RU/EN, раси; друкує покриття app.js і шлях скріншота | ~9 с |
+| `test_studio_core.py` | Service + HTTP API: інваріанти дублів, відновлення стану, безпека, перевантаження (`peak_db`/`clipped`) | ~2 с |
+| `test_install_voices.py` | `install_voices`: план/встановлення/відкат, матеріалізація симлінків юнітів (Mods байт-у-байт), API `/api/install*` | ~1 с |
+| `test_studio_e2e.py` | Chrome + фейковий мікрофон: запис, хвилі, вибір, кошик/undo, RU/EN, раси, індикатор перевантаження, вікно «Встановити в гру»; друкує покриття app.js і шлях скріншота | ~9 с |
 
 Аудіо гри в тестах і CI не потрібне. Нова поведінка → тест; покриття Python ≥ `fail_under`.
+
+## Перевантаження мікрофона
+
+Під час запису відлік |x| ≥ 0.98 (`clipCheck` в `app.js`) червонить метр і показує «перевантаження» в панелі
+запису (раз на дубль). Сервер при `add_take` рахує з wav (stdlib `wave`+`array`) `peak_db` і `clipped`
+(≥ 3 відліки |x| ≥ 0.98, `core.wav_peak`) і зберігає їх у дублі (`line_json.takes[]`; у старих дублів полів
+немає → `peak_db: null`, `clipped: false`). У рядку дубля — червоний бейдж із порадою, після збереження — тост.
+
+## Встановлення в гру
+
+Кнопка «Встановити в гру» (шапка) → `GET /api/install/plan` (сухий прогін: `copy`, `materialize`, `skipped`, `same`)
+→ «Встановити» `POST /api/install` (`install_voices.apply`) / «Прибрати з гри» `POST /api/uninstall`
+(`install_voices.uninstall`). POST — під тими ж перевірками (X-Studio, Host/Origin). Тека гри — `WC3_GAME_ROOT`
+або `/Applications/Warcraft III Classic`; джерело — `game-files/`. Теки юнітів-симлінків матеріалізуються
+(реальна тека + симлінки на елементи цілі); деталі, маніфест і відкат — docstring `tools/install_voices.py`
+і скіл `game-change`. CLI (`make install-voices` / `uninstall-voices`) працює як раніше.
 
 ## Еквалайзер
 

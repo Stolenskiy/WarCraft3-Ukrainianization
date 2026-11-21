@@ -18,7 +18,11 @@ description: Safe procedure for ANY write to the installed game folder (/Applica
    піде НАСПРАВДІ (симлінком може бути будь-який предок, напр. `Units/orc/<unit>`):
    `python3 -c "import os,sys;g=os.path.realpath(sys.argv[1]);r=os.path.realpath(sys.argv[2]);print(r, 'OK' if r.startswith(g+'/') and not r.startswith((g+'/Mods/',g+'/Data/')) else 'STOP')" "$G" "$G/<rel>"`.
    `STOP` → голоси юнітів: `$G/Units/orc/<unit>` здебільшого симлінк на `Mods/Reforged Models/...`.
-   Тоді: зберегти лінк у бекап **як лінк** (`cp -P`, плюс записати `readlink` у лог — він
+   Автоматично це робить `tools/install_voices.py` (`make install-voices APPLY=1` або кнопка
+   «Встановити в гру» в студії): матеріалізація = `unlink` симлінка → реальна тека з абсолютними
+   симлінками на кожен елемент цілі (як у `Units/orc/peon`) → наш wav звичайним файлом; у
+   `manifest.json` — шлях симлінка та його `readlink`; `--uninstall` видаляє теку (якщо в ній лише
+   наші симлінки) і повертає симлінк із тим самим рядком. Вручну, якщо потрібно: зберегти лінк у бекап **як лінк** (`cp -P`, плюс записати `readlink` у лог — він
    відносний), прибрати лінк, створити реальну теку, у ній — симлінки на вміст оригінальної
    цілі + наші файли поверх. Відкат: прибрати теку, `ln -s <readlink-значення>` назад.
 3. **Бекап:** кожен файл, що буде перезаписаний, скопіювати в `$G/Backups/<ім'я>/<rel>`

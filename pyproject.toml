@@ -17,6 +17,6 @@ branch = true
 
 [tool.coverage.report]
 # «Храповик»: CI падає, якщо покриття нижче. Покриття виросло → підніміть число (ніколи не знижуйте).
-fail_under = 93
+fail_under = 94
 show_missing = true
 skip_covered = true

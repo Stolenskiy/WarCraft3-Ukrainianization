@@ -363,7 +363,7 @@ async function ensureMic() {
   refreshMics();                                   // після дозволу браузер віддає назви пристроїв
   const preN = Math.ceil((0.25 * Rec.sr) / 2048); // 0.25 с «передзапису», щоб не з'їсти перший склад
   Rec.node.port.onmessage = (e) => {
-    if (Rec.on) Rec.chunks.push(e.data);
+    if (Rec.on) { Rec.chunks.push(e.data); clipCheck(e.data); }
     else { Rec.pre.push(e.data); if (Rec.pre.length > preN) Rec.pre.shift(); }
   };
   if (!Rec.meter) { Rec.meter = true; meterLoop(); }
@@ -419,6 +419,7 @@ async function stopRec() {
     const res = await post(`/api/take?${new URLSearchParams(where)}`, encodeWav(pcm, Rec.sr), true);
     const newest = res.takes.filter((t) => !t.deleted).slice(-1)[0];
     putPhrase(where, res, newest && newest.file);
+    if (newest && newest.clipped) toast(CLIP_ADVICE, true, 14000);
     if ($("#optAutoplay").checked && newest && cur()?.id === res.id && S.unit === where.gid) play([takeItem(res, newest.file)]);
   } catch (e) { toast("Не збережено: " + e.message, true); renderCard(); }
   finally { S.busy = false; }
@@ -986,3 +987,87 @@ del = async (file) => {
   if (row && !matchMedia("(prefers-reduced-motion: reduce)").matches) { row.classList.add("leaving"); await new Promise((r) => setTimeout(r, 160)); }
   try { return await baseDel(file); } finally { row?.classList.remove("leaving"); }
 };
+
+// ------------------------------------------------------------------ перевантаження мікрофона (clipping)
+// Живо: відлік |x| ≥ 0.98 у воркліті → метр червоніє, у панелі запису — «перевантаження» (раз на дубль, без тостів).
+// Після збереження сервер дає take.clipped/peak_db → червоний бейдж у рядку дубля й тост із порадою.
+const CLIP_LEVEL = 0.98;
+const CLIP_ADVICE = "Голос «рве» мікрофон: відсуньтесь на 10–15 см або зменште гучність входу в Системних параметрах → Звук → Вхід";
+const Clip = { take: null, flagged: false, timer: null };
+function clipCheck(buf) {
+  if (Clip.take !== Rec.t0) { Clip.take = Rec.t0; Clip.flagged = false; $("#clipFlag")?.setAttribute("hidden", ""); }
+  let hit = false;
+  for (let i = 0; i < buf.length; i++) if (buf[i] >= CLIP_LEVEL || buf[i] <= -CLIP_LEVEL) { hit = true; break; }
+  if (!hit) return;
+  const m = $("#meter"); m?.classList.add("clip");
+  clearTimeout(Clip.timer); Clip.timer = setTimeout(() => $("#meter")?.classList.remove("clip"), 700);
+  if (!Clip.flagged) { Clip.flagged = true; $("#clipFlag")?.removeAttribute("hidden"); }
+}
+{
+  const baseRenderCard = renderCard;               // індикатор у панелі запису (після кожної перемальовки картки)
+  renderCard = (...a) => {
+    baseRenderCard(...a);
+    $("#recSub")?.insertAdjacentHTML("afterend", `<span class="clip-flag" id="clipFlag" title="${esc(CLIP_ADVICE)}" hidden>перевантаження</span>`);
+  };
+  const baseTakeRow = takeRow;                     // червоний бейдж у рядку дубля
+  takeRow = (p, t, ...a) => {
+    const html = baseTakeRow(p, t, ...a);
+    return t.clipped ? html.replace('<span class="trim-info"',
+      `<span class="badge-clip" title="${esc(CLIP_ADVICE)}">перевантаження</span><span class="trim-info"`) : html;
+  };
+}
+
+// ------------------------------------------------------------------ встановлення в гру (install_voices через API)
+const Inst = { busy: false };
+const instModal = () => $("#installModal");
+function instList(title, rows, cls = "") {
+  if (!rows.length) return "";
+  return `<h4>${esc(title)} <small>${rows.length}</small></h4><ul class="inst-list ${cls}">${rows.join("")}</ul>`;
+}
+function instRender(pl) {
+  const ready = pl.copy.length > 0;
+  $("#installBody").innerHTML =
+    `<p class="inst-game">Тека гри: <code>${esc(pl.game)}</code></p>` +
+    instList("Теки-симлінки, які стануть реальними теками", pl.materialize.map((m) =>
+      `<li><code>${esc(m.rel)}</code><small>симлінк → ${esc(m.link)}; ${m.entries} елементів відтворюються симлінками, Mods/ не змінюється</small></li>`), "mat") +
+    instList("Буде скопійовано", pl.copy.map((c) =>
+      `<li><code>${esc(c.rel)}</code>${c.status === "replace" ? "<small>замінить файл, оригінал піде в бекап</small>" : ""}</li>`)) +
+    instList("Пропущено", pl.skipped.map((s) => `<li><code>${esc(s.rel)}</code><small>${esc(s.reason)}</small></li>`), "skip") +
+    (pl.same ? `<p class="inst-note">Уже встановлено й без змін: ${pl.same}</p>` : "") +
+    (!ready && !pl.skipped.length ? `<p class="inst-note">Нічого нового — усе вже в грі.</p>` : "");
+  $("#installGo").disabled = !ready;
+}
+async function openInstall() {
+  const m = instModal();
+  m.hidden = false;
+  $("#installBody").innerHTML = `<p class="inst-note">Перевіряю…</p>`;
+  $("#installGo").disabled = true;
+  try { instRender(await getJSON("/api/install/plan")); }
+  catch (e) { $("#installBody").innerHTML = `<p class="inst-err">${esc(e.message)}</p>`; }
+}
+const closeInstall = () => { instModal().hidden = true; };
+async function instRun(path, okMsg) {
+  if (Inst.busy) return;
+  Inst.busy = true;
+  document.querySelectorAll("#installModal button").forEach((b) => { b.disabled = true; });
+  try {
+    const r = await post(path, {});
+    closeInstall();
+    toast(okMsg(r), false, 9000);
+    if (cur()) { try { renderCard(); } catch {} }   // «є в грі» міг змінитися
+  } catch (e) { toast("Не вдалося: " + e.message, true, 10000); closeInstall(); }
+  finally { Inst.busy = false; document.querySelectorAll("#installModal button").forEach((b) => { b.disabled = false; }); }
+}
+$("#installBtn").onclick = openInstall;
+$("#installClose").onclick = closeInstall;
+$("#installModal").addEventListener("click", (e) => { if (e.target.id === "installModal") closeInstall(); });
+$("#installGo").onclick = () => instRun("/api/install", (r) =>
+  `Встановлено файлів: ${r.installed}` + (r.materialized.length ? `; теки відкріплено від Mods: ${r.materialized.length}` : "") +
+  (r.skipped.length ? `; пропущено: ${r.skipped.length}` : "") + ". Перезапустіть гру.");
+$("#installUndo").onclick = () => instRun("/api/uninstall", (r) =>
+  `Прибрано з гри файлів: ${r.removed}` + (r.restored_links.length ? `; симлінків повернуто: ${r.restored_links.length}` : "") + ".");
+document.addEventListener("keydown", (e) => {     // поки відкрито вікно — клавіші студії (Пробіл = запис) не діють
+  if (instModal().hidden) return;
+  if (e.code === "Escape") closeInstall();
+  e.stopImmediatePropagation();
+}, true);

@@ -241,3 +241,48 @@ def test_trim_moves_marker_and_fit(page):
     assert abs(float(pg.locator(".take canvas.wave").get_attribute("data-marker-sec")) - m1) < 0.01
     assert pg.inner_text(".take .fit") == fit1
     assert not pg.errors, pg.errors
+
+
+def test_clipping_indicator_and_badge(page):
+    pg = page
+    assert pg.locator("#clipFlag").count() == 1 and pg.locator("#clipFlag").is_hidden()
+    pg.evaluate("Rec.t0 = 123.5; clipCheck(new Float32Array([0.2, -0.5]))")          # без перевантаження
+    assert pg.locator("#clipFlag").is_hidden() and "clip" not in pg.get_attribute("#meter", "class")
+    pg.evaluate("clipCheck(new Float32Array([0.2, -0.99]))")
+    assert pg.locator("#clipFlag").is_visible() and "clip" in pg.get_attribute("#meter", "class")
+    pg.wait_for_function("() => !document.querySelector('#meter').classList.contains('clip')", timeout=3000)   # спалах згасає
+    assert pg.locator("#clipFlag").is_visible()                                       # індикатор лишається до кінця дубля
+    pg.evaluate("Rec.t0 = 999; clipCheck(new Float32Array([0.1]))")                  # новий дубль → скинуто
+    assert pg.locator("#clipFlag").is_hidden()
+    row = pg.evaluate("takeRow(cur(), {file: 'x.take1.wav', n: 1, clipped: true, exists: true, dur: 1}, false)")
+    assert 'class="badge-clip"' in row and "10–15 см" in row
+    assert "badge-clip" not in pg.evaluate("takeRow(cur(), {file: 'y.take1.wav', n: 2, clipped: false, exists: true, dur: 1}, false)")
+
+
+def test_install_modal(page, tmp_path, monkeypatch):
+    import install_voices as iv
+    game = tmp_path / "game"
+    (game / "Mods/m/grunt").mkdir(parents=True)
+    (game / "Mods/m/grunt/g.mdx").write_bytes(b"M")
+    (game / "Units/orc").mkdir(parents=True)
+    os.symlink("../../Mods/m/grunt", game / "Units/orc/grunt")
+    from conftest import synth
+    root = tmp_path / "repo"
+    synth(root / "game-files/Units/orc/grunt/gruntyes1.wav")
+    monkeypatch.setattr(iv, "GAME", game)
+    monkeypatch.setattr(iv, "ROOT", root)
+    pg = page
+    pg.click("#installBtn")
+    pg.wait_for_selector("#installBody >> text=Units/orc/grunt/gruntyes1.wav")
+    assert "теки-симлінки" in pg.inner_text("#installBody").lower()
+    pg.keyboard.press("Space")                                                       # у вікні Пробіл не пише
+    assert not pg.locator("#recBtn.on").count()
+    pg.click("#installGo")
+    pg.wait_for_selector("#toast >> text=Встановлено файлів: 1")
+    assert (game / "Units/orc/grunt").is_dir() and not (game / "Units/orc/grunt").is_symlink()
+    pg.click("#installBtn")
+    pg.wait_for_selector("#installBody >> text=Нічого нового")
+    pg.click("#installUndo")
+    pg.wait_for_selector("#toast >> text=симлінків повернуто: 1")
+    assert (game / "Units/orc/grunt").is_symlink()
+    assert pg.locator("#installModal").is_hidden()

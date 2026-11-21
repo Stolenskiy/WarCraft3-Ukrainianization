@@ -21,7 +21,10 @@ API:
   POST /api/eq/delete {cid,gid,id}                 видалити власний профіль (пресети — ні)
   POST /api/eq/assign {cid,gid,profile_id}         профіль групи (null → типовий)
   POST /api/eq/reexport {cid,gid,trim}             перезаписати обрані дублі групи з поточним EQ
-Кожна дія повертає оновлену репліку (той самий формат, що в /api/group).
+  GET  /api/install/plan                     сухий прогін: що скопіюється, які теки-симлінки матеріалізуються, що пропущено
+  POST /api/install                          install_voices.apply → {installed, unchanged, materialized, skipped, log}
+  POST /api/uninstall                        install_voices.uninstall → {removed, restored_links, log}
+Кожна дія (крім install*) повертає оновлену репліку (той самий формат, що в /api/group).
 """
 from __future__ import annotations
 
@@ -33,6 +36,8 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
+
+import install_voices
 
 from . import core
 from .paths import GAME_FILES
@@ -96,6 +101,8 @@ def make_handler(svc: core.Service):
                     return self._file(WEB / Path(parts[1]).name)
                 if parts == ["api", "catalogs"]:
                     return self._json(svc.catalogs_json())
+                if parts == ["api", "install", "plan"]:
+                    return self._json(install_voices.plan())
                 if parts == ["api", "eq"]:
                     q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
                     return self._json(svc.eq_json(q["cid"], q["gid"]))
@@ -103,8 +110,10 @@ def make_handler(svc: core.Service):
                     return self._json(svc.group_json(parts[2], parts[3]))
                 if parts[0] == "audio" and len(parts) == 5:
                     return self._file(svc.audio_path(*parts[1:]), "audio/wav")
-            except core.StudioError as ex:
-                return self._json({"error": str(ex)}, 404)
+            except (core.StudioError, install_voices.InstallError) as ex:
+                return self._json({"error": str(ex)}, 400 if isinstance(ex, install_voices.InstallError) else 404)
+            except OSError as ex:
+                return self._json({"error": f"помилка файлової системи: {ex}"}, 500)
             except KeyError as ex:
                 return self._json({"error": f"bad request: {ex}"}, 400)
             self._json({"error": "not found"}, 404)
@@ -126,6 +135,10 @@ def make_handler(svc: core.Service):
                 if url.path == "/api/take":
                     q = {k: v[0] for k, v in parse_qs(url.query).items()}
                     return self._json(svc.add_take(q["cid"], q["gid"], q["lid"], body))
+                if url.path == "/api/install":
+                    return self._json(install_voices.apply())
+                if url.path == "/api/uninstall":
+                    return self._json(install_voices.uninstall())
                 data = json.loads(body or b"{}")
                 if url.path in actions:
                     return self._json(actions[url.path](data))
@@ -136,8 +149,10 @@ def make_handler(svc: core.Service):
                     d.mkdir(parents=True, exist_ok=True)
                     subprocess.run(["open" if sys.platform == "darwin" else "xdg-open", str(d)], check=False)
                     return self._json({"ok": True})
-            except core.StudioError as ex:
+            except (core.StudioError, install_voices.InstallError) as ex:
                 return self._json({"error": str(ex)}, 400)
+            except OSError as ex:
+                return self._json({"error": f"помилка файлової системи: {ex}"}, 500)
             except (KeyError, ValueError, TypeError, AttributeError) as ex:
                 return self._json({"error": f"bad request: {ex}"}, 400)
             self._json({"error": "not found"}, 404)
