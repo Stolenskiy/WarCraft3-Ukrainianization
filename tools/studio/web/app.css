@@ -231,6 +231,16 @@ canvas.wave { flex: 1; height: 54px; width: 100%; cursor: pointer; display: bloc
 .fit.bad { color: var(--danger); border-color: rgba(242,85,75,.4); }
 .badge-game { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: #0e1013; background: var(--ok); padding: 2px 7px; border-radius: 5px; animation: pop .32s ease-out; }
 .take canvas.wave { height: 40px; }
+.wave-box { position: relative; }
+.trim-dim { position: absolute; top: 0; bottom: 0; background: rgba(14,16,19,.65); pointer-events: none; }
+.trim-h { position: absolute; top: -2px; bottom: -2px; width: 10px; margin-left: -5px; cursor: ew-resize; touch-action: none; z-index: 2; }
+.trim-h::before { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 2px; background: var(--accent); border-radius: 1px; }
+.trim-h::after { content: ""; position: absolute; left: 1px; top: 50%; width: 8px; height: 16px; margin-top: -8px; border-radius: 3px;
+  background: var(--accent); opacity: .85; }
+.trim-h:hover::after, .trim-h:focus-visible::after, .trim-h.drag::after { opacity: 1; box-shadow: 0 0 0 2px rgba(228,87,46,.35); }
+.trim-h:focus { outline: none; }
+.trim-info { display: inline-flex; align-items: center; gap: 6px; }
+.trim-t { color: var(--accent); font-variant-numeric: tabular-nums; font-size: 12px; }
 .take-actions { display: flex; gap: 6px; }
 .btn {
   border: 1px solid var(--line); background: var(--raise); border-radius: 8px; padding: 7px 11px; font-size: 13px; white-space: nowrap;

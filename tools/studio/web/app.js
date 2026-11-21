@@ -107,8 +107,9 @@ async function play(items) {
     await new Promise((res) => {
       const src = AC.createBufferSource();
       src.buffer = buf; src.connect(AC.destination); src.onended = res;
-      playing = { id: it.id, src, t0: AC.currentTime, dur: buf.duration };
-      src.start();
+      const off = it.start || 0, len = (it.end ?? buf.duration) - off; // ручне обрізання дубля
+      playing = { id: it.id, src, t0: AC.currentTime, dur: len, off, full: buf.duration };
+      src.start(0, off, len);
       markPlaying();
     });
     if (playToken !== token) return;
@@ -129,7 +130,7 @@ function markPlaying() {
   });
 }
 (function anim() {
-  if (playing) drawWave(playing.id, (AC.currentTime - playing.t0) / playing.dur);
+  if (playing) drawWave(playing.id, ((playing.off || 0) + AC.currentTime - playing.t0) / (playing.full || playing.dur));
   requestAnimationFrame(anim);
 })();
 
@@ -253,7 +254,7 @@ async function stopRec() {
     const res = await post(`/api/take?${new URLSearchParams(where)}`, encodeWav(pcm, Rec.sr), true);
     const newest = res.takes.filter((t) => !t.deleted).slice(-1)[0];
     putPhrase(where, res, newest && newest.file);
-    if ($("#optAutoplay").checked && newest && cur()?.id === res.id && S.unit === where.gid) play([{ url: urlTake(newest.file), id: "take:" + newest.file }]);
+    if ($("#optAutoplay").checked && newest && cur()?.id === res.id && S.unit === where.gid) play([takeItem(res, newest.file)]);
   } catch (e) { toast("Не збережено: " + e.message, true); renderCard(); }
   finally { S.busy = false; }
 }
@@ -399,9 +400,9 @@ function takeRow(p, t, isNew) {
     <button class="play" data-play="${esc(id)}" ${t.exists ? "" : "disabled"}>▶</button>
     <div><div class="take-head"><b>Дубль ${t.n || "?"}</b>
       <span class="fit" data-fit="${esc(t.file)}">${t.exists ? fmt(t.dur) : "файл відсутній"}</span>
-      ${appr ? `<span class="badge-game">У ГРІ</span>` : ""}
+      ${appr ? `<span class="badge-game">У ГРІ</span>` : ""}<span class="trim-info" data-trim-info="${esc(t.file)}"></span>
       <span class="time">${t.deleted ? "видалено " + timeLabel(t.deleted) : timeLabel(t.created)}</span></div>
-      <canvas class="wave" data-wave="${esc(id)}"></canvas></div>
+      <div class="wave-box"><canvas class="wave" data-wave="${esc(id)}"></canvas></div></div>
     <div class="take-actions">${actions}</div></div>`;
 }
 function renderCard(newFile) {
@@ -449,7 +450,9 @@ function renderCard(newFile) {
           <b class="ok-t">зелений</b> — вкладаєтесь (до +10 %), <b class="warn-t">жовтий</b> — трохи довше (до +30 %),
           <b class="bad-t">червоний</b> — задовго, краще сказати швидше чи коротше.</p>
         <p><b>Тиша на початку й у кінці</b> у файлі для гри обрізається автоматично (перемикач «Обрізати тишу»
-          у шапці); сам дубль не змінюється.</p></div></details>` : ""}</div>
+          у шапці); сам дубль не змінюється.</p>
+        <p><b>Ручки на краях хвилі</b> — перетягніть, щоб обрізати початок чи кінець дубля для гри (затемнена частина
+          відкидається; ←/→ на ручці — крок 10 мс, подвійний клік — скинути ручку, «Скинути» — все). Файл дубля не змінюється.</p></div></details>` : ""}</div>
     <div class="takes">${active.length ? active.map((t) => takeRow(p, t, t.file === newFile)).join("")
       : `<div class="empty-takes">Ще немає дублів. Послухайте оригінал і запишіть перший — <kbd>Пробіл</kbd></div>`}</div>
 
@@ -484,6 +487,7 @@ async function loadWaves(p) {
     const appr = p.approved === t.file;
     const cv = document.querySelector(`canvas[data-wave="${CSS.escape("take:" + t.file)}"]`);
     if (cv) cv.title = "Помаранчевий пунктир — довжина голосу в оригіналі, відкладена від початку вашого голосу";
+    mountTrim(p, t, b.duration, scale);
     mk("take:" + t.file, b, { color: appr ? "#3f8f57" : "#4f5765", played: appr ? "#46c46a" : "#e4572e", scale, marker: va + refVoice });
     const f = document.querySelector(`[data-fit="${CSS.escape(t.file)}"]`), fi = fitInfo(voice, refVoice);
     if (f) { f.className = "fit " + fi.cls; f.textContent = fi.text; f.title = `Ваш голос (без тиші на краях) — ${fmt(voice)}; голос в оригіналі — ${fmt(refVoice)}. Зелений ≤ +10 %, жовтий ≤ +30 %, червоний — задовго.`; }
@@ -509,9 +513,10 @@ function bindCard(p) {
     if (d.play || d.wave) {
       const id = d.play || d.wave;
       if (playing && playing.id === id) return stopPlay();
-      return play([{ url: id === "ref" ? urlRef(p) : urlTake(id.slice(5)), id }]);
+      return play([id === "ref" ? { url: urlRef(p), id } : takeItem(p, id.slice(5))]);
     }
-    if (d.ab) return play([{ url: urlRef(p), id: "ref" }, { url: urlTake(d.ab), id: "take:" + d.ab }]);
+    if (d.ab) return play([{ url: urlRef(p), id: "ref" }, takeItem(p, d.ab)]);
+    if (d.trimReset) return resetTrim(p, d.trimReset);
     if (d.approve) return approve(d.approve);
     if (d.del) return del(d.del);
     if (d.restore) return restore(d.restore);
@@ -588,6 +593,88 @@ async function restore(file) {
   if (res) { putPhrase(where, res, file); toast("Дубль відновлено"); }
 }
 
+// ------------------------------------------------------------------ ручне обрізання дубля (ручки на хвилі)
+// Файл дубля не змінюється: сервер зберігає {start, end} і застосовує їх при копіюванні в гру.
+const MIN_TRIM = 0.25; // = MIN_TAKE_SEC на сервері
+const trimOf = (p, file) => p.takes.find((t) => t.file === file)?.trim || null;
+/** Елемент для play(): дубль, який звучить лише в межах обрізання. */
+const takeItem = (p, file) => { const tr = trimOf(p, file); return { url: urlTake(file), id: "take:" + file, ...(tr ? { start: tr.start, end: tr.end } : {}) }; };
+const trimFmt = (a, b) => `${a.toFixed(2)}–${b.toFixed(2)} с`;
+
+function mountTrim(p, t, dur, scale) {
+  const cv = document.querySelector(`canvas[data-wave="${CSS.escape("take:" + t.file)}"]`);
+  const info = document.querySelector(`[data-trim-info="${CSS.escape(t.file)}"]`);
+  if (!cv || t.deleted) return;
+  const box = cv.parentElement, where = ids(p), tr = { start: t.trim?.start ?? 0, end: t.trim?.end ?? dur };
+  const el = (cls, html = "") => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; box.appendChild(d); return d; };
+  const dimL = el("trim-dim"), dimR = el("trim-dim");
+  const hS = el("trim-h start"), hE = el("trim-h end");
+  for (const [h, name] of [[hS, "початок"], [hE, "кінець"]]) {
+    h.tabIndex = 0; h.setAttribute("role", "slider"); h.setAttribute("aria-label", `Обрізати ${name} дубля`);
+    h.setAttribute("aria-valuemin", "0"); h.setAttribute("aria-valuemax", String(dur));
+  }
+  const paint = () => {
+    const pc = (x) => `${(100 * x) / scale}%`;
+    dimL.style.cssText = `left:0;width:${pc(tr.start)}`;
+    dimR.style.cssText = `left:${pc(tr.end)};width:${pc(dur - tr.end)}`;
+    hS.style.left = pc(tr.start); hE.style.left = pc(tr.end);
+    hS.setAttribute("aria-valuenow", tr.start.toFixed(3)); hE.setAttribute("aria-valuenow", tr.end.toFixed(3));
+    hS.title = `Початок ${tr.start.toFixed(2)} с — тягніть; ←/→ крок 10 мс; подвійний клік — скинути`;
+    hE.title = `Кінець ${tr.end.toFixed(2)} с — тягніть; ←/→ крок 10 мс; подвійний клік — скинути`;
+    const on = tr.start > 0.0005 || tr.end < dur - 0.0005;
+    if (info) info.innerHTML = on ? `<span class="trim-t">✂ ${trimFmt(tr.start, tr.end)}</span><button class="linkish" data-trim-reset="${esc(t.file)}">Скинути</button>` : "";
+  };
+  const setEdge = (which, x) => {
+    x = Math.round(x * 1000) / 1000;
+    if (which === "start") tr.start = Math.max(0, Math.min(x, tr.end - MIN_TRIM));
+    else tr.end = Math.min(dur, Math.max(x, tr.start + MIN_TRIM));
+    paint();
+  };
+  let timer = null;
+  const commit = (which) => {
+    clearTimeout(timer);
+    const cur0 = trimOf(S.phrases.find((x) => x.id === p.id) || p, t.file), a = cur0 ? cur0.start : 0, b = cur0 ? cur0.end : dur;
+    if (Math.abs(tr.start - a) < 0.0005 && Math.abs(tr.end - b) < 0.0005) return;
+    const full = tr.start < 0.0005 && tr.end > dur - 0.0005;
+    S.refocus = { file: t.file, which };
+    saveTrim(where, t.file, cur0, full ? null : tr.start, full ? null : tr.end);
+  };
+  for (const [h, which] of [[hS, "start"], [hE, "end"]]) {
+    h.onpointerdown = (e) => { e.preventDefault(); h.setPointerCapture(e.pointerId); h.focus(); h.classList.add("drag"); };
+    h.onpointermove = (e) => {
+      if (!h.hasPointerCapture(e.pointerId)) return;
+      const r = box.getBoundingClientRect();
+      setEdge(which, ((e.clientX - r.left) / r.width) * scale);
+    };
+    h.onpointerup = h.onpointercancel = (e) => { h.classList.remove("drag"); if (h.hasPointerCapture(e.pointerId)) { h.releasePointerCapture(e.pointerId); commit(which); } };
+    h.ondblclick = () => { setEdge(which, which === "start" ? 0 : dur); commit(which); };
+    h.onkeydown = (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault(); e.stopPropagation();                        // глобальні стрілки міняють репліку
+      setEdge(which, tr[which] + (e.key === "ArrowRight" ? 0.01 : -0.01) * (e.shiftKey ? 10 : 1));
+      clearTimeout(timer); timer = setTimeout(() => commit(which), 500);
+    };
+  }
+  paint();
+  if (S.refocus && S.refocus.file === t.file) { (S.refocus.which === "end" ? hE : hS).focus(); S.refocus = null; }
+}
+async function saveTrim(where, file, prev, start, end) {
+  let res;
+  try { res = await post("/api/trim", { ...where, file, start, end, auto_trim: $("#optTrim").checked }); }
+  catch (e) {
+    toast(e.message, true);
+    if (where.cid === S.cat && where.gid === S.unit) renderCard();
+    return;
+  }
+  putPhrase(where, res);
+  const n = res.takes.find((t) => t.file === file)?.n;
+  toast(start == null ? `Обрізання дубля ${n} скинуто` : `Дубль ${n} обрізано: ${trimFmt(start, end)}`, false, 5000, async () =>
+    putPhrase(where, await post("/api/trim", { ...where, file, start: prev ? prev.start : null, end: prev ? prev.end : null, auto_trim: $("#optTrim").checked })));
+}
+function resetTrim(p, file) {
+  saveTrim(ids(p), file, trimOf(p, file), null, null);
+}
+
 // ------------------------------------------------------------------ toast + undo
 // ⌘Z діє лише поки видно підказку (або кілька секунд після зміни тексту) — не «через хвилини».
 let toastTimer = null, undoTimer = null;
@@ -623,8 +710,8 @@ document.addEventListener("keydown", (e) => {
   const last = p.takes.filter((t) => !t.deleted && t.exists).slice(-1)[0];
   switch (e.code) {
     case "KeyR": play([{ url: urlRef(p), id: "ref" }]); break;
-    case "KeyL": if (last) play([{ url: urlTake(last.file), id: "take:" + last.file }]); break;
-    case "KeyB": if (last) play([{ url: urlRef(p), id: "ref" }, { url: urlTake(last.file), id: "take:" + last.file }]); break;
+    case "KeyL": if (last) play([takeItem(p, last.file)]); break;
+    case "KeyB": if (last) play([{ url: urlRef(p), id: "ref" }, takeItem(p, last.file)]); break;
     case "KeyN": nextTodo(); break;
     case "ArrowDown": e.preventDefault(); step(1); break;
     case "ArrowUp": e.preventDefault(); step(-1); break;

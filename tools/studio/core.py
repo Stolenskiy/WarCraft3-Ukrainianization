@@ -6,12 +6,16 @@
     {"version": 3, "groups": {<group>: {<line>: {
         "ua_text": str | None,          # None = використовується підказка з каталогу
         "approved": <take file> | None, # цей дубль скопійовано в game-files/<game_rel>
-        "takes": [{"file", "created", "deleted": iso | None}],   # deleted → лежить у _deleted/
+        "takes": [{"file", "created", "deleted": iso | None,    # deleted → лежить у _deleted/
+                   "trim": {"start": sec, "end": sec}}],         # trim — необов'язкове ручне обрізання
         "history": [{"ts", "action"}]}}}}
 
 Інваріанти (перевіряються тестами tests/test_studio_core.py):
   * файл дубля ніколи не перезаписується (номер = max(усі відомі) + 1);
   * видалення = переміщення в _deleted/ (відновлюється), затвердження при цьому знімається;
+  * ручне обрізання (trim) не змінює файл дубля — лише копію для гри (ffmpeg atrim ПЕРШИМ у
+    _export_filters; авто-обрізання тиші, якщо ввімкнене, діє після нього); зміна trim
+    затвердженого дубля одразу перезаписує копію для гри;
   * затверджений дубль завжди має копію в game-files, незатверджений — не має.
 """
 from __future__ import annotations
@@ -232,7 +236,7 @@ class Service:
         for t in e["takes"]:
             p = self.take_path(cid, gid, t)
             takes.append({"file": t["file"], "n": take_no(t["file"]), "created": t.get("created"),
-                          "deleted": t.get("deleted"), "exists": p.exists(),
+                          "deleted": t.get("deleted"), "exists": p.exists(), "trim": t.get("trim"),
                           "dur": round(duration(p), 3) if p.exists() else 0})
         return {"id": ln.id, "kind": ln.kind, "kind_ua": ln.kind_ua, "ru": ln.ru, "ru_dur": round(ln.ru_dur, 3),
                 "has_en": ln.ref_en is not None, "has_ru": ln.has_ru,
@@ -311,7 +315,48 @@ class Service:
     def _export_filters(self, cid: str, gid: str, take: dict, auto_trim: bool) -> list[str]:
         """ffmpeg-фільтри копії для гри, у порядку застосування. Точка розширення обробки:
         ручне обрізання дубля → авто-обрізання тиші → EQ/обробка персонажа."""
-        return [AUTO_TRIM] if auto_trim else []
+        tr = take.get("trim")
+        manual = [f"atrim=start={tr['start']:.3f}:end={tr['end']:.3f},asetpts=PTS-STARTPTS"] if tr else []
+        return manual + ([AUTO_TRIM] if auto_trim else [])
+
+    def set_trim(self, cid: str, gid: str, lid: str, file: str, start: float | None, end: float | None,
+                 auto_trim: bool = True) -> dict:
+        """Ручне обрізання початку/кінця дубля (секунди від початку файлу); None, None — скинути.
+        Файл дубля не змінюється; затверджений дубль одразу перекопіюється в game-files."""
+        with self.lock:
+            ln, st = self.line(cid, gid, lid), self.store(cid)
+            e = st.entry(gid, lid)
+            t = self._take(e, file)
+            n = take_no(file)
+            if (start is None) != (end is None):
+                raise StudioError("потрібні обидві межі обрізання (або жодної)")
+            if start is None:
+                if t.pop("trim", None) is None:
+                    return self._done(cid, gid, ln)
+                st.log(gid, lid, f"скинуто обрізання дубля {n}")
+            else:
+                if t.get("deleted"):
+                    raise StudioError("спершу відновіть дубль із кошика")
+                src = self.take_path(cid, gid, t)
+                if not src.exists():
+                    raise StudioError(f"файл дубля не знайдено: {src.name}")
+                try:
+                    start, end = round(float(start), 3), round(float(end), 3)
+                except (TypeError, ValueError):
+                    raise StudioError("межі обрізання мають бути числами") from None
+                dur = duration(src)
+                if not (0 <= start < end <= dur + 0.005):
+                    raise StudioError(f"межі обрізання мають бути 0 ≤ початок < кінець ≤ {dur:.2f} с")
+                end = min(end, round(dur, 3))
+                if end - start < MIN_TAKE_SEC:
+                    raise StudioError(f"після обрізання лишається менше {MIN_TAKE_SEC} с")
+                t["trim"] = {"start": start, "end": end}
+                st.log(gid, lid, f"обрізано дубль {n}: {start:.2f}–{end:.2f} с")
+            if e["approved"] == file:                 # інваріант: копія для гри завжди актуальна
+                src, dst = self.take_path(cid, gid, t), self.game_path(ln)
+                if not export_take(src, dst, self._export_filters(cid, gid, t, auto_trim)):
+                    shutil.copy2(src, dst)
+            return self._done(cid, gid, ln)
 
     def _drop_approval(self, cid: str, gid: str, ln: Line, e: dict, reason: str) -> None:
         prev, e["approved"] = e["approved"], None

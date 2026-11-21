@@ -14,6 +14,7 @@ API:
   POST /api/delete    {cid,gid,lid,file}           у кошик
   POST /api/restore   {cid,gid,lid,file}
   POST /api/text      {cid,gid,lid,text}
+  POST /api/trim      {cid,gid,lid,file,start,end[,auto_trim]}   ручне обрізання дубля (секунди; null,null — скинути)
   POST /api/open-dir  {cid,gid}                    відкрити теку game-files у Finder
 Кожна дія повертає оновлену репліку (той самий формат, що в /api/group).
 """
@@ -41,6 +42,8 @@ def make_handler(svc: core.Service):
         "/api/unapprove": lambda d: svc.unapprove(d["cid"], d["gid"], d["lid"]),
         "/api/delete": lambda d: svc.delete(d["cid"], d["gid"], d["lid"], d["file"]),
         "/api/restore": lambda d: svc.restore(d["cid"], d["gid"], d["lid"], d["file"]),
+        "/api/trim": lambda d: svc.set_trim(d["cid"], d["gid"], d["lid"], d["file"], d.get("start"), d.get("end"),
+                                            bool(d.get("auto_trim", True))),
         "/api/text": lambda d: svc.set_text(d["cid"], d["gid"], d["lid"], d.get("text", "")),
     }
 

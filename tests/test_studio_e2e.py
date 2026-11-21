@@ -146,3 +146,40 @@ def test_screenshot_for_review(page):
     page.wait_for_timeout(600)
     page.screenshot(path=str(out))
     print(f"\nscreenshot: {out}")
+
+
+def _trim_of(pg):
+    return pg.evaluate("""async () => { const g = await (await fetch(`/api/group/${S.cat}/${S.unit}`)).json();
+        return g.lines.find((l) => l.id === S.phrases[S.idx].id).takes.map((t) => t.trim); }""")
+
+
+def test_trim_handles(page):
+    pg = page
+    record(pg, 1.5)
+    pg.wait_for_selector(".take .trim-h.start")
+    box = pg.locator(".take .wave-box").first.bounding_box()
+    h = pg.locator(".take .trim-h.start").first.bounding_box()
+    y = h["y"] + h["height"] / 2
+    pg.mouse.move(h["x"] + h["width"] / 2, y)            # перетягнути ручку початку на ~30 % хвилі
+    pg.mouse.down()
+    pg.mouse.move(box["x"] + box["width"] * 0.3, y, steps=6)
+    pg.mouse.up()
+    pg.wait_for_selector("#toast >> text=обрізано")
+    pg.wait_for_selector(".trim-info .trim-t")
+    tr = _trim_of(pg)[0]
+    assert tr and 0.2 < tr["start"] < 0.7 and tr["end"] > 1.0, tr
+
+    pg.locator(".take .trim-h.end").first.focus()        # ←: крок ручки, а не перехід до іншої репліки
+    idx_before = pg.inner_text(".ru-text")
+    pg.keyboard.press("ArrowLeft")
+    pg.keyboard.press("ArrowLeft")
+    pg.wait_for_function("() => document.querySelector('#toast span')?.textContent.includes('обрізано')", timeout=5000)
+    pg.wait_for_timeout(700)
+    assert pg.inner_text(".ru-text") == idx_before
+    tr2 = _trim_of(pg)[0]
+    assert abs((tr["end"] - tr2["end"]) - 0.02) < 0.006, (tr, tr2)
+
+    pg.locator("[data-trim-reset]").first.click()        # «Скинути»
+    pg.wait_for_function("() => document.querySelectorAll('[data-trim-reset]').length === 0")
+    assert _trim_of(pg) == [None]
+    assert not pg.errors, pg.errors

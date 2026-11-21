@@ -255,3 +255,79 @@ def test_corrupt_state_falls_back_to_backup(clean_root):
     st.with_suffix(".json.bak").unlink()
     with pytest.raises(core.StudioError):
         core.Service().line(CID, GID, LID)
+
+
+# ---------------------------------------------------------------- ручне обрізання (trim)
+def _take2s(svc):
+    r = svc.add_take(CID, GID, LID, synth(TMP_ROOT / "two.wav", 2.0).read_bytes())
+    return r["takes"][-1]["file"]
+
+
+def test_set_trim_validation_and_export(svc):
+    from studio.catalog import duration
+    from studio.core import StudioError
+    f = _take2s(svc)
+    game = TMP_ROOT / "game-files/Units/orc/peon/peonyes1.wav"
+    for bad in ((-0.1, 1.0), (1.0, 1.0), (1.5, 0.5), (0.0, 2.5), (0.5, 0.6), ("a", 1.0), (0.5, None)):
+        with pytest.raises(StudioError):
+            svc.set_trim(CID, GID, LID, f, *bad)
+    assert svc.set_trim(CID, GID, LID, f, 0.5, 1.5)["takes"][-1]["trim"] == {"start": 0.5, "end": 1.5}
+    assert not game.exists()                             # незатверджений — копії немає
+    svc.approve(CID, GID, LID, f, trim=False)
+    assert 0.95 < duration(game) < 1.05, duration(game)
+    assert duration(TMP_ROOT / "audio/self-recorded" / CID / GID / f) > 1.9   # оригінал недоторканий
+    hist = [h["action"] for h in svc.line_json(CID, GID, svc.line(CID, GID, LID))["history"]]
+    assert any(a.startswith("обрізано дубль") and "0.50–1.50 с" in a for a in hist)
+
+
+def test_set_trim_reexports_approved_and_clears(svc):
+    from studio.catalog import duration
+    f = _take2s(svc)
+    game = TMP_ROOT / "game-files/Units/orc/peon/peonyes1.wav"
+    svc.approve(CID, GID, LID, f, trim=False)
+    assert duration(game) > 1.9
+    r = svc.set_trim(CID, GID, LID, f, 0.5, 1.5, auto_trim=False)   # одразу перекопіювалось
+    assert 0.95 < duration(game) < 1.05
+    assert r["approved"] == f
+    r = svc.set_trim(CID, GID, LID, f, None, None)
+    assert r["takes"][-1]["trim"] is None and duration(game) > 1.9
+    assert r["history"][-1]["action"].startswith("скинуто обрізання")
+    n = len(r["history"])
+    assert len(svc.set_trim(CID, GID, LID, f, None, None)["history"]) == n   # повторне скидання — без запису
+
+
+def test_trim_survives_reload_and_applies_before_auto_trim(svc):
+    from studio import core
+    f = _take2s(svc)
+    svc.set_trim(CID, GID, LID, f, 0.5, 1.5)
+    t = core.Service().line_json(CID, GID, svc.line(CID, GID, LID))["takes"][-1]
+    assert t["trim"] == {"start": 0.5, "end": 1.5}
+    flt = svc._export_filters(CID, GID, svc.store(CID).entry(GID, LID)["takes"][-1], True)
+    assert flt[0].startswith("atrim=start=0.500:end=1.500,asetpts=PTS-STARTPTS") and flt[1] == core.AUTO_TRIM
+
+
+def test_api_trim(api):
+    code, ln = api(f"/api/take?cid={CID}&gid={GID}&lid={LID}", raw=synth(TMP_ROOT / "two.wav", 2.0).read_bytes())
+    f = ln["takes"][-1]["file"]
+    code, ln = api("/api/trim", {"cid": CID, "gid": GID, "lid": LID, "file": f, "start": 0.2, "end": 1.2})
+    assert code == 200 and ln["takes"][-1]["trim"] == {"start": 0.2, "end": 1.2}
+    code, err = api("/api/trim", {"cid": CID, "gid": GID, "lid": LID, "file": f, "start": 1.2, "end": 0.2})
+    assert code == 400 and "error" in err
+    code, ln = api("/api/trim", {"cid": CID, "gid": GID, "lid": LID, "file": f, "start": None, "end": None})
+    assert code == 200 and ln["takes"][-1]["trim"] is None
+
+
+def test_set_trim_rejects_deleted_missing_and_unknown(svc):
+    from studio.core import StudioError
+    f = _take2s(svc)
+    with pytest.raises(StudioError):
+        svc.set_trim(CID, GID, LID, "nope.take9.wav", 0.1, 1.0)
+    p = svc.take_path(CID, GID, svc.store(CID).entry(GID, LID)["takes"][-1])
+    p.rename(p.with_suffix(".bak"))                      # файл зник
+    with pytest.raises(StudioError):
+        svc.set_trim(CID, GID, LID, f, 0.1, 1.0)
+    p.with_suffix(".bak").rename(p)
+    svc.delete(CID, GID, LID, f)
+    with pytest.raises(StudioError):
+        svc.set_trim(CID, GID, LID, f, 0.1, 1.0)
+    assert svc.set_trim(CID, GID, LID, f, None, None)["takes"][-1]["trim"] is None
