@@ -1100,23 +1100,39 @@ const INST_TAGS = {
 };
 const nFiles = (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "файл" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "файли" : "файлів"}`;
 
+const voiceUrl = (a, rel) => `/audio/voice/${encodeURIComponent(a)}/${rel.split("/").map(encodeURIComponent).join("/")}`;
+const authName = (id) => ((Inst.authors || []).find((a) => a.id === id) || {}).name || id;
+// Вибір голосу: <select> автора для раси / юніта / рядка (пише data/studio/voice-choice.json через /api/voices/choice).
+function authSelect(attr, key, cur, ids) {
+  if ((Inst.authors || []).length < 2) return "";
+  const opts = [`<option value="">за замовчуванням</option>`, ...ids.map((a) => `<option value="${esc(a)}" ${a === cur ? "selected" : ""}>${esc(authName(a))}</option>`)];
+  return `<select class="auth-sel" ${attr}="${esc(key)}" title="Чий голос">${opts.join("")}</select>`;
+}
 function instFile(f) {
   const [txt, cls] = INST_TAGS[f.status] || [f.status, ""];
   const off = f.status === "same" || f.status === "changed" || f.status === "missing";
+  const un = Inst.mode === "uninstall";
+  const who = un ? "" : (f.alts && f.alts.length > 1
+    ? authSelect("data-vl", f.rel, (Inst.choice.line || {})[f.rel] || "", f.alts)
+    : `<span class="tag who">${esc(authName(f.author))}</span>`) +
+    (f.fallback ? `<span class="tag upd" title="Обраного автора цієї репліки немає — взято наступного за порядком">запасний: ${esc(authName(f.author))}</span>` : "") +
+    `<button type="button" class="ghost play-v" data-play="${esc(f.rel)}" data-a="${esc(f.author)}" title="Послухати">▶</button>`;
   return `<li class="${off ? "dim" : ""}"><label><input type="checkbox" data-f="${esc(f.rel)}" ${off ? "" : "checked"}>
-    <code>${esc(f.name)}</code><span class="tag ${cls}">${txt}</span></label></li>`;
+    <code>${esc(f.name)}</code><span class="tag ${cls}">${txt}</span></label>${who}</li>`;
 }
 function instUnit(r, u) {
   const mat = u.files.some((f) => f.materialize);
   return `<details class="inst-unit" data-key="${esc(r.id)}/${esc(u.id)}"><summary>
     <input type="checkbox" data-g title="Усі файли персонажа"><b>${esc(instShort(u.title))}</b>
-    <small class="cnt"></small>${mat ? `<span class="tag mat" title="Тека юніта в грі — симлінк на Mods/. Її буде замінено реальною текою з симлінками на оригінальні файли; відкат повертає симлінк.">потребує перетворення теки</span>` : ""}</summary>
+    <small class="cnt"></small>${Inst.mode === "install" ? authSelect("data-vu", `${r.id}/${u.id}`, (Inst.choice.unit || {})[`${r.id}/${u.id}`] || "", Inst.authors.map((a) => a.id)) : ""}${mat ? `<span class="tag mat" title="Тека юніта в грі — симлінк на Mods/. Її буде замінено реальною текою з симлінками на оригінальні файли; відкат повертає симлінк.">потребує перетворення теки</span>` : ""}</summary>
     <ul class="inst-list">${u.files.map(instFile).join("")}</ul></details>`;
 }
 function instRender(pl) {
   const un = Inst.mode === "uninstall";
+  Inst.authors = pl.authors || []; Inst.choice = pl.choice || { default: [], race: {}, unit: {}, line: {} };
   const body = pl.races.map((r) => `<details class="inst-race" data-key="${esc(r.id)}"><summary>
-    <input type="checkbox" data-g title="Усі файли раси"><b>${esc(r.title)}</b><small class="cnt"></small></summary>
+    <input type="checkbox" data-g title="Усі файли раси"><b>${esc(r.title)}</b><small class="cnt"></small>${
+      Inst.mode === "install" ? authSelect("data-vr", r.id, (Inst.choice.race || {})[r.id] || "", Inst.authors.map((a) => a.id)) : ""}</summary>
     ${r.units.map((u) => instUnit(r, u)).join("")}</details>`).join("");
   $("#installBody").innerHTML = `<p class="inst-game">Тека гри: <code>${esc(pl.game)}</code></p>` +
     (body || `<p class="inst-note">${un ? "Нічого не встановлено нами." : "Немає обраних дублів у game-files/."}</p>`) +
@@ -1138,11 +1154,19 @@ function instSync() {                          // стани груп (повн�
   go.textContent = (un ? "Прибрати" : "Встановити") + (n ? ` (${n})` : "");
   go.classList.toggle("warn", un); go.disabled = !n || Inst.busy;
 }
-async function instLoad() {
+async function instLoad(keep) {                   // keep = {open: [data-key], off: [rel]} — стан дерева переживає перерахунок
+  const state = keep || null;
   document.querySelectorAll("#installMode button").forEach((b) => b.classList.toggle("on", b.dataset.mode === Inst.mode));
   $("#installBody").innerHTML = `<p class="inst-note">Перевіряю…</p>`;
   $("#installGo").disabled = true;
-  try { instRender(await getJSON(Inst.mode === "install" ? "/api/install/plan" : "/api/uninstall/plan")); }
+  try {
+    instRender(await getJSON(Inst.mode === "install" ? "/api/install/plan" : "/api/uninstall/plan"));
+    if (state) {
+      instModal().querySelectorAll("details[data-key]").forEach((d) => { d.open = state.open.includes(d.dataset.key); });
+      instBoxes().forEach((b) => { if (state.off.includes(b.dataset.f)) b.checked = false; });
+      instSync();
+    }
+  }
   catch (e) { $("#installBody").innerHTML = `<p class="inst-err">${esc(e.message)}</p>`; }
 }
 function openInstall() { instModal().hidden = false; instLoad(); }
@@ -1166,8 +1190,26 @@ $("#installClose").onclick = closeInstall;
 $("#installModal").addEventListener("click", (e) => { if (e.target.id === "installModal") closeInstall(); });
 $("#installMode").onclick = (e) => { const b = e.target.closest("button[data-mode]"); if (b && b.dataset.mode !== Inst.mode) { Inst.mode = b.dataset.mode; instLoad(); } };
 $("#installGo").onclick = instRun;
+let vPlayer = null;
+$("#installBody").addEventListener("click", (e) => {            // ▶ послухати рядок (обраного/поточного автора)
+  const b = e.target.closest("button[data-play]");
+  if (!b) return;
+  const sel = b.parentElement.querySelector("select[data-vl]");
+  if (vPlayer) vPlayer.pause();
+  vPlayer = new Audio(voiceUrl((sel && sel.value) || b.dataset.a, b.dataset.play));
+  vPlayer.play().catch((er) => toast("Не вдалося відтворити: " + er.message, true));
+});
+async function instChoose(sel) {
+  const kind = sel.hasAttribute("data-vr") ? ["race", "data-vr"] : sel.hasAttribute("data-vu") ? ["unit", "data-vu"] : ["line", "data-vl"];
+  const body = { [kind[0]]: { ...(Inst.choice[kind[0]] || {}), [sel.getAttribute(kind[1])]: sel.value || null } };
+  const keep = { open: [...instModal().querySelectorAll("details[open][data-key]")].map((d) => d.dataset.key),
+    off: instBoxes().filter((b) => !b.checked).map((b) => b.dataset.f) };
+  try { await post("/api/voices/choice", body); } catch (er) { toast("Не вдалося: " + er.message, true); }
+  instLoad(keep);
+}
 $("#installBody").addEventListener("change", (e) => {
   const t = e.target;
+  if (t.matches("select.auth-sel")) return instChoose(t);
   if (t.matches("input[data-g]")) instBoxes(t.closest("details")).forEach((b) => { b.checked = t.checked; });   // група → усі нащадки
   instSync();
 });
@@ -1175,4 +1217,78 @@ document.addEventListener("keydown", (e) => {     // поки відкрито �
   if (instModal().hidden) return;
   if (e.code === "Escape") closeInstall();
   e.stopImmediatePropagation();
+}, true);
+
+// ------------------------------------------------------------------ голоси спільноти (voices/, data/studio/voice-choice.json)
+// Автори й порядок пріоритету (↑↓, чекбокс «використовувати»), публікація власного голосу зі згодою CC BY 4.0.
+const Vs = { v: null, order: [], on: new Set(), result: null };
+const voicesModal = () => $("#voicesModal");
+const mb = (b) => (b / 1e6).toFixed(1) + " МБ";
+function vCoverage(a) {
+  const c = Object.entries(a.coverage).map(([r, u]) => `${esc(r)}: ${Object.values(u).reduce((x, y) => x + y, 0)}`);
+  return c.join(" · ") || "порожньо";
+}
+function vRender() {
+  const v = Vs.v, by = Object.fromEntries(v.authors.map((a) => [a.id, a]));
+  const rows = Vs.order.map((id, i) => { const a = by[id]; return `<li class="v-row" data-id="${esc(id)}">
+    <input type="checkbox" data-von ${Vs.on.has(id) ? "checked" : ""} title="Використовувати при встановленні">
+    <span class="v-name"><b>${esc(a.name)}</b><small>${a.local ? "ваші затверджені дублі (game-files/)" : esc(a.license) + " · " + mb(a.bytes)}
+      · ${nFiles(a.files)} · ${vCoverage(a)}</small></span>
+    <button class="ghost" data-vup ${i ? "" : "disabled"} title="Вище (пріоритетніший)">↑</button>
+    <button class="ghost" data-vdown ${i < Vs.order.length - 1 ? "" : "disabled"} title="Нижче">↓</button></li>`; }).join("");
+  const r = Vs.result;
+  $("#voicesBody").innerHTML = `<h4>Порядок за замовчуванням <small>перший, у кого є репліка, виграє; вибір для раси/юніта — у вікні «Встановити в гру»</small></h4>
+    <ul class="v-list">${rows}</ul>
+    <h4>Опублікувати мій голос</h4>
+    <p class="inst-note">Експортуються лише ваші затверджені дублі з game-files/ (FLAC, ${esc(v.license)}). Git ми не запускаємо — лише підкажемо команди.</p>
+    <div class="v-pub"><input id="vNick" placeholder="нікнейм (a-z, 0-9, -)" maxlength="32" value="${esc(v.nickname)}" autocomplete="off">
+      <button class="btn primary" id="vPublish">Опублікувати</button></div>
+    <label class="v-consent"><input type="checkbox" id="vConsent"> ${esc(v.consent_text)}</label>
+    ${r ? `<div class="v-result"><p>+${r.added} нових · ${r.updated} оновлено · ${r.removed} прибрано · ${r.unchanged} без змін · усього ${nFiles(r.files)}, ${r.total_mb} МБ
+      ${r.skipped.length ? ` · пропущено ${r.skipped.length}` : ""}</p><p class="inst-note">Далі виконайте в терміналі (репозиторій проєкту):</p><pre>${esc(r.git.join("\n"))}</pre></div>` : ""}`;
+}
+async function vSaveOrder() {
+  try { Vs.v = await post("/api/voices/choice", { default: Vs.order.filter((id) => Vs.on.has(id)) }); }
+  catch (e) { toast("Не вдалося: " + e.message, true); }
+}
+async function openVoices() {
+  voicesModal().hidden = false;
+  $("#voicesBody").innerHTML = `<p class="inst-note">Завантажую…</p>`;
+  try {
+    const v = Vs.v = await getJSON("/api/voices"), all = v.authors.map((a) => a.id);
+    Vs.on = new Set(v.choice.default);
+    Vs.order = [...v.choice.default.filter((id) => all.includes(id)), ...all.filter((id) => !v.choice.default.includes(id))];
+    Vs.result = null; vRender();
+  } catch (e) { $("#voicesBody").innerHTML = `<p class="inst-err">${esc(e.message)}</p>`; }
+}
+const closeVoices = () => { voicesModal().hidden = true; };
+$("#voicesBtn").onclick = openVoices;
+$("#voicesClose").onclick = closeVoices;
+voicesModal().addEventListener("click", async (e) => {
+  if (e.target.id === "voicesModal") return closeVoices();
+  const row = e.target.closest(".v-row"), pub = e.target.closest("#vPublish");
+  if (row && (e.target.closest("[data-vup]") || e.target.closest("[data-vdown]"))) {
+    const i = Vs.order.indexOf(row.dataset.id), j = i + (e.target.closest("[data-vup]") ? -1 : 1);
+    [Vs.order[i], Vs.order[j]] = [Vs.order[j], Vs.order[i]];
+    await vSaveOrder(); vRender();
+  }
+  if (pub) {
+    const nick = $("#vNick").value.trim(), consent = $("#vConsent").checked;
+    if (!consent) return toast("Підтвердьте, що це ваш голос і ліцензію CC BY 4.0.", true);
+    pub.disabled = true;
+    try { Vs.result = await post("/api/voices/publish", { nickname: nick, consent }); Vs.v = await getJSON("/api/voices"); vRender(); }
+    catch (er) { toast("Не вдалося: " + er.message, true, 8000); pub.disabled = false; }
+  }
+});
+voicesModal().addEventListener("change", async (e) => {
+  const row = e.target.closest(".v-row");
+  if (row && e.target.matches("[data-von]")) {
+    e.target.checked ? Vs.on.add(row.dataset.id) : Vs.on.delete(row.dataset.id);
+    await vSaveOrder();
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (voicesModal().hidden) return;
+  if (e.code === "Escape") closeVoices();
+  e.stopImmediatePropagation();                 // у вікні клавіші студії (Пробіл = запис) не діють
 }, true);

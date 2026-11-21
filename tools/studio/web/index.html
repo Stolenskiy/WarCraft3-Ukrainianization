@@ -29,6 +29,7 @@
       <p class="opts-note">Діє на нові «Обрати для гри». Уже обрані файли оновлює «Застосувати до обраних дублів» в еквалайзері.</p>
     </div></details>
     <button class="ghost" id="installBtn" title="Скопіювати обрані дублі в теку гри (з бекапом і відкатом)">Встановити в гру</button>
+    <button class="ghost" id="voicesBtn" title="Голоси інших авторів, порядок пріоритету, публікація власного голосу">Голоси спільноти</button>
     <button class="ghost" id="openGameDir" title="Відкрити теку з файлами для гри">Файли для гри</button>
   </div>
 </header>
@@ -79,6 +80,13 @@
       <span class="modal-hint">Позначте, що саме. Оригінали й симлінки повертаються з бекапу.</span>
       <button class="btn primary" id="installGo">Встановити</button>
     </div>
+  </div>
+</div>
+
+<div id="voicesModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="voicesTitle">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="voicesTitle">Голоси спільноти</h3><button class="ghost" id="voicesClose" title="Закрити (Esc)">✕</button></div>
+    <div class="modal-body" id="voicesBody"></div>
   </div>
 </div>
 

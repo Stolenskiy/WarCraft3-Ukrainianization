@@ -12,6 +12,7 @@
 | Тексти реплік і характер персонажів (формат таблиць) | `docs/voice-bible/README.md` |
 | Будь-яка зміна в теці гри | скіл `game-change` (`.claude/skills/game-change/SKILL.md`) |
 | Меню 1.31 / карти / встановлення | `docs/ukrainian-ui-131.md`, `docs/ukrainian-maps.md`, `docs/install-local.md` |
+| Голоси спільноти (`voices/`, публікація, вибір автора, `make publish-voice`) | `tools/studio/README.md` («Голоси спільноти»), `docs/CONTRIBUTING.md` |
 | ElevenLabs (на паузі) | `docs/improve-and-elevenlabs.md` |
 
 ## Команди
