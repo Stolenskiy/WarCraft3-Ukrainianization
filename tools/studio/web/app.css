@@ -98,7 +98,7 @@ kbd {
 
 /* ---------- layout */
 .layout { display: grid; grid-template-columns: 380px 1fr; min-height: 0; }
-.side { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; border-right: 1px solid var(--line); background: var(--panel); }
+.side { display: grid; grid-template-rows: auto auto auto minmax(180px, 1fr); min-height: 0; overflow-y: auto; border-right: 1px solid var(--line); background: var(--panel); }
 .main { overflow: auto; padding: 26px 34px 40px; }
 .empty { color: var(--muted); padding: 40px; }
 
@@ -106,6 +106,7 @@ kbd {
 .character summary { padding: 9px 12px; cursor: pointer; color: var(--muted); font-size: 13px; list-style: none; }
 .character summary::before { content: "▸ "; }
 .character[open] summary::before { content: "▾ "; }
+.character #traits, .eq #eq { max-height: 21vh; overflow-y: auto; }
 .character #traits { padding: 0 12px 12px; font-size: 13px; color: #c3c8d0; }
 .character #traits p { margin: 0 0 8px; }
 .character #traits b { color: var(--gold); font-weight: 600; }
@@ -114,7 +115,7 @@ kbd {
 .seg button { flex: 1; border: 0; background: transparent; padding: 6px; border-radius: 7px; color: var(--muted); font-size: 13px; }
 .seg button.on { background: var(--raise); color: var(--text); }
 
-.cues { list-style: none; margin: 0; padding: 0 8px 16px; overflow: auto; flex: 1; }
+.cues { list-style: none; margin: 0; padding: 0 8px 16px; overflow: auto; min-height: 0; }
 .cue {
   transition: background-color .15s ease-out, border-color .15s ease-out;
   display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: start;
@@ -332,7 +333,10 @@ details.fold[open] > summary::before { content: "▾ "; }
 .eq-sl { display: grid; grid-template-columns: 1fr auto; align-items: center; color: var(--muted); }
 .eq-sl output { color: var(--text); font-variant-numeric: tabular-nums; }
 .eq-sl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 2px 0; }
-.eq-hint { margin: 0; color: var(--faint); font-size: 11px; }
+.eq-hint { margin: 0; color: var(--muted); font-size: 11px; }  /* --muted на --panel-2 ≈ 5.6:1 */
+.eq-chip { position: absolute; right: 6px; bottom: 6px; z-index: 3; font: 600 11px/1 var(--font); padding: 3px 8px; border-radius: 99px; border: 1px solid var(--faint); background: transparent; color: var(--muted); cursor: pointer; }
+.eq-chip.on { border-color: var(--gold); color: var(--gold); background: rgba(240, 164, 65, .12); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .legend[open] > div { max-height: min(70vh, 520px); overflow-y: auto; }
 .auto-dim { position: absolute; top: 0; bottom: 0; pointer-events: auto; z-index: 1;
   background: repeating-linear-gradient(135deg, rgba(240,164,65,.16) 0 4px, transparent 4px 8px); border-radius: 3px; }

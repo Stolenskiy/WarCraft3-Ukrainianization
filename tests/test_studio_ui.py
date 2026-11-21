@@ -8,8 +8,8 @@ destination, паралельно йде в AnalyserNode (`__measure()` — ус
 реально грає). Дубль — білий шум, профіль — +12 дБ peaking на 1 кГц, тож «нахил»
 (енергія 0.8–1.25 кГц мінус 3–6 кГц) з EQ має бути на ~10 дБ більшим, ніж без EQ.
 
-Тести з xfail(strict=True) описують ПРАВИЛЬНУ поведінку, якої зараз немає; після
-виправлення вони стануть зеленими (і strict змусить зняти позначку).
+Нові дефекти фіксуємо тестом з xfail(strict=True): після виправлення він стане зеленим,
+а strict змусить зняти позначку.
 """
 import subprocess
 
@@ -214,10 +214,8 @@ def ff_tilt(path) -> float:
     return _band_db(path, 800, 1250) - _band_db(path, 3000, 6000)
 
 
-# ------------------------------------------------------------------ EQ: дефекти (xfail → зелені після виправлення)
+# ------------------------------------------------------------------ EQ: живий граф, A/B, чип
 
-@pytest.mark.xfail(strict=True, reason="A/B «Слухаю без EQ» і «Увімкнено» не діють на дубль, що вже звучить: "
-                   "eqConnect будує граф лише при старті, EQ.live не перемикається (app.js eqConnect/eqSetup)")
 def test_bypass_toggle_is_audible_while_playing(eqpage):
     pg = eqpage
     t0 = baseline(pg)
@@ -229,8 +227,6 @@ def test_bypass_toggle_is_audible_while_playing(eqpage):
     assert abs(tilt(m2) - t0) < 3, f"після «без EQ» нахил {tilt(m2) - t0:.1f} дБ — EQ досі звучить"
 
 
-@pytest.mark.xfail(strict=True, reason="Зміна профілю в #eqSel під час звучання не оновлює живий граф "
-                   "(eqCommit не викликає eqLiveUpdate; інша кількість смуг — оновлення пропускається)")
 def test_profile_switch_is_audible_while_playing(eqpage, svc):
     pg = eqpage
     svc.eq_save(CID, GID, LOWPASS, assign=False)
@@ -244,8 +240,6 @@ def test_profile_switch_is_audible_while_playing(eqpage, svc):
     assert [n["type"] for n in pg.evaluate("__chain()") if n["kind"] == "biquad"] == ["lowpass"]
 
 
-@pytest.mark.xfail(strict=True, reason="Гонка: openUnit не чекає eqLoad(); поки /api/eq не відповів, дубль "
-                   "звучить без EQ (EQ.prof=null) або з профілем ПОПЕРЕДНЬОГО юніта")
 def test_eq_applied_before_eq_api_answers(eqpage):
     pg = eqpage
     pg.route("**/api/eq?*", lambda r: (pg.wait_for_timeout(1500), r.continue_()))
@@ -257,13 +251,60 @@ def test_eq_applied_before_eq_api_answers(eqpage):
     assert has_boost(pg.evaluate("__chain()")), pg.evaluate("__chain()")
 
 
-@pytest.mark.xfail(strict=True, reason="Немає індикатора, з яким EQ звучить дубль: рядок дубля не показує профіль, "
-                   "панель EQ згорнута за замовчуванням")
 def test_playing_take_shows_eq_chip(eqpage):
     pg = eqpage
     measure(pg, lambda: pg.click(".take [data-play^='take:']"), ms=300)
     chip = pg.locator(".take [data-eq-chip]")
     assert chip.count() >= 1 and "Тест +12" in chip.first.inner_text()
+
+
+def test_shortcuts_work_with_focus_on_eq_slider(eqpage):
+    """L/A/B проходять із повзунка EQ; стрілки лишаються повзунку (значення змінюється, репліка — ні)."""
+    pg = eqpage
+    pg.click("#eqPanel summary")
+    sl = pg.locator("input[data-eq='gain'][data-i='0']")
+    sl.focus()
+    idx, v0 = pg.evaluate("S.idx"), sl.input_value()
+    pg.keyboard.press("ArrowLeft")
+    assert sl.input_value() != v0 and pg.evaluate("S.idx") == idx
+    pg.keyboard.press("KeyL")
+    pg.wait_for_function("() => playing && playing.id.startsWith('take:')", timeout=8000)
+    pg.keyboard.press("KeyA")                                          # A/B без зупинки
+    pg.wait_for_function("() => EQ.bypass")
+    assert pg.evaluate("!!playing")
+    assert "on" not in (pg.locator("[data-eq-chip]").get_attribute("class") or "").split()
+    pg.locator("[data-eq-chip]").click()                               # клік по чипу — назад
+    pg.wait_for_function("() => !EQ.bypass")
+    assert pg.get_attribute("#eqBypass", "aria-pressed") == "false"
+    assert not pg.errors, pg.errors
+
+
+def test_ab_loudness_matched(eqpage):
+    """«Без EQ» (B) вирівняно за RMS із «З EQ» (A): різниця на виході ≤ 1 дБ."""
+    pg = eqpage
+    pg.evaluate("""() => { window.__rms = async (ms = 500) => { const an = window.__tap, b = new Float32Array(an.fftSize);
+      let s = 0, n = 0; const t0 = performance.now();
+      while (performance.now() - t0 < ms) { an.getFloatTimeDomainData(b); for (const v of b) { s += v * v; n++; } await new Promise((r) => setTimeout(r, 30)); }
+      return 20 * Math.log10(Math.sqrt(s / n)); }; }""")
+    measure(pg, lambda: pg.click(".take [data-play^='take:']"), ms=600)
+    a = pg.evaluate("__rms(500)")
+    pg.keyboard.press("KeyA")
+    pg.wait_for_function("() => EQ.bypass")
+    pg.wait_for_timeout(300)
+    b = pg.evaluate("__rms(500)")
+    assert abs(a - b) < 1.0, (a, b)
+    assert not pg.errors, pg.errors
+
+
+def test_shelf_has_no_q_control(eqpage, svc):
+    pg = eqpage
+    shelf = {"name": "Полиця", "enabled": True, "gain_db": 0,
+             "bands": [{"type": "lowshelf", "freq_hz": 150, "gain_db": 3, "q": 0.71}]}
+    svc.eq_save(CID, GID, shelf)
+    pg.evaluate("eqLoad()")
+    pg.click("#eqPanel summary")
+    pg.wait_for_selector("input[data-eq='freq']")
+    assert pg.locator("input[data-eq='q']").count() == 0
 
 
 # ------------------------------------------------------------------ бічна панель: список реплік не зникає
@@ -284,8 +325,6 @@ SIDE = """() => { const c = document.querySelector('#cues'), f = document.queryS
 
 
 @pytest.mark.parametrize("w,h", [(1440, 900), (1280, 800)])
-@pytest.mark.xfail(strict=True, reason=".side — flex-колонка з overflow:auto, а .cues (flex:1; overflow:auto) має "
-                   "автоматичний min-height 0 і стискається до 16 px паддінгу, коли <details> розгорнуто (app.css .side/.cues)")
 def test_cue_list_stays_scrollable_with_panels_open(page, w, h):  # noqa: F811
     pg = page
     _open_side_panels(pg, w, h)

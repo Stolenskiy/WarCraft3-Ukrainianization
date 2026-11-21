@@ -138,3 +138,15 @@ def test_eq_api(api):  # noqa: F811
     assert api("/api/eq?cid=nope&gid=x")[0] == 404
     assert api("/api/eq")[0] == 400
     assert json.loads((TMP_ROOT / "data/studio/eq.json").read_text())["profiles"] == {}
+
+
+def test_shelf_q_is_fixed():
+    """У полиць Q не керується (Web Audio його ігнорує): validate і ffmpeg однаково дають 0.71."""
+    p = {"name": "П", "bands": [{"type": "lowshelf", "freq_hz": 150, "gain_db": 3, "q": 5},
+                                {"type": "highshelf", "freq_hz": 8000, "gain_db": 2},
+                                {"type": "peaking", "freq_hz": 1000, "gain_db": 2, "q": 5}]}
+    clean = eq.validate(p)
+    assert [b["q"] for b in clean["bands"]] == [0.71, 0.71, 5.0]
+    # навіть непровалідований профіль не передає в ffmpeg довільний Q полиці
+    fl = eq.to_ffmpeg({"bands": [{"type": "lowshelf", "freq_hz": 150, "gain_db": 3, "q": 5}]})
+    assert fl == ["bass=g=3:f=150:t=q:w=0.71"]
