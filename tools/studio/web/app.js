@@ -638,14 +638,23 @@ async function loadWaves(p) {
   const scale = Math.max(refBuf ? refBuf.duration : 0, ...tbufs.map(([, b]) => b.duration));
   if (refBuf) { mk("ref", refBuf, { color: "#5a6270", played: "#e4572e", scale }); const d = $("#refDur"); if (d) d.textContent = fmt(refBuf.duration); }
   for (const [t, b] of tbufs) {
-    const [va, vb] = voiceSpan(b), voice = vb - va;
+    const [va, vb] = voiceSpan(b);
     const appr = p.approved === t.file;
     const cv = document.querySelector(`canvas[data-wave="${CSS.escape("take:" + t.file)}"]`);
     if (cv) cv.title = "Помаранчевий пунктир — довжина голосу в оригіналі, відкладена від початку вашого голосу";
-    mountTrim(p, t, b.duration, scale);
-    mk("take:" + t.file, b, { color: appr ? "#3f8f57" : "#4f5765", played: appr ? "#46c46a" : "#e4572e", scale, marker: va + refVoice });
-    const f = document.querySelector(`[data-fit="${CSS.escape(t.file)}"]`), fi = fitInfo(voice, refVoice);
-    if (f) { f.className = "fit " + fi.cls; f.textContent = fi.text; f.title = `Ваш голос (без тиші на краях) — ${fmt(voice)}; голос в оригіналі — ${fmt(refVoice)}. Зелений ≤ +10 %, жовтий ≤ +30 %, червоний — задовго.`; }
+    const wid = "take:" + t.file;
+    mk(wid, b, { color: appr ? "#3f8f57" : "#4f5765", played: appr ? "#46c46a" : "#e4572e", scale, marker: va + refVoice });
+    // голос і пунктир «оригінал» рахуються в межах ручного обрізання; mountTrim викликає це й під час перетягування
+    const f = document.querySelector(`[data-fit="${CSS.escape(t.file)}"]`);
+    const refit = (tr) => {
+      let a = Math.max(va, tr.start), e = Math.min(vb, tr.end);
+      if (e <= a) [a, e] = [tr.start, tr.end];
+      const voice = e - a, fi = fitInfo(voice, refVoice), w = waves.get(wid);
+      if (w) { w.opts.marker = a + refVoice; drawWave(wid); }
+      if (cv) cv.dataset.markerSec = (a + refVoice).toFixed(3);
+      if (f) { f.className = "fit " + fi.cls; f.textContent = fi.text; f.title = `Ваш голос (без тиші на краях і обрізання) — ${fmt(voice)}; голос в оригіналі — ${fmt(refVoice)}. Зелений ≤ +10 %, жовтий ≤ +30 %, червоний — задовго.`; }
+    };
+    mountTrim(p, t, b.duration, scale, refit);
   }
 }
 
@@ -756,7 +765,7 @@ const trimOf = (p, file) => p.takes.find((t) => t.file === file)?.trim || null;
 const takeItem = (p, file) => { const tr = trimOf(p, file); return { url: urlTake(file), id: "take:" + file, ...(tr ? { start: tr.start, end: tr.end } : {}) }; };
 const trimFmt = (a, b) => `${a.toFixed(2)}–${b.toFixed(2)} с`;
 
-function mountTrim(p, t, dur, scale) {
+function mountTrim(p, t, dur, scale, onChange = () => {}) {
   const cv = document.querySelector(`canvas[data-wave="${CSS.escape("take:" + t.file)}"]`);
   const info = document.querySelector(`[data-trim-info="${CSS.escape(t.file)}"]`);
   if (!cv || t.deleted) return;
@@ -776,6 +785,7 @@ function mountTrim(p, t, dur, scale) {
     hS.setAttribute("aria-valuenow", tr.start.toFixed(3)); hE.setAttribute("aria-valuenow", tr.end.toFixed(3));
     hS.title = `Початок ${tr.start.toFixed(2)} с — тягніть; ←/→ крок 10 мс; подвійний клік — скинути`;
     hE.title = `Кінець ${tr.end.toFixed(2)} с — тягніть; ←/→ крок 10 мс; подвійний клік — скинути`;
+    onChange(tr);
     const on = tr.start > 0.0005 || tr.end < dur - 0.0005;
     if (info) info.innerHTML = on ? `<span class="trim-t">✂ ${trimFmt(tr.start, tr.end)}</span><button class="linkish" data-trim-reset="${esc(t.file)}">Скинути</button>` : "";
   };

@@ -331,3 +331,59 @@ def test_set_trim_rejects_deleted_missing_and_unknown(svc):
     with pytest.raises(StudioError):
         svc.set_trim(CID, GID, LID, f, 0.1, 1.0)
     assert svc.set_trim(CID, GID, LID, f, None, None)["takes"][-1]["trim"] is None
+
+
+# ---------------------------------------------------------------- вміст копії для гри після обрізання
+def _segments_wav(path):
+    """2 с: 0–0.5 тиша, 0.5–1.0 тон 440 Гц, 1.0–1.5 тон 880 Гц, 1.5–2.0 тиша (stdlib, 22050 Hz mono s16)."""
+    import math
+    import struct
+    import wave
+    sr, out = 22050, []
+    for i in range(2 * sr):
+        t = i / sr
+        f = 440 if 0.5 <= t < 1.0 else 880 if 1.0 <= t < 1.5 else 0
+        out.append(int(12000 * math.sin(2 * math.pi * f * t)) if f else 0)
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(struct.pack(f"<{len(out)}h", *out))
+    return path
+
+
+def _read_game():
+    import struct
+    import wave
+    with wave.open(str(TMP_ROOT / "game-files/Units/orc/peon/peonyes1.wav")) as w:
+        assert (w.getframerate(), w.getnchannels(), w.getsampwidth()) == (22050, 1, 2)
+        n = w.getnframes()
+        return n / 22050, struct.unpack(f"<{n}h", w.readframes(n))
+
+
+def _zcr_hz(samples):
+    """Частота за перетинами нуля (для чистого тону)."""
+    z = sum(1 for a, b in zip(samples, samples[1:], strict=False) if (a < 0) != (b < 0))
+    return z / 2 / (len(samples) / 22050)
+
+
+def test_game_file_content_matches_trim(svc):
+    f = svc.add_take(CID, GID, LID, _segments_wav(TMP_ROOT / "seg.wav").read_bytes())["takes"][-1]["file"]
+    svc.set_trim(CID, GID, LID, f, 0.6, 1.4)
+    svc.approve(CID, GID, LID, f, trim=False)
+    d, s = _read_game()
+    assert abs(d - 0.8) < 0.02, d
+    h = len(s) // 2
+    assert abs(_zcr_hz(s[:h]) - 440) < 40 and abs(_zcr_hz(s[h:]) - 880) < 80   # 0.6–1.0 → 440, 1.0–1.4 → 880
+
+    r = svc.set_trim(CID, GID, LID, f, 0.2, 1.8, auto_trim=False)      # зміна trim затвердженого → перезапис
+    assert abs(_read_game()[0] - 1.6) < 0.02 and r["approved"] == f
+
+    svc.set_trim(CID, GID, LID, f, 0.2, 1.8, auto_trim=True)           # тиша в межах обрізання → авто-обрізання
+    d, s = _read_game()
+    assert 0.95 < d < 1.3, d          # тон 1.0 с + запас авто-обрізання, а не 1.6 с
+    n = len(s)
+    assert _zcr_hz(s[n * 15 // 100: n * 35 // 100]) < 600 < _zcr_hz(s[n * 65 // 100: n * 85 // 100])
+
+    svc.set_trim(CID, GID, LID, f, None, None, auto_trim=False)        # скидання → повна довжина
+    assert abs(_read_game()[0] - 2.0) < 0.02

@@ -206,3 +206,38 @@ def test_trim_handles(page):
     pg.wait_for_function("() => document.querySelectorAll('[data-trim-reset]').length === 0")
     assert _trim_of(pg) == [None]
     assert not pg.errors, pg.errors
+
+
+def test_trim_moves_marker_and_fit(page):
+    pg = page
+    record(pg, 1.6)
+    pg.wait_for_selector(".take .trim-h.start")
+    cv = pg.locator(".take canvas.wave")
+    pg.wait_for_function("() => document.querySelector('.take canvas.wave').dataset.markerSec")
+    marker = lambda: float(cv.get_attribute("data-marker-sec"))  # noqa: E731
+    fit0 = pg.inner_text(".take .fit")
+    box = pg.locator(".take .wave-box").first.bounding_box()
+    scale = pg.evaluate("() => waves.get(document.querySelector('.take canvas.wave').dataset.wave).opts.scale")
+    h = pg.locator(".take .trim-h.start").first.bounding_box()
+    y = h["y"] + h["height"] / 2
+    pg.mouse.move(h["x"] + h["width"] / 2, y)
+    pg.mouse.down()
+    start_of = lambda: float(pg.locator(".take .trim-h.start").first.get_attribute("aria-valuenow"))  # noqa: E731
+    pg.mouse.move(box["x"] + box["width"] * 0.4, y, steps=6)
+    s1, k1 = start_of(), marker()
+    pg.mouse.move(box["x"] + box["width"] * 0.55, y, steps=6)     # живе оновлення, ще до відпускання
+    s2, k2 = start_of(), marker()
+    assert s2 - s1 > 0.1 and abs((k2 - k1) - (s2 - s1)) < 0.02, (s1, s2, k1, k2)
+    assert pg.inner_text(".take .fit") != fit0
+    start = s2
+    pg.mouse.up()
+    pg.wait_for_selector("#toast >> text=обрізано")
+    # зсув пунктиру в пікселях = зсув ручки в пікселях (в межах кількох px)
+    assert abs((marker() - k1) * box["width"] / scale - (start - s1) * box["width"] / scale) < 4
+    m1, fit1 = marker(), pg.inner_text(".take .fit")
+    pg.reload()
+    pg.wait_for_selector(".take .trim-h.start")
+    pg.wait_for_function("() => document.querySelector('.take canvas.wave').dataset.markerSec")
+    assert abs(float(pg.locator(".take canvas.wave").get_attribute("data-marker-sec")) - m1) < 0.01
+    assert pg.inner_text(".take .fit") == fit1
+    assert not pg.errors, pg.errors
