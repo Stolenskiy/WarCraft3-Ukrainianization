@@ -682,3 +682,17 @@ window.addEventListener("beforeunload", (e) => { if (Rec.on) { e.preventDefault(
   }
   if (pos) await openUnit(pos.cid, pos.gid);
 })().catch((e) => { $("#main").innerHTML = `<div class="empty">Помилка: ${esc(e.message)}</div>`; });
+
+// ------------------------------------------------------------------ анімації (лише презентація)
+// Поява хвилі: клас .ready знімає opacity:0 (CSS-перехід).
+{
+  const baseDraw = drawWave;
+  drawWave = (id, ...a) => { baseDraw(id, ...a); waves.get(id)?.canvas.classList.add("ready"); };
+}
+// Видалення: картка коротко згасає перед перемальовкою.
+const baseDel = del;
+del = async (file) => {
+  const row = document.querySelector(`[data-del="${CSS.escape(file)}"]`)?.closest(".take");
+  if (row && !matchMedia("(prefers-reduced-motion: reduce)").matches) { row.classList.add("leaving"); await new Promise((r) => setTimeout(r, 160)); }
+  try { return await baseDel(file); } finally { row?.classList.remove("leaving"); }
+};
