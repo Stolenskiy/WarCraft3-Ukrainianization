@@ -10,6 +10,7 @@
                    "trim": {"start": sec, "end": sec},           # trim — необов'язкове ручне обрізання
                    "tempo": 1.15,                                # tempo — необов'язкове прискорення 0.8–1.3
                    "peak_db": dBFS, "clipped": bool}],           # необов'язкові (старі дублі без них)
+        "original": {"lang": "ru"|"en", "ts": iso} | None,   # «Залишити оригінал» (взаємовиключно з approved)
         "history": [{"ts", "action"}]}}}}
 
 Інваріанти (перевіряються тестами tests/test_studio_core.py):
@@ -18,7 +19,11 @@
   * ручне обрізання (trim) не змінює файл дубля — лише копію для гри (ffmpeg atrim ПЕРШИМ у
     _export_filters; авто-обрізання тиші, якщо ввімкнене, діє після нього); зміна trim
     затвердженого дубля одразу перезаписує копію для гри;
-  * затверджений дубль завжди має копію в game-files, незатверджений — не має.
+  * затверджений дубль завжди має копію в game-files, незатверджений — не має;
+  * «залишити оригінал» (звуки без слів): у game-files/<game_rel> лежить НЕОБРОБЛЕНА копія оригіналу
+    (байт-у-байт, якщо це wav у форматі гри; інакше лише конвертація в 22050 Hz mono s16), а
+    game-files/.originals.json {rel: {lang, sha256}} перелічує такі файли — публікація пакета ПОВИННА
+    їх пропускати (це аудіо Blizzard). approved і original взаємовиключні; обидва рахуються як «готово».
 
 Темп (tempo, 0.8–1.3, немає ключа = 1.0): ffmpeg atempo зберігає висоту голосу; файл дубля не
 змінюється, зміна темпу затвердженого дубля одразу перезаписує копію для гри (як trim).
@@ -54,6 +59,7 @@ from .catalog import Line, duration
 from .paths import GAME_FILES, MIN_TAKE_SEC, SR, STATE_DIR, TAKES_ROOT
 
 PREVIEW_DIR = STATE_DIR / "preview-cache"
+ORIGINALS_JSON = ".originals.json"     # у game-files/: {rel: {lang, sha256}} — файли-оригінали, їх не публікувати
 
 TAKE_RE = re.compile(r"\.take(\d+)\.wav$", re.I)
 
@@ -79,7 +85,7 @@ def file_iso(p: Path) -> str:
 
 
 def new_entry() -> dict:
-    return {"ua_text": None, "approved": None, "takes": [], "history": []}
+    return {"ua_text": None, "approved": None, "original": None, "takes": [], "history": []}
 
 
 AUTO_TRIM = proc.AUTO_TRIM
@@ -257,7 +263,7 @@ class Service:
     def progress(self, cid: str, gid: str) -> tuple[int, int]:
         lines = self.lines(cid, gid)
         st = self.store(cid).data["groups"].get(gid, {})
-        return sum(1 for ln in lines if st.get(ln.id, {}).get("approved")), len(lines)
+        return sum(1 for ln in lines if st.get(ln.id, {}).get("approved") or st.get(ln.id, {}).get("original")), len(lines)
 
     def catalogs_json(self) -> list[dict]:
         with self.lock:
@@ -285,7 +291,9 @@ class Service:
                 "no_speech": ln.no_speech, "game_rel": ln.game_rel,
                 "ua": e["ua_text"] if e["ua_text"] is not None else ln.ua_hint,
                 "ua_custom": e["ua_text"] is not None, "ua_hint": ln.ua_hint, "direction": ln.direction,
-                "approved": e["approved"], "game_exists": self.game_path(ln).exists(),
+                "approved": e["approved"], "original": e["original"], "orig_hint": cat_mod.looks_nonverbal(
+                    ln.no_speech, e["ua_text"] if e["ua_text"] is not None else ln.ua_hint, ln.ru),
+                "game_exists": self.game_path(ln).exists(),
                 "takes": takes, "history": e["history"][-50:]}
 
     def group_json(self, cid: str, gid: str) -> dict:
@@ -350,6 +358,10 @@ class Service:
             if not src.exists():
                 raise StudioError(f"файл дубля не знайдено: {src.name}")
             self._write_game(cid, gid, t, ln, trim)
+            if e["original"]:
+                self._set_original_mark(ln, None)
+                e["original"] = None
+                st.log(gid, lid, "оригінал замінено дублем")
             prev, e["approved"] = e["approved"], file
             st.log(gid, lid, f"обрано дубль {take_no(file)} для гри"
                    + (f" (замість дубля {take_no(prev)})" if prev and prev != file else ""))
@@ -432,6 +444,76 @@ class Service:
             return
         raise StudioError("не вдалося підготувати файл для гри: після обрізання лишилось замало звуку — "
                           "змініть межі або вимкніть «Обрізати тишу»")
+
+    # ---------- «Залишити оригінал»
+    @staticmethod
+    def _set_original_mark(ln: Line, info: dict | None) -> None:
+        """Додати/прибрати rel у game-files/.originals.json (атомарно)."""
+        p = GAME_FILES / ORIGINALS_JSON
+        try:
+            data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            data = {}
+        if info is None:
+            if ln.game_rel not in data:
+                return
+            data.pop(ln.game_rel)
+        else:
+            data[ln.game_rel] = info
+        p.parent.mkdir(parents=True, exist_ok=True)
+        tmp = p.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+        os.replace(tmp, p)
+
+    @staticmethod
+    def _install_original(src: Path, dst: Path) -> None:
+        """Необроблена копія оригіналу. Wav 22050 Hz mono s16 — байт-у-байт; інакше лише конвертація формату."""
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with wave.open(str(src), "rb") as w:
+                ok = (w.getframerate(), w.getnchannels(), w.getsampwidth(), w.getcomptype()) == (SR, 1, 2, "NONE")
+        except (wave.Error, EOFError):
+            ok = False
+        if ok:
+            shutil.copy2(src, dst)
+            return
+        tmp = dst.with_suffix(".tmp.wav")
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(src),
+                            "-ar", str(SR), "-ac", "1", "-sample_fmt", "s16", str(tmp)], capture_output=True, timeout=60)
+        if r.returncode != 0 or not tmp.exists():
+            tmp.unlink(missing_ok=True)
+            raise StudioError("не вдалося перетворити оригінал у формат гри (потрібен ffmpeg)")
+        os.replace(tmp, dst)
+
+    def keep_original(self, cid: str, gid: str, lid: str, lang: str) -> dict:
+        """Оригінал (ru/en) замість дубля: у гру піде необроблений файл, вибір дубля знімається."""
+        with self.lock:
+            if lang not in ("ru", "en"):
+                raise StudioError("мова оригіналу: ru або en")
+            ln, st = self.line(cid, gid, lid), self.store(cid)
+            src = ln.ref_en if lang == "en" else (ln.ref_path if ln.has_ru else None)
+            if src is None or not src.exists():
+                raise StudioError("англійського оригіналу немає" if lang == "en" else "російського оригіналу немає")
+            e = st.entry(gid, lid)
+            self._install_original(src, self.game_path(ln))
+            self._set_original_mark(ln, {"lang": lang, "sha256": hashlib.sha256(self.game_path(ln).read_bytes()).hexdigest()})
+            if e["approved"]:
+                st.log(gid, lid, f"вибір дубля {take_no(e['approved'])} знято: залишено оригінал")
+                e["approved"] = None
+            e["original"] = {"lang": lang, "ts": now()}
+            st.log(gid, lid, f"залишено оригінал ({lang.upper()}) для гри")
+            return self._done(cid, gid, ln)
+
+    def clear_original(self, cid: str, gid: str, lid: str) -> dict:
+        with self.lock:
+            ln, st = self.line(cid, gid, lid), self.store(cid)
+            e = st.entry(gid, lid)
+            if e["original"]:
+                self.game_path(ln).unlink(missing_ok=True)
+                self._set_original_mark(ln, None)
+                st.log(gid, lid, f"оригінал ({e['original']['lang'].upper()}) прибрано з гри")
+                e["original"] = None
+            return self._done(cid, gid, ln)
 
     def _drop_approval(self, cid: str, gid: str, ln: Line, e: dict, reason: str) -> None:
         prev, e["approved"] = e["approved"], None
