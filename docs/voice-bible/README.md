@@ -48,7 +48,7 @@
 ## Статус
 
 - [x] human — docs/voice-bible/human.md (15 юнітів)
-- [ ] orc
+- [x] orc — docs/voice-bible/orc.md (15 юнітів + 3 кампанійні поза melee-обсягом)
 - [ ] undead
 - [x] nightelf — docs/voice-bible/nightelf.md (12 melee-юнітів)
 - [ ] naga / demon / creeps / critters / other (позалоговий охоплення)

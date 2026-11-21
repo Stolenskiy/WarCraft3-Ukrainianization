@@ -1,0 +1,114 @@
+{
+  "heroshadowhunterdeath.wav": {
+    "text": "ААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААА",
+    "duration": 2.21
+  },
+  "shadowhunterpissed1.wav": {
+    "text": "«Реальность — штука жестокая!»",
+    "duration": 3.0
+  },
+  "shadowhunterpissed2.wav": {
+    "text": "На вещи надо смотреть проще.",
+    "duration": 2.54
+  },
+  "shadowhunterpissed3.wav": {
+    "text": "Люди всегда считают себя центром вселенной. Поверь мне, это не так.",
+    "duration": 5.54
+  },
+  "shadowhunterpissed4.wav": {
+    "text": "Ну и кто ты после этого?",
+    "duration": 1.9
+  },
+  "shadowhunterpissed5.wav": {
+    "text": "Ты же командир! Не делай умное лицо!",
+    "duration": 3.1
+  },
+  "shadowhunterpissed6.wav": {
+    "text": "И это называется дисциплина.",
+    "duration": 2.8
+  },
+  "shadowhunterpissed7.wav": {
+    "text": "Перестань ныть!",
+    "duration": 1.12
+  },
+  "shadowhunterpissed8.wav": {
+    "text": "Бери пример с меня и радуйся жизни!",
+    "duration": 2.76
+  },
+  "shadowhunterpissed9.wav": {
+    "text": "Хе, с ума сойти!",
+    "duration": 1.88
+  },
+  "shadowhunterready1.wav": {
+    "text": "Трепещите, враги!",
+    "duration": 1.58
+  },
+  "shadowhunterwarcry1.wav": {
+    "text": "Пришел час страха!",
+    "duration": 1.62
+  },
+  "shadowhunterwhat1.wav": {
+    "text": "С кого начином?",
+    "duration": 1.06
+  },
+  "shadowhunterwhat2.wav": {
+    "text": "Где Врок?",
+    "duration": 0.78
+  },
+  "shadowhunterwhat3.wav": {
+    "text": "Жду приказа.",
+    "duration": 0.88
+  },
+  "shadowhunterwhat4.wav": {
+    "text": "Направь мой клинок!",
+    "duration": 1.5
+  },
+  "shadowhunterwhat5.wav": {
+    "text": "Кто на очереди?",
+    "duration": 0.98
+  },
+  "shadowhunteryes1.wav": {
+    "text": "Иду!",
+    "duration": 0.32
+  },
+  "shadowhunteryes2.wav": {
+    "text": "С удовольствием!",
+    "duration": 1.0
+  },
+  "shadowhunteryes3.wav": {
+    "text": "Верно.",
+    "duration": 0.48
+  },
+  "shadowhunteryes4.wav": {
+    "text": "Сейчас!",
+    "duration": 0.32
+  },
+  "shadowhunteryes5.wav": {
+    "text": "ТАС ДИНГО!",
+    "duration": 1.0
+  },
+  "shadowhunteryes6.wav": {
+    "text": "будет исполнено!",
+    "duration": 1.0
+  },
+  "shadowhunteryes7.wav": {
+    "text": "Ох!",
+    "duration": 0.28
+  },
+  "shadowhunteryesattack1.wav": {
+    "text": "Мой клинок хочет крови!",
+    "duration": 2.52
+  },
+  "shadowhunteryesattack2.wav": {
+    "text": "Получай!",
+    "duration": 0.92
+  },
+  "shadowhunteryesattack3.wav": {
+    "text": "Ахахаха!",
+    "duration": 1.56
+  },
+  "shadowhunteryesattack4.wav": {
+    "text": "Умри!",
+    "duration": 0.72
+  }
+}
