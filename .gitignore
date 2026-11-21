@@ -9,3 +9,5 @@ game-files/
 *.pyc
 __pycache__/
 .DS_Store
+reference-orig-watermarked/
+reference-clean/
