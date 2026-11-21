@@ -1,6 +1,6 @@
 # Перевірки якості на кожен push і PR (безкоштовно: GitHub Actions для публічних репозиторіїв).
 # «Краще, а не гірше»:
-#   - `make check` — те саме, що локально: ruff, усі тести (UI у Chrome з фейковим мікрофоном),
+#   - `make check` — те саме, що локально: ruff, guard, check-voices, усі тести (UI у Chrome з фейковим мікрофоном),
 #     покриття Python не нижче fail_under (pyproject.toml);
 #   - храповик: у PR fail_under не можна знизити відносно базової гілки.
 # Версії дій закріплені SHA, залежностей — у requirements*.txt; оновлення пропонує Dependabot.
@@ -34,9 +34,11 @@ jobs:
           echo "fail_under: base=$base head=$head"
           python -c "import sys; sys.exit(float('$head') < float('${base:-0}'))" \
             || { echo "::error::fail_under знижено з $base до $head"; exit 1; }
+      - name: Guard (аудіо, ресурси гри, секрети) — швидка відмова до встановлення залежностей
+        run: python tools/guard_no_audio.py
       - name: ffmpeg
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-      - run: make setup PYTHON311=python
+      - run: make setup-dev PYTHON311=python   # лише dev-залежності: PyCASC для тестів не потрібен
       - name: make check
         env:
           STUDIO_SCREENSHOT: ${{ runner.temp }}/studio.png
