@@ -3,6 +3,7 @@ import importlib
 import os
 
 from conftest import synth
+from studio import server as _studio_server  # noqa: F401  (імпорт до того, як фікстури змінять WC3UA_ROOT)
 
 
 def test_install_and_uninstall(tmp_path, monkeypatch):
@@ -76,9 +77,10 @@ def test_plan_lists_materialization_and_changes_nothing(world):
     pl = iv.plan(game, root)
     assert [m["rel"] for m in pl["materialize"]] == ["Units/orc/grunt"]
     assert pl["materialize"][0]["entries"] == 2 and pl["materialize"][0]["link"].startswith("../../Mods/")
-    assert {c["rel"] for c in pl["copy"]} == {"Units/orc/grunt/gruntyes1.wav", "Units/orc/grunt/gruntwhat1.wav",
+    assert {c["rel"] for c in pl["files"]} == {"Units/orc/grunt/gruntyes1.wav", "Units/orc/grunt/gruntwhat1.wav",
                                               "Units/orc/peon/peonyes1.wav"}
     assert pl["skipped"] == [] and _tree(game) == before
+    assert {f["rel"]: (f["status"], f["materialize"]) for f in pl["files"]}["Units/orc/grunt/gruntyes1.wav"] == ("new", "Units/orc/grunt")
 
 
 def test_materialize_install_uninstall_roundtrip(world):
@@ -180,8 +182,45 @@ def test_old_flat_manifest_still_uninstalls(world):
     assert not (game / "Units/orc/peon/peonyes1.wav").exists()
 
 
+# ---------------------------------------------------------------- вибіркове встановлення / відкат
+GRUNT = ["Units/orc/grunt/gruntyes1.wav", "Units/orc/grunt/gruntwhat1.wav"]
+
+
+def test_partial_install_only_selected(world):
+    iv, root, game = world
+    res = iv.apply(game, root, files=["Units/orc/peon/peonyes1.wav"])
+    assert res["installed"] == 1 and res["materialized"] == []
+    assert (game / "Units/orc/peon/peonyes1.wav").is_file()
+    assert (game / "Units/orc/grunt").is_symlink()                          # жоден файл grunt не обрано → не чіпаємо
+    res = iv.apply(game, root, files=[GRUNT[0]])
+    assert res["materialized"] == ["Units/orc/grunt"]
+    assert (game / GRUNT[0]).is_file() and not (game / GRUNT[1]).exists()
+    with pytest.raises(iv.InstallError):                                    # чужий / невідомий шлях
+        iv.apply(game, root, files=["Units/orc/peon/../../../etc/passwd"])
+    with pytest.raises(iv.InstallError):
+        iv.apply(game, root, files=["Units/orc/peon/nope.wav"])
+
+
+def test_partial_uninstall_restores_link_only_after_last_file(world):
+    iv, root, game = world
+    link = os.readlink(game / "Units/orc/grunt")
+    iv.apply(game, root)
+    up = iv.uninstall_plan(game)
+    assert {f["rel"] for f in up["files"]} == set(GRUNT) | {"Units/orc/peon/peonyes1.wav"}
+    r = iv.uninstall(game, files=[GRUNT[0], "Units/orc/peon/peonyes1.wav"])
+    assert r["removed"] == 2 and r["restored_links"] == []
+    g = game / "Units/orc/grunt"
+    assert g.is_dir() and not g.is_symlink() and (g / "gruntwhat1.wav").is_file() and not (g / "gruntyes1.wav").exists()
+    assert not (game / "Units/orc/peon/peonyes1.wav").exists()
+    with pytest.raises(iv.InstallError):
+        iv.uninstall(game, files=["Units/orc/peon/peonyes1.wav"])           # уже не наш
+    r = iv.uninstall(game, files=[GRUNT[1]])
+    assert r["restored_links"] == ["Units/orc/grunt"] and os.readlink(g) == link
+    assert json.loads((game / "Backups/ua-voices/manifest.json").read_text()) == {"files": {}, "materialized": {}}
+
+
 # ---------------------------------------------------------------- API студії
-def test_studio_install_api(world, monkeypatch):
+def test_studio_install_api(world, monkeypatch, clean_root):
     iv, root, game = world
     import studio.server as srv
     from studio import core
@@ -192,9 +231,9 @@ def test_studio_install_api(world, monkeypatch):
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     base = f"http://127.0.0.1:{httpd.server_address[1]}"
 
-    def call(path, post=False, headers=None):
+    def call(path, post=False, headers=None, body=None):
         h = {"X-Studio": "1", **(headers or {})} if post else {}
-        req = urllib.request.Request(base + path, data=b"{}" if post else None, headers=h, method="POST" if post else "GET")
+        req = urllib.request.Request(base + path, data=json.dumps(body or {}).encode() if post else None, headers=h, method="POST" if post else "GET")
         try:
             with urllib.request.urlopen(req) as r:
                 return r.status, json.loads(r.read())
@@ -204,6 +243,18 @@ def test_studio_install_api(world, monkeypatch):
         mods_before = _tree(game / "Mods")
         code, pl = call("/api/install/plan")
         assert code == 200 and pl["materialize"][0]["rel"] == "Units/orc/grunt" and (game / "Units/orc/grunt").is_symlink()
+        orc = pl["races"][0]
+        assert orc["id"] == "orc" and orc["title"] == "Орда"
+        assert {u["id"]: len(u["files"]) for u in orc["units"]} == {"grunt": 2, "peon": 1}
+        assert next(u for u in orc["units"] if u["id"] == "peon")["title"].startswith("Орчатник")
+        pr = lambda files: call("/api/install", post=True, body={"files": files})  # noqa: E731
+        assert pr(["Units/orc/nope/x.wav"])[0] == 400 and pr("x")[0] == 400
+        assert pr(["Units/orc/peon/peonyes1.wav"])[1]["installed"] == 1
+        assert (game / "Units/orc/grunt").is_symlink() and not (game / "Units/orc/grunt/gruntyes1.wav").exists()
+        code, up = call("/api/uninstall/plan")
+        assert code == 200 and [f["rel"] for u in up["races"][0]["units"] for f in u["files"]] == ["Units/orc/peon/peonyes1.wav"]
+        assert call("/api/uninstall", post=True, body={"files": ["Units/orc/grunt/gruntyes1.wav"]})[0] == 400
+        assert call("/api/uninstall", post=True, body={"files": ["Units/orc/peon/peonyes1.wav"]})[1]["removed"] == 1
         assert call("/api/install", post=True, headers={"X-Studio": "0"})[0] == 403          # захист POST
         assert call("/api/install", post=True, headers={"Origin": "http://evil.example"})[0] == 403
         assert (game / "Units/orc/grunt").is_symlink()

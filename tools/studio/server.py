@@ -21,9 +21,11 @@ API:
   POST /api/eq/delete {cid,gid,id}                 видалити власний профіль (пресети — ні)
   POST /api/eq/assign {cid,gid,profile_id}         профіль групи (null → типовий)
   POST /api/eq/reexport {cid,gid,trim}             перезаписати обрані дублі групи з поточним EQ
-  GET  /api/install/plan                     сухий прогін: що скопіюється, які теки-симлінки матеріалізуються, що пропущено
-  POST /api/install                          install_voices.apply → {installed, unchanged, materialized, skipped, log}
-  POST /api/uninstall                        install_voices.uninstall → {removed, restored_links, log}
+  GET  /api/install/plan                     сухий прогін: {races:[{id,title,units:[{id,title,files:[{rel,name,status new|update|same,materialize}]}]}],
+                                             materialize:[{rel,link,entries}], skipped:[{rel,reason}], same}
+  POST /api/install   {files?:[game_rel]}    install_voices.apply лише обраних (без files — усе); невідомий шлях → 400
+  GET  /api/uninstall/plan                   те саме дерево, але лише файли з маніфесту (status present|changed|missing)
+  POST /api/uninstall {files?:[game_rel]}    прибрати обрані (без files — усе); симлінк теки повертається, коли наших файлів у ній не лишилось
 Кожна дія (крім install*) повертає оновлену репліку (той самий формат, що в /api/group).
 """
 from __future__ import annotations
@@ -40,10 +42,34 @@ from urllib.parse import parse_qs, unquote, urlparse
 import install_voices
 
 from . import core
+from .catalog import UNIT_RACES
 from .paths import GAME_FILES
 
 WEB = Path(__file__).resolve().parent / "web"
 MAX_UPLOAD = 40 * 1024 * 1024
+
+
+def install_tree(plan: dict, svc: core.Service) -> dict:
+    """Плани install_voices → дерево Раса → Юніт → файли з реальними назвами (запасний варіант — назва теки)."""
+    races = {r: t for r, t in UNIT_RACES}
+    tree: dict[str, dict] = {}
+    for f in plan["files"]:
+        parts = f["rel"].split("/")
+        race, unit = (parts[1], parts[2]) if len(parts) >= 4 and parts[0].lower() == "units" else ("", "")
+        rid = race.lower()
+        r = tree.setdefault(rid, {"id": rid, "title": races.get(rid, race or "Інше"), "units": {}})
+        if unit not in r["units"]:
+            title = unit or "—"
+            try:
+                title = next((g.title for g in svc.groups(f"units-{rid}") if g.id == unit), title)
+            except core.StudioError:
+                pass
+            r["units"][unit] = {"id": unit, "title": title, "files": []}
+        r["units"][unit]["files"].append({**f, "name": parts[-1]})
+    order = [r for r, _ in UNIT_RACES]
+    out = sorted(tree.values(), key=lambda r: order.index(r["id"]) if r["id"] in order else 99)
+    return {**{k: v for k, v in plan.items() if k != "files"},
+            "races": [{**r, "units": list(r["units"].values())} for r in out]}
 
 
 def make_handler(svc: core.Service):
@@ -102,7 +128,9 @@ def make_handler(svc: core.Service):
                 if parts == ["api", "catalogs"]:
                     return self._json(svc.catalogs_json())
                 if parts == ["api", "install", "plan"]:
-                    return self._json(install_voices.plan())
+                    return self._json(install_tree(install_voices.plan(), svc))
+                if parts == ["api", "uninstall", "plan"]:
+                    return self._json(install_tree(install_voices.uninstall_plan(), svc))
                 if parts == ["api", "eq"]:
                     q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
                     return self._json(svc.eq_json(q["cid"], q["gid"]))
@@ -135,11 +163,13 @@ def make_handler(svc: core.Service):
                 if url.path == "/api/take":
                     q = {k: v[0] for k, v in parse_qs(url.query).items()}
                     return self._json(svc.add_take(q["cid"], q["gid"], q["lid"], body))
-                if url.path == "/api/install":
-                    return self._json(install_voices.apply())
-                if url.path == "/api/uninstall":
-                    return self._json(install_voices.uninstall())
                 data = json.loads(body or b"{}")
+                if url.path in ("/api/install", "/api/uninstall"):
+                    chosen = data.get("files")
+                    if chosen is not None and not (isinstance(chosen, list) and all(isinstance(x, str) for x in chosen)):
+                        raise ValueError("files має бути списком рядків")
+                    fn = install_voices.apply if url.path == "/api/install" else install_voices.uninstall
+                    return self._json(fn(files=chosen))
                 if url.path in actions:
                     return self._json(actions[url.path](data))
                 if url.path == "/api/open-dir":

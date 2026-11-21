@@ -65,9 +65,12 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 
 ## Встановлення в гру
 
-Кнопка «Встановити в гру» (шапка) → `GET /api/install/plan` (сухий прогін: `copy`, `materialize`, `skipped`, `same`)
-→ «Встановити» `POST /api/install` (`install_voices.apply`) / «Прибрати з гри» `POST /api/uninstall`
-(`install_voices.uninstall`). POST — під тими ж перевірками (X-Studio, Host/Origin). Тека гри — `WC3_GAME_ROOT`
+Кнопка «Встановити в гру» (шапка) відкриває вікно з деревом Раса → Персонаж → файли (згорнуте, чекбокси на кожному
+рівні, частковий стан групи, позначки «нове» / «оновиться» / «вже в грі» / «потребує перетворення теки»; пропущене —
+окремий блок). `GET /api/install/plan` (сухий прогін, дерево з реальними назвами) → `POST /api/install {files:[game_rel]}`
+(`install_voices.apply` лише обраних; невідомий шлях → 400; теку-симлінк перетворюємо, лише якщо обрано її файл).
+Режим «Прибрати з гри»: `GET /api/uninstall/plan` (файли з маніфесту) → `POST /api/uninstall {files}`; симлінк теки
+повертається, коли в ній не лишилось наших файлів. `make install-voices` / `uninstall-voices` — усе одразу. POST — під тими ж перевірками (X-Studio, Host/Origin). Тека гри — `WC3_GAME_ROOT`
 або `/Applications/Warcraft III Classic`; джерело — `game-files/`. Теки юнітів-симлінків матеріалізуються
 (реальна тека + симлінки на елементи цілі); деталі, маніфест і відкат — docstring `tools/install_voices.py`
 і скіл `game-change`. CLI (`make install-voices` / `uninstall-voices`) працює як раніше.

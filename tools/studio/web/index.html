@@ -67,10 +67,11 @@
 
 <div id="installModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="installTitle">
   <div class="modal-box">
-    <div class="modal-head"><h3 id="installTitle">Встановити в гру</h3><button class="ghost" id="installClose" title="Закрити (Esc)">✕</button></div>
-    <div class="modal-body" id="installBody"></div>
+    <div class="modal-head"><h3 id="installTitle">Дублі й гра</h3>
+      <div class="seg mini" id="installMode"><button data-mode="install" class="on">Встановити</button><button data-mode="uninstall">Прибрати з гри</button></div><button class="ghost" id="installClose" title="Закрити (Esc)">✕</button></div>
+    <div class="modal-body inst-body" id="installBody"></div>
     <div class="modal-foot">
-      <button class="ghost danger" id="installUndo" title="Прибрати наші файли й повернути оригінали та симлінки">Прибрати з гри</button>
+      <span class="modal-hint">Позначте, що саме. Оригінали й симлінки повертаються з бекапу.</span>
       <button class="btn primary" id="installGo">Встановити</button>
     </div>
   </div>

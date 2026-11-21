@@ -108,14 +108,17 @@ def _link_info(game: Path, lrel: str) -> tuple[str, str, list[str]]:
 
 # ---------------------------------------------------------------- план
 def plan(game: Path | None = None, root: Path | None = None) -> dict:
+    """Сухий прогін. files: [{rel, status: new|update|same, materialize: теку-симлінк або ''}],
+    materialize: [{rel, link, entries}], skipped: [{rel, reason}]."""
     game = Path(game or GAME)
     if not game.is_dir():
         raise InstallError(f"тека гри не знайдена: {game}")
+    root = root or ROOT
     man = _load(game)
-    out = {"game": str(game), "copy": [], "materialize": [], "skipped": [], "same": 0}
+    out = {"game": str(game), "files": [], "materialize": [], "skipped": [], "same": 0}
     mat: dict[str, dict] = {}
-    for src in _sources(root or ROOT):
-        rel = src.relative_to((root or ROOT) / "game-files").as_posix()
+    for src in _sources(root):
+        rel = src.relative_to(root / "game-files").as_posix()
         kind, lrel, why = classify(game, rel, man["materialized"])
         if kind == "skip":
             out["skipped"].append({"rel": rel, "reason": why})
@@ -125,15 +128,29 @@ def plan(game: Path | None = None, root: Path | None = None) -> dict:
             if lrel not in mat:
                 raw, absdir, names = _link_info(game, lrel)
                 mat[lrel] = {"rel": lrel, "link": raw, "entries": len(names)}
-            status = "replace" if os.path.lexists(os.path.join(os.path.realpath(game / lrel), t.name)) else "new"
-        elif t.exists() and rel in man["files"] and sha(t) == sha(src):
-            out["same"] += 1
-            continue
+            status = "update" if os.path.lexists(os.path.join(os.path.realpath(game / lrel), t.name)) else "new"
+        elif t.exists() and not t.is_symlink() and sha(t) == sha(src):
+            status = "same"
         else:
-            status = "replace" if t.exists() else "new"
-        out["copy"].append({"rel": rel, "status": status})
+            status = "update" if t.exists() else "new"
+        out["same"] += status == "same"
+        out["files"].append({"rel": rel, "status": status, "materialize": lrel})
     out["materialize"] = list(mat.values())
     return out
+
+
+def uninstall_plan(game: Path | None = None) -> dict:
+    """Що можна прибрати: файли з маніфесту. status: present|changed|missing."""
+    game = Path(game or GAME)
+    if not game.is_dir():
+        raise InstallError(f"тека гри не знайдена: {game}")
+    man = _load(game)
+    files = []
+    for rel, info in sorted(man["files"].items()):
+        t = game / rel
+        st = ("present" if sha(t) == info["sha256"] else "changed") if t.is_file() and not t.is_symlink() else "missing"
+        files.append({"rel": rel, "status": st, "materialize": str(Path(rel).parent) if str(Path(rel).parent) in man["materialized"] else ""})
+    return {"game": str(game), "files": files, "materialize": [{"rel": k, "link": v["link_target"]} for k, v in man["materialized"].items()]}
 
 
 # ---------------------------------------------------------------- встановлення
@@ -160,17 +177,26 @@ def _materialize(game: Path, lrel: str, man: dict, log: list[str]) -> None:
     log.append(f"MATERIALIZED {lrel} (was symlink -> {raw}; {len(entries)} symlinks recreated)")
 
 
-def apply(game: Path | None = None, root: Path | None = None) -> dict:
+def apply(game: Path | None = None, root: Path | None = None, files: list[str] | None = None) -> dict:
+    """files — обрані game_rel (None = усе з плану); невідомий шлях → InstallError."""
     game = Path(game or GAME)
     with LOCK:
         pl = plan(game, root)             # перевірки + _sources
         root = root or ROOT
+        valid = {f["rel"] for f in pl["files"]}
+        chosen = valid if files is None else set(files)
+        if chosen - valid:
+            raise InstallError("невідомі шляхи: " + ", ".join(sorted(chosen - valid)[:5]))
+        pl["materialize"] = [m for m in pl["materialize"] if any(f["rel"] in chosen and f["materialize"] == m["rel"] for f in pl["files"])]
+        pl["same"] = sum(f["status"] == "same" and f["rel"] in chosen for f in pl["files"])
         bdir = game / "Backups/ua-voices"
         man = _load(game)
         log: list[str] = []
         installed = skipped = 0
         for src in _sources(root):
             rel = src.relative_to(root / "game-files").as_posix()
+            if rel not in chosen:
+                continue
             kind, lrel, _ = classify(game, rel, man["materialized"])
             if kind == "skip":
                 skipped += 1
@@ -198,7 +224,7 @@ def apply(game: Path | None = None, root: Path | None = None) -> dict:
         _save(game, man)
         _changelog(game, "install", log, man)
         return {"installed": installed, "unchanged": pl["same"], "materialized": [m["rel"] for m in pl["materialize"]],
-                "skipped": pl["skipped"], "log": log}
+                "skipped": [] if files is not None else pl["skipped"], "log": log}
 
 
 # ---------------------------------------------------------------- відкат
@@ -223,14 +249,19 @@ def _unmaterialize(game: Path, lrel: str, info: dict, log: list[str]) -> bool:
     return True
 
 
-def uninstall(game: Path | None = None) -> dict:
+def uninstall(game: Path | None = None, files: list[str] | None = None) -> dict:
+    """files — що прибрати (None = усе з маніфесту); невідомий шлях → InstallError.
+    Симлінк теки повертається лише коли в ній не лишилось наших файлів."""
     game = Path(game or GAME)
     with LOCK:
         bdir = game / "Backups/ua-voices"
         man = _load(game)
+        chosen = set(man["files"]) if files is None else set(files)
+        if chosen - set(man["files"]):
+            raise InstallError("невідомі шляхи: " + ", ".join(sorted(chosen - set(man["files"]))[:5]))
         log: list[str] = []
-        for rel, info in sorted(man["files"].items()):
-            t = game / rel
+        for rel in sorted(chosen):
+            info, t = man["files"][rel], game / rel
             if t.exists() and not t.is_symlink() and sha(t) == info["sha256"]:
                 t.unlink()
                 if info.get("backup"):
@@ -238,9 +269,13 @@ def uninstall(game: Path | None = None) -> dict:
                 log.append(f"REMOVED {rel}" + (" (original restored)" if info.get("backup") else ""))
             else:
                 log.append(f"SKIP {rel}: змінений не нами — не чіпаю")
-        left = {lrel: i for lrel, i in sorted(man["materialized"].items(), reverse=True)
-                if not _unmaterialize(game, lrel, i, log)}
-        _save(game, {"files": {}, "materialized": left})
+        rest = {r: i for r, i in man["files"].items() if r not in chosen}
+        busy = {str(Path(r).parent) for r in rest}
+        left = {}
+        for lrel, i in sorted(man["materialized"].items(), reverse=True):
+            if lrel in busy or not _unmaterialize(game, lrel, i, log):
+                left[lrel] = i
+        _save(game, {"files": rest, "materialized": left})
         _changelog(game, "uninstall", log, {"materialized": {}})
         return {"removed": sum(x.startswith("REMOVED") for x in log), "restored_links": [
             x.split()[2] for x in log if x.startswith("RESTORED SYMLINK")], "log": log}
@@ -273,8 +308,9 @@ def main(argv: list[str] | None = None) -> int:
             pl = plan(GAME, ROOT)
             for m in pl["materialize"]:
                 print(f"МАТЕРІАЛІЗУЮ {m['rel']} (симлінк → {m['link']}, {m['entries']} елементів)")
-            for c in pl["copy"]:
-                print(f"буде  {c['rel']}" + (" (замінить файл, оригінал у бекап)" if c["status"] == "replace" else ""))
+            for c in pl["files"]:
+                if c["status"] != "same":
+                    print(f"буде  {c['rel']}" + (" (замінить файл, оригінал у бекап)" if c["status"] == "update" else ""))
             for s in pl["skipped"]:
                 print(f"ПРОПУСК {s['rel']}: {s['reason']}")
             print(f"вже є: {pl['same']}\n\nЦе план. Встановити: make install-voices APPLY=1")
