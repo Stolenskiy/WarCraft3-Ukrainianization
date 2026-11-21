@@ -162,9 +162,29 @@ def bible_hint(unit: dict | None, fname: str) -> tuple[str, str]:
         return "", ""
     start, items, direction = row
     i = n - start
-    if 0 <= i < len(items):
-        return items[i], direction
-    return (items[0] if len(items) == 1 else ""), direction
+    hint = items[i] if 0 <= i < len(items) else (items[0] if len(items) == 1 else "")
+    return hint, direction_for(direction, hint)
+
+
+def direction_for(direction: str, hint: str) -> str:
+    """Напрям рядка аркуша → напрям для ОДНІЄЇ фрази.
+
+    Рядок аркуша спільний для yes1–4, а його частини (через «;») з цитатою стосуються лише
+    цієї фрази: «слухняно-бадьоро; «Так, так!» — квапливо» → для «Добре.» лише «слухняно-бадьоро».
+    Загальний вступ до двокрапки («хоробрість мимоволі: «Бий їх!» — …») лишається для всіх.
+    """
+    out = []
+    for part in (x.strip() for x in direction.split(";")):
+        if "«" not in part:
+            out.append(part)
+            continue
+        head, sep, rest = part.partition(":")
+        if sep and "«" not in head:          # «загальне: «фраза» — як»
+            out.append(head.strip())
+            part = rest.strip()
+        if hint and f"«{hint}»" in part:
+            out.append(part)
+    return "; ".join(x for x in dict.fromkeys(out) if x) or direction
 
 
 # ---------------------------------------------------------------- каталог юнітів раси

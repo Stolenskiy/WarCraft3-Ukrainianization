@@ -53,13 +53,16 @@ function loadBuf(url) {
 
 /** Межі голосу (без тиші на краях), як у копії для гри: поріг −45 dB. */
 function voiceSpan(buf) {
-  const d = buf.getChannelData(0), thr = Math.pow(10, -45 / 20), w = Math.floor(buf.sampleRate * 0.01);
-  const loud = (i) => { let m = 0; for (let k = i; k < Math.min(i + w, d.length); k++) m = Math.max(m, Math.abs(d[k])); return m > thr; };
-  let a = 0, b = d.length - 1;
-  while (a < d.length && !loud(a)) a += w;
-  while (b > a && !loud(Math.max(0, b - w))) b -= w;
+  // Як ffmpeg silenceremove (detection=rms, window 20 мс, поріг −45 дБ): RMS у ковзному вікні,
+  // тож поодиноке клацання в тиші не вважається голосом. Запас 0.08 с / 0.12 с — як у AUTO_TRIM.
+  const d = buf.getChannelData(0), sr = buf.sampleRate, thr2 = Math.pow(10, -45 / 10);
+  const win = Math.max(1, Math.round(sr * 0.02)), hop = Math.max(1, Math.round(sr * 0.005));
+  const loud = (i) => { let s = 0; const e = Math.min(i + win, d.length); for (let k = i; k < e; k++) s += d[k] * d[k]; return s / Math.max(1, e - i) > thr2; };
+  let a = 0, b = d.length - win;
+  while (a < d.length && !loud(a)) a += hop;
+  while (b > a && !loud(Math.max(0, b))) b -= hop;
   if (a >= b) return [0, buf.duration];
-  return [Math.max(0, a / buf.sampleRate - 0.08), Math.min(buf.duration, b / buf.sampleRate + 0.12)];
+  return [Math.max(0, a / sr - 0.08), Math.min(buf.duration, (b + win) / sr + 0.12)];
 }
 
 const waves = new Map(); // id -> {canvas, buf, opts}
@@ -152,7 +155,13 @@ function eqCurve() {
   }
   g.stroke();
 }
-function eqRender() {
+function eqRender() {                               // зберігає фокус: інакше клавіші підуть у глобальні
+  const f = document.activeElement, box0 = $("#eq");
+  const key = f && box0.contains(f) ? (f.id ? `#${f.id}` : f.dataset.eq ? `[data-eq="${f.dataset.eq}"]${f.dataset.i != null ? `[data-i="${f.dataset.i}"]` : ":not([data-i])"}` : null) : null;
+  eqRenderInner();
+  if (key) box0.querySelector(key)?.focus();
+}
+function eqRenderInner() {
   const box = $("#eq");
   if (!EQ.data || !EQ.prof) { box.innerHTML = ""; return; }
   const P = EQ.data.profiles, own = !!eqOwn(), dirty = eqDirty();
@@ -165,7 +174,7 @@ function eqRender() {
     <canvas id="eqCurve" width="248" height="72"></canvas>
     <div class="eq-row">
       <label class="switch"><input type="checkbox" id="eqOn" ${EQ.prof.enabled ? "checked" : ""}><span></span>Увімкнено</label>
-      <button class="ghost ${EQ.bypass ? "on" : ""}" id="eqBypass" title="Порівняти: прослуховування без EQ (A/B)">${EQ.bypass ? "Без EQ" : "З EQ"}</button>
+      <button class="ghost ${EQ.bypass ? "on" : ""}" id="eqBypass" title="Порівняти: прослуховування без EQ (A/B)">${EQ.bypass ? "Слухаю без EQ" : "Слухаю з EQ"}</button>
     </div>
     <label class="eq-sl">Гучність <output>${EQ.prof.gain_db} дБ</output>
       <input type="range" data-eq="gain" min="-12" max="12" step="0.5" value="${EQ.prof.gain_db}"></label>
@@ -187,8 +196,8 @@ function eqRender() {
   eqCurve();
 }
 async function eqLoad() {
-  try { EQ.data = await getJSON(`/api/eq?cid=${encodeURIComponent(S.cat)}&gid=${encodeURIComponent(S.unit)}`); } catch (e) { console.warn("eq", e); return; }
-  EQ.id = EQ.data.selected; EQ.naming = false;
+  try { EQ.data = await getJSON(`/api/eq?cid=${encodeURIComponent(S.cat)}&gid=${encodeURIComponent(S.unit)}`); } catch (e) { EQ.data = null; eqRender(); toast(`Еквалайзер не завантажився: ${e.message || e}`, true); return; }
+  EQ.id = EQ.data.selected; EQ.naming = false; EQ.bypass = false;
   EQ.prof = eqClone(eqPlain(EQ.data.profiles.find((p) => p.id === EQ.id)));
   eqRender();
 }
@@ -198,7 +207,8 @@ async function eqCommit(path, body, msg) {  // відповідь — новий
     EQ.id = EQ.data.saved_id || EQ.data.selected; EQ.naming = false;
     EQ.prof = eqClone(eqPlain(EQ.data.profiles.find((p) => p.id === EQ.id)));
     eqRender(); if (msg) toast(msg);
-  } catch (e) { toast(String(e.message || e), true); }
+    return true;
+  } catch (e) { toast(String(e.message || e), true); return false; }
 }
 function eqSetup() {
   const box = $("#eq");
@@ -216,7 +226,8 @@ function eqSetup() {
   });
   box.addEventListener("change", (ev) => {
     if (ev.target.id === "eqSel") {
-      eqCommit("/api/eq/assign", { profile_id: ev.target.value });
+      const prev = EQ.id;
+      eqCommit("/api/eq/assign", { profile_id: ev.target.value }).then((ok) => { if (!ok) { ev.target.value = prev; } });
     } else if (ev.target.id === "eqOn") {
       EQ.prof.enabled = ev.target.checked; eqRender();
     } else if (ev.target.dataset.eq) eqRender();   // оновити кнопки (напр. «Оновити профіль»)
@@ -237,7 +248,7 @@ function eqSetup() {
 }
 async function eqReexport() {
   if (eqDirty() || !EQ.data.profiles.find((p) => p.id === EQ.id)) return toast("Спершу збережіть профіль", true);
-  if (EQ.data.selected !== EQ.id) await eqCommit("/api/eq/assign", { profile_id: EQ.id });
+  if (EQ.data.selected !== EQ.id && !(await eqCommit("/api/eq/assign", { profile_id: EQ.id }))) return;
   try {
     const r = await post("/api/eq/reexport", { cid: S.cat, gid: S.unit, trim: $("#optTrim").checked });
     const byId = Object.fromEntries(r.lines.map((l) => [l.id, l]));
@@ -604,10 +615,13 @@ function renderCard(newFile) {
         <p><span class="fit good">голос 0.80 с · +0.05 с</span> довжина вашого голосу без тиші на краях і різниця з оригіналом:
           <b class="ok-t">зелений</b> — вкладаєтесь (до +10 %), <b class="warn-t">жовтий</b> — трохи довше (до +30 %),
           <b class="bad-t">червоний</b> — задовго, краще сказати швидше чи коротше.</p>
-        <p><b>Тиша на початку й у кінці</b> у файлі для гри обрізається автоматично (перемикач «Обрізати тишу»
-          у шапці); сам дубль не змінюється.</p>
+        <p><b>Тиша на початку й у кінці</b> (<i class="lg-auto"></i>заштрихована частина хвилі) у файлі для гри обрізається
+          автоматично, якщо в шапці увімкнено «Обрізати тишу»; сам дубль не змінюється, тож у студії тишу чути.
+          Почути точно як у грі — «▶ Як у грі» на обраному дублі.</p>
         <p><b>Ручки на краях хвилі</b> — перетягніть, щоб обрізати початок чи кінець дубля для гри (затемнена частина
-          відкидається; ←/→ на ручці — крок 10 мс, подвійний клік — скинути ручку, «Скинути» — все). Файл дубля не змінюється.</p></div></details>` : ""}</div>
+          відкидається; ←/→ на ручці — крок 10 мс, подвійний клік — скинути ручку, «Скинути» — все). Файл дубля не змінюється.</p>
+        <p><b>Еквалайзер</b> (ліва панель) — дублі в студії звучать уже з EQ персонажа; «Слухаю без EQ» — порівняти.
+          Новий вибір для гри отримує поточний профіль; уже обрані файли оновлює «Застосувати до обраних дублів».</p></div></details>` : ""}</div>
     <div class="takes">${active.length ? active.map((t) => takeRow(p, t, t.file === newFile)).join("")
       : `<div class="empty-takes">Ще немає дублів. Послухайте оригінал і запишіть перший — <kbd>Пробіл</kbd></div>`}</div>
 
@@ -615,9 +629,9 @@ function renderCard(newFile) {
     <details class="fold"><summary>Журнал дій · ${p.history.length}</summary><ul class="history">
       ${p.history.slice().reverse().map((h) => `<li><time>${esc(timeLabel(h.ts))}</time><span>${esc(h.action)}</span></li>`).join("") || "<li>—</li>"}</ul></details>
   </div>`;
-  setRecUI(false);
+  setRecUI(Rec.on);                                  // перемальовка під час запису не «зупиняє» UI
   renderMicSel();
-  $("#micSel").onchange = (e) => switchMic(e.target.value);
+  $("#micSel").onchange = (e) => { e.target.blur(); switchMic(e.target.value); };  // Пробіл знову = запис
   bindCard(p);
   loadWaves(p);
 }
@@ -635,7 +649,8 @@ async function loadWaves(p) {
     try { tbufs.push([t, await loadBuf(urlTake(t.file))]); } catch {}
   }
   if (cur() !== p) return;
-  const scale = Math.max(refBuf ? refBuf.duration : 0, ...tbufs.map(([, b]) => b.duration));
+  // спільний масштаб — оригінал + дублі поза кошиком (довгий видалений дубль не стискає решту хвиль)
+  const scale = Math.max(refBuf ? refBuf.duration : 0, ...tbufs.filter(([t]) => !t.deleted).map(([, b]) => b.duration));
   if (refBuf) { mk("ref", refBuf, { color: "#5a6270", played: "#e4572e", scale }); const d = $("#refDur"); if (d) d.textContent = fmt(refBuf.duration); }
   for (const [t, b] of tbufs) {
     const [va, vb] = voiceSpan(b);
@@ -646,7 +661,15 @@ async function loadWaves(p) {
     mk(wid, b, { color: appr ? "#3f8f57" : "#4f5765", played: appr ? "#46c46a" : "#e4572e", scale, marker: va + refVoice });
     // голос і пунктир «оригінал» рахуються в межах ручного обрізання; mountTrim викликає це й під час перетягування
     const f = document.querySelector(`[data-fit="${CSS.escape(t.file)}"]`);
+    // тиша, яку «Обрізати тишу» зріже у файлі для гри (той самий поріг −45 дБ і запас, що в ffmpeg)
+    const autoL = cv && autoDim(cv, "Тиша — у файлі для гри обріжеться («Обрізати тишу»)");
+    const autoR = cv && autoDim(cv, "Тиша — у файлі для гри обріжеться («Обрізати тишу»)");
     const refit = (tr) => {
+      if (autoL) {
+        const pc = (x) => `${(100 * x) / scale}%`, a0 = Math.min(Math.max(va, tr.start), tr.end), b0 = Math.max(Math.min(vb, tr.end), a0);
+        autoL.style.cssText = `left:${pc(tr.start)};width:${pc(a0 - tr.start)}`;
+        autoR.style.cssText = `left:${pc(b0)};width:${pc(tr.end - b0)}`;
+      }
       let a = Math.max(va, tr.start), e = Math.min(vb, tr.end);
       if (e <= a) [a, e] = [tr.start, tr.end];
       const voice = e - a, fi = fitInfo(voice, refVoice), w = waves.get(wid);
@@ -765,6 +788,9 @@ const trimOf = (p, file) => p.takes.find((t) => t.file === file)?.trim || null;
 const takeItem = (p, file) => { const tr = trimOf(p, file); return { url: urlTake(file), id: "take:" + file, ...(tr ? { start: tr.start, end: tr.end } : {}) }; };
 const trimFmt = (a, b) => `${a.toFixed(2)}–${b.toFixed(2)} с`;
 
+function autoDim(cv, title) {
+  const d = document.createElement("div"); d.className = "auto-dim"; d.title = title; cv.parentElement.appendChild(d); return d;
+}
 function mountTrim(p, t, dur, scale, onChange = () => {}) {
   const cv = document.querySelector(`canvas[data-wave="${CSS.escape("take:" + t.file)}"]`);
   const info = document.querySelector(`[data-trim-info="${CSS.escape(t.file)}"]`);
@@ -865,7 +891,7 @@ async function runUndo() {
 
 // ------------------------------------------------------------------ клавіатура
 document.addEventListener("keydown", (e) => {
-  if (e.target.matches("input, textarea")) return;
+  if (e.target.closest("input, textarea, select, summary, .trim-h, #eq")) return;  // елементи керування мають свої клавіші
   if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") { e.preventDefault(); return runUndo(); }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === "Escape") return toggleUnitPopover(false);
@@ -919,8 +945,10 @@ renderLang();
 for (const id of ["optTrim", "optAutoplay"]) {
   const el = $("#" + id);
   try { const v = localStorage.getItem("studio." + id); if (v !== null) el.checked = v === "1"; } catch {}
-  el.onchange = () => { try { localStorage.setItem("studio." + id, el.checked ? "1" : "0"); } catch {} };
+  el.onchange = () => { try { localStorage.setItem("studio." + id, el.checked ? "1" : "0"); } catch {} syncOpts(); };
 }
+function syncOpts() { document.body.classList.toggle("no-autotrim", !$("#optTrim").checked); }
+syncOpts();
 window.addEventListener("resize", () => waves.forEach((_, id) => drawWave(id)));
 window.addEventListener("beforeunload", (e) => { if (Rec.on) { e.preventDefault(); e.returnValue = ""; } });
 

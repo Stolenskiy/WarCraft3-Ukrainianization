@@ -6,6 +6,8 @@ import urllib.request
 
 import pytest
 from conftest import TMP_ROOT, synth
+from studio import eq
+from studio.core import StudioError
 
 CID, GID, LID = "units-orc", "peon", "peonyes1.wav"
 
@@ -387,3 +389,48 @@ def test_game_file_content_matches_trim(svc):
 
     svc.set_trim(CID, GID, LID, f, None, None, auto_trim=False)        # скидання → повна довжина
     assert abs(_read_game()[0] - 2.0) < 0.02
+
+
+def test_failed_export_does_not_approve_or_keep_trim(svc):
+    """trim у самій тиші + авто-обрізання → порожньо: помилка, а не сира копія; стан не змінюється."""
+    f = svc.add_take(CID, GID, LID, _segments_wav(TMP_ROOT / "seg.wav").read_bytes())["takes"][-1]["file"]
+    svc.set_trim(CID, GID, LID, f, 1.6, 1.95)                          # лише тиша
+    with pytest.raises(StudioError, match="замало звуку"):
+        svc.approve(CID, GID, LID, f, trim=True)
+    line = svc.group_json(CID, GID)["lines"][0]
+    assert line["approved"] is None and not (TMP_ROOT / "game-files/Units/orc/peon/peonyes1.wav").exists()
+
+    svc.set_trim(CID, GID, LID, f, 0.6, 1.4)
+    svc.approve(CID, GID, LID, f, trim=True)
+    n_hist = len(svc.group_json(CID, GID)["lines"][0]["history"])
+    with pytest.raises(StudioError):                                   # зміна trim затвердженого → у тишу
+        svc.set_trim(CID, GID, LID, f, 1.6, 1.95, auto_trim=True)
+    line = svc.group_json(CID, GID)["lines"][0]
+    assert line["takes"][-1]["trim"] == {"start": 0.6, "end": 1.4}     # відкат
+    assert len(line["history"]) == n_hist                               # без запису в журнал
+    assert 0.7 < _read_game()[0] < 0.95                                 # файл гри — попередній
+
+
+def test_trim_autotrim_eq_chain_and_reexport_keep_trim(svc):
+    f = svc.add_take(CID, GID, LID, _segments_wav(TMP_ROOT / "seg.wav").read_bytes())["takes"][-1]["file"]
+    svc.set_trim(CID, GID, LID, f, 0.6, 1.4)
+    take = svc.store(CID).entry(GID, LID)["takes"][-1]
+    chain = svc._export_filters(CID, GID, take, True)
+    assert chain[0].startswith("atrim=start=0.600:end=1.400") and chain[1].startswith("silenceremove")
+    assert chain[2:] == eq.to_ffmpeg(svc.eq.presets["orc-peon"])        # EQ персонажа — останнім
+    svc.approve(CID, GID, LID, f, trim=False)
+    assert abs(_read_game()[0] - 0.8) < 0.02
+    (TMP_ROOT / "game-files/Units/orc/peon/peonyes1.wav").write_bytes(b"stale")
+    assert svc.reexport_group(CID, GID, trim=False)["done"] == [LID]    # EQ-перезапис поважає trim дубля
+    assert abs(_read_game()[0] - 0.8) < 0.02
+
+
+def test_direction_is_per_phrase():
+    from studio.catalog import direction_for
+    d = "слухняно-бадьоро; «Так, так!» — квапливо, як школяр"
+    assert direction_for(d, "Добре.") == "слухняно-бадьоро"
+    assert direction_for(d, "Так, так!") == d
+    d = "хоробрість мимоволі: «Бий їх!» — зі щирим запалом; «Спробуємо.» — зі зітхом"
+    assert direction_for(d, "У-ху!") == "хоробрість мимоволі"
+    assert direction_for(d, "Спробуємо.") == "хоробрість мимоволі; «Спробуємо.» — зі зітхом"
+    assert direction_for("«А» — тихо", "Б") == "«А» — тихо"            # нічого не лишилось → увесь напрям

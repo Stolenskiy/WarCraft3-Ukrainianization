@@ -10,7 +10,7 @@ test:        ## усі тести (ядро, API, UI у Chrome з фейкови
 	$(PY) -m pytest -q -s --cov
 
 test-core:   ## швидко: лише ядро + API, без браузера
-	$(PY) -m pytest -q tests/test_studio_core.py
+	$(PY) -m pytest -q tests/test_studio_core.py tests/test_eq.py tests/test_install_voices.py
 
 lint:        ## ruff + синтаксис JS
 	.venv/bin/ruff check . && node --check tools/studio/web/app.js

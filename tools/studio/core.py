@@ -305,10 +305,7 @@ class Service:
             src = self.take_path(cid, gid, t)
             if not src.exists():
                 raise StudioError(f"файл дубля не знайдено: {src.name}")
-            dst = self.game_path(ln)
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            if not export_take(src, dst, self._export_filters(cid, gid, t, trim)):
-                shutil.copy2(src, dst)
+            self._write_game(cid, gid, t, ln, trim)
             prev, e["approved"] = e["approved"], file
             st.log(gid, lid, f"обрано дубль {take_no(file)} для гри"
                    + (f" (замість дубля {take_no(prev)})" if prev and prev != file else ""))
@@ -329,13 +326,13 @@ class Service:
             ln, st = self.line(cid, gid, lid), self.store(cid)
             e = st.entry(gid, lid)
             t = self._take(e, file)
-            n = take_no(file)
+            n, old = take_no(file), t.get("trim")
             if (start is None) != (end is None):
                 raise StudioError("потрібні обидві межі обрізання (або жодної)")
             if start is None:
                 if t.pop("trim", None) is None:
                     return self._done(cid, gid, ln)
-                st.log(gid, lid, f"скинуто обрізання дубля {n}")
+                msg = f"скинуто обрізання дубля {n}"
             else:
                 if t.get("deleted"):
                     raise StudioError("спершу відновіть дубль із кошика")
@@ -353,12 +350,30 @@ class Service:
                 if end - start < MIN_TAKE_SEC:
                     raise StudioError(f"після обрізання лишається менше {MIN_TAKE_SEC} с")
                 t["trim"] = {"start": start, "end": end}
-                st.log(gid, lid, f"обрізано дубль {n}: {start:.2f}–{end:.2f} с")
+                msg = f"обрізано дубль {n}: {start:.2f}–{end:.2f} с"
             if e["approved"] == file:                 # інваріант: копія для гри завжди актуальна
-                src, dst = self.take_path(cid, gid, t), self.game_path(ln)
-                if not export_take(src, dst, self._export_filters(cid, gid, t, auto_trim)):
-                    shutil.copy2(src, dst)
+                try:
+                    self._write_game(cid, gid, t, ln, auto_trim)
+                except StudioError:
+                    t.pop("trim", None)
+                    if old:
+                        t["trim"] = old
+                    raise
+            st.log(gid, lid, msg)
             return self._done(cid, gid, ln)
+
+    def _write_game(self, cid: str, gid: str, t: dict, ln: Line, auto_trim: bool) -> None:
+        """Записати копію дубля для гри (trim → авто-тиша → EQ). Невдача → StudioError, старий файл гри
+        лишається; сира копія — лише коли ffmpeg взагалі немає."""
+        src, dst = self.take_path(cid, gid, t), self.game_path(ln)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if export_take(src, dst, self._export_filters(cid, gid, t, auto_trim)):
+            return
+        if shutil.which("ffmpeg") is None:
+            shutil.copy2(src, dst)
+            return
+        raise StudioError("не вдалося підготувати файл для гри: після обрізання лишилось замало звуку — "
+                          "змініть межі або вимкніть «Обрізати тишу»")
 
     def _drop_approval(self, cid: str, gid: str, ln: Line, e: dict, reason: str) -> None:
         prev, e["approved"] = e["approved"], None
