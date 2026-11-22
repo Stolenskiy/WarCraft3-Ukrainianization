@@ -130,7 +130,7 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 Код: `tools/voices.py` (публікація, вибір, декодування; без залежності від студії), `tools/check_voices.py` (перевірка пакетів,
 `make check-voices` у `make check` і CI), `Service.voices_json/set_voice_choice/publish_voice/voice_audio`, у `install_voices`
 `plan/apply(..., sources={rel: Path})`. Пакет автора — `voices/<нік>/{voice.json, manifest.json, units/<раса>/<юніт>/<файл>.flac}`
-(FLAC 22050/mono/s16 = готові файли з `game-files/`; CC BY 4.0, `consent: true`); у git дозволено лише їх (`.gitignore`).
+(FLAC 22050/mono/s16 = готові файли з `game-files/`; живі — CC BY 4.0, ШІ-репліки — CC BY-NC 4.0 з `engine` у manifest; `consent: true`); у git дозволено лише їх (`.gitignore`).
 
 | Що | Де |
 |---|---|
