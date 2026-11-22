@@ -51,7 +51,7 @@ def summary(target: dict, root: Path, res, pl: dict) -> dict:
             "hotkeys": {"markers_added": hk.get("markers_added", 0), "tips_changed": hk.get("tips_changed", 0),
                         "sections_changed": hk.get("sections_changed", 0), "skipped_already": hk.get("skipped_already", 0),
                         "skipped_badkey": hk.get("skipped_badkey", 0)},
-            "fonts": res.stats.get("fonts", [])}
+            "fonts": res.stats.get("fonts", []), "repack": res.stats.get("repack")}
 
 
 @route("GET", "/api/text/targets")

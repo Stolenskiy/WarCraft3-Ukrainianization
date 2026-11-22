@@ -21,6 +21,7 @@ function summary(p) {
     <p>Коміт upstream <code title="sha256 архіву ${esc(p.sha256)}">${esc(String(p.commit).slice(0, 10))}</code> (${esc(p.variant)}) · файлів: <b>нових ${p.new}</b>, <b>змінюється ${p.update}</b>, без змін ${p.same}, пропущено ${p.skipped.length + p.notes_skipped.length}
       ${p.materialize ? `· тек до перетворення: ${p.materialize}` : ""}</p>
     <p>Гарячі клавіші: маркерів додано <b>${hk.markers_added}</b> у ${hk.tips_changed} підказках (${hk.sections_changed} секцій)${hk.skipped_already ? `; вже з розміткою ${hk.skipped_already}` : ""}${hk.skipped_badkey ? `; неприйнятна клавіша ${hk.skipped_badkey}` : ""}</p>
+    ${p.repack ? `<p>Патч балансу репаку: додано підказок <b>${p.repack.keys}</b>, секцій ${p.repack.sections}, характеристик в описах ${p.repack.stats}${p.repack.english ? ` (англійською лишилось ${p.repack.english})` : ""}</p>` : ""}
     ${p.status !== "supported" ? `<p class="ai-warn">ЕКСПЕРИМЕНТАЛЬНО: ціль не перевірена на справжній грі. ${esc(p.notes)}</p>` : ""}
     ${[...p.skipped.map((s) => `${s.rel}: ${s.reason}`), ...p.notes_skipped].slice(0, 6).map((s) => `<p class="ai-note">пропуск: ${esc(s)}</p>`).join("")}
     <p class="ai-note">Запис — кнопкою «Встановити» (бекап оригіналів у <code>Backups/ua-text/</code>). Відкат: «Прибрати з гри» → «Прибрати текст».</p></div>`;

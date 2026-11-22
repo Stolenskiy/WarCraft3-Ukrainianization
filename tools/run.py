@@ -38,7 +38,8 @@ CORE_TESTS_A = ["tests/test_studio_core.py", "tests/test_eq.py", "tests/test_ins
 CORE_TESTS_B = ["tests/test_studio_proc.py", "tests/test_voices.py"]
 # нове (кросплатформа) — теж швидке, входить у verify
 CORE_TESTS_C = ["tests/test_gameconf.py", "tests/test_windows.py", "tests/test_run.py",
-                "tests/test_textpack.py", "tests/test_install_pack.py", "tests/test_aistudio.py"]
+                "tests/test_textpack.py", "tests/test_text_overrides.py", "tests/test_repack_merge.py", "tests/test_install_pack.py",
+                "tests/test_aistudio.py"]
 
 
 AI_COMMANDS = ("ai-generate", "ai-setup", "ai-status", "ai-consent", "enhance-setup")

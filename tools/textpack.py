@@ -7,6 +7,8 @@
   * add_hotkey_markers: Classic 1.31 показує гарячі клавіші лише розміткою в Tip; Reforged-переклад її не має.
   * build_fdf131: FDF формату 1.31 = структура (id, порядок, CRLF/BOM) з власних файлів гри + значення upstream.
   * build: готове дерево встановлення для цілі (data/targets/*.json) у `data/local/cache/build/<ціль>/`.
+    Далі наші правки (tools/text_overrides.py, data/text-overrides/units.json) і, якщо в теці гри є патч балансу
+    репаку (WC3Patcher), зведення з ним (tools/repack_merge.py): його нові підказки/характеристики інакше ховаються.
 Помилка розкладу upstream (немає Units/*.txt тощо) → TextPackError ДО будь-якого запису в гру.
 """
 from __future__ import annotations
@@ -27,6 +29,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))   # `python -I` не додає теку скрипта
 import fdf_strings  # noqa: E402
+import repack_merge  # noqa: E402
+import text_overrides  # noqa: E402
 
 ROOT = Path(os.environ.get("WC3UA_ROOT") or Path(__file__).resolve().parent.parent)
 REPO = "warcraft-in-ua/WarCraft3-Reforged-Ukrainian"
@@ -412,6 +416,7 @@ def build(target: dict, up: dict, game: Path | None = None, fdf_template: Path |
     if not txt:
         raise TextPackError("розклад upstream змінився: Units/*.txt не знайдено")
     st: dict = {}
+    ov, ov_n = text_overrides.load(), 0
     for rel in allf:
         top = rel.split("/")[0]
         if _excluded(rel, target) or rel.startswith("UI/framedef/"):
@@ -422,9 +427,15 @@ def build(target: dict, up: dict, game: Path | None = None, fdf_template: Path |
             res.skipped.append(f"{rel}: невідома тека upstream (розклад змінився?)")
             continue
         f = src / rel
-        if target.get("hotkey_markers") and rel.lower().endswith(".txt") and top == "Units":
-            new, s = add_hotkey_markers(f.read_text(encoding="utf-8"))
-            st = merge_stats(st, s)
+        ops = text_overrides.for_file(ov, rel) if top == "Units" else {}
+        if (target.get("hotkey_markers") or ops) and rel.lower().endswith(".txt") and top == "Units":
+            new = f.read_text(encoding="utf-8")
+            if target.get("hotkey_markers"):
+                new, s = add_hotkey_markers(new)
+                st = merge_stats(st, s)
+            new, n, notes = text_overrides.apply(new, ops, rel)
+            ov_n += n
+            res.skipped.extend(notes)
             dst = out / rel
             dst.parent.mkdir(parents=True, exist_ok=True)
             dst.write_bytes(new.encode("utf-8"))
@@ -432,6 +443,18 @@ def build(target: dict, up: dict, game: Path | None = None, fdf_template: Path |
         else:
             res.files[rel] = f
     res.stats["hotkeys"] = st
+    res.stats["overrides"] = ov_n
+    sources = repack_merge.find_sources(game)
+    if sources:                                       # патч балансу репаку: його підказки інакше ховаються під нашими файлами
+        units = {r: res.files[r].read_text(encoding="utf-8") for r in txt if r in res.files}
+        merged, rst = repack_merge.merge(units, sources)
+        for rel, new in merged.items():
+            dst = out / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_bytes(new.encode("utf-8"))
+            res.files[rel] = dst
+        rst.pop("english_keys", None)
+        res.stats["repack"] = rst
     mode = target.get("fdf", "none")
     fdfs = sorted(r for r in allf if r.startswith("UI/framedef/") and r.endswith(".fdf"))
     if mode == "upstream":
