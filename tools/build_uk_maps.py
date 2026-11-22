@@ -19,14 +19,16 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gameconf
 import wc3map
 from map_translations import DESCS, NAMES, PLAYERS
 
-ORIG_ROOT = "/tmp/wc3-maps-orig/war3.w3mod"
-DEFAULT_OUT = "/tmp/wc3-maps-uk"
+_TMP = tempfile.gettempdir()
+ORIG_ROOT = os.path.join(_TMP, "wc3-maps-orig", "war3.w3mod")
+DEFAULT_OUT = os.path.join(_TMP, "wc3-maps-uk")
 GAME_ROOT = str(gameconf.get_game_root())
 GAME_MAPS = os.path.join(GAME_ROOT, "Maps")
 BACKUP_DIR = os.path.join(GAME_ROOT, "Backups", "maps-english-originals")
@@ -188,13 +190,13 @@ def install(rel, out_path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--inventory", default="/tmp/maps-inventory.json")
+    ap.add_argument("--inventory", default=os.path.join(_TMP, "maps-inventory.json"))
     ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--install", action="store_true")
     ap.add_argument("--only", default=None, help="substring filter on map path")
     args = ap.parse_args()
 
-    inv = json.load(open(args.inventory))
+    inv = json.load(open(args.inventory, encoding="utf-8"))
     recs = [r for r in inv if "name" in r and "wts_blocks" in r]
     if args.only:
         recs = [r for r in recs if args.only in r["path"]]
@@ -222,7 +224,7 @@ def main():
         print("ok", rec["path"], rep["name"], "(%d -> %d bytes, wts blocks %s)" % (
             rep["orig_size"], rep["new_size"], rep["wts_blocks_patched"]))
 
-    with open(os.path.join(args.out, "build-report.json"), "w") as f:
+    with open(os.path.join(args.out, "build-report.json"), "w", encoding="utf-8") as f:
         json.dump({"built": report, "failures": failures}, f, ensure_ascii=False, indent=1)
     print("built %d, failures %d" % (len(report), len(failures)))
     return 1 if failures else 0
