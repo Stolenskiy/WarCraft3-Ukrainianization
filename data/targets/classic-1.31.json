@@ -1,0 +1,15 @@
+{
+  "id": "classic-1.31",
+  "title": "Warcraft III Classic 1.31 (RoC + TFT, macOS-репак і Windows)",
+  "status": "supported",
+  "game_subdir": "",
+  "hotkey_markers": true,
+  "fdf": "131",
+  "fonts": "own",
+  "font_files": ["frizqt__.ttf", "dfheimd.ttf", "dffn_b31.ttf"],
+  "exclude": [],
+  "full_dirs": ["classic", "movies"],
+  "voice": "supported",
+  "local_files": {"windows": "HKCU\\Software\\Blizzard Entertainment\\Warcraft III : Allow Local Files = 1 (DWORD)", "macos": "defaults write com.blizzard.WarcraftIII \"Allow Local Files\" -int 1"},
+  "notes": "RoC і TFT — один клієнт і один набір файлів. Вільні файли в корені гри. Перевірено читанням на репаку 1.31.1.12173."
+}
