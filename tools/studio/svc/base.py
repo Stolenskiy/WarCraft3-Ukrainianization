@@ -5,9 +5,9 @@ import threading
 from pathlib import Path
 
 from .. import ai as ai_mod
+from .. import aifit, proc
 from .. import catalog as cat_mod
 from .. import eq as eq_mod
-from .. import proc
 from ..catalog import Line, duration
 from ..paths import GAME_FILES, STATE_DIR, TAKES_ROOT
 from .store import Store
@@ -129,7 +129,7 @@ class Base:
                 "approved": e["approved"], "original": e["original"], "orig_hint": cat_mod.looks_nonverbal(
                     ln.no_speech, e["ua_text"] if e["ua_text"] is not None else ln.ua_hint, ln.ru),
                 "game_exists": self.game_path(ln).exists(), "stale": self.is_stale(cid, gid, e),
-                "takes": takes, "ai": ai_mod.list_ai(cid, gid, ln.stem), "history": e["history"][-50:]}
+                "takes": takes, "ai": aifit.rank(ai_mod.list_ai(cid, gid, ln.stem), lambda: aifit.target_dur(ln)), "history": e["history"][-50:]}
 
     def group_json(self, cid: str, gid: str) -> dict:
         with self.lock:

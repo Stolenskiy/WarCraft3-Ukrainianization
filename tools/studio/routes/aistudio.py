@@ -78,7 +78,7 @@ def ai_refs(c: Ctx):
 def ai_generate(c: Ctx):
     ai = studio(c.svc)
     get_engine((c.data.get("params") or {}).get("engine") or DEFAULT_ENGINE).check_ready()   # не готовий/без згоди → 400 одразу, а не збій у черзі
-    job = ai.submit(*_line(c), c.data.get("params"))
+    job = ai.submit(*_line(c), c.data.get("params"), auto_pick=c.data.get("auto_pick") is True)
     ai.queue.start()
     return job
 

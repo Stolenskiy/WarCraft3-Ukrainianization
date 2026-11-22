@@ -4,6 +4,7 @@
 
 import { again, basedOn, mountGen } from "./ai-gen.js";
 import { onLine } from "./ai-queue.js";
+import { autoBar, bindAuto, fitOn, rankHtml } from "./ai-rank.js";
 import { AIS, loadStatus, shortLic } from "./ai-state.js";
 import { getJSON } from "./api.js";
 import { loadBuf, play, playing, stopPlay } from "./audio.js";
@@ -51,7 +52,7 @@ export const AI = (() => {
       <button class="play" data-play="${esc(id)}" title="Послухати ШІ-варіант (клавіша ${v.n})">▶</button>
       <div><div class="take-head"><span class="badge-ai" title="Згенеровано ШІ з вашим голосом${v.license ? `. Ліцензія результату: ${esc(v.license)}` : ""}">ШІ${v.license ? ` · ${esc(shortLic(v.license))}` : ""}</span><b>Варіант ${v.n}</b>
         <span class="ai-engine">${esc(v.engine || "")}</span>
-        <span class="fit">${v.dur != null ? fmt(v.dur) : ""}</span>${quality(v)}
+        <span class="fit">${v.dur != null ? fmt(v.dur) : ""}</span>${quality(v)}${rankHtml(v)}
         ${v.style ? `<span class="ai-style" title="Стильова підказка з «Як грати»">${esc(v.style)}</span>` : ""}
         ${v.adopted ? `<span class="ai-adopted" title="Уже скопійовано у ваші дублі">У ДУБЛЯХ</span>` : ""}</div>
         <div class="wave-box"><canvas class="wave" data-wave="${esc(id)}"></canvas></div>${paramsLine(v)}</div>
@@ -78,11 +79,11 @@ export const AI = (() => {
   }
 
   async function adopt(p, file) {
-    const where = ids(p), res = await act("/api/ai/adopt", { lid: p.id, file });
+    const where = ids(p), res = await act("/api/ai/adopt", { lid: p.id, file, fit: fitOn() });
     if (!res) return;
     const t = res.takes.filter((x) => x.source === "ai").slice(-1)[0];
     putPhrase(where, res, t && t.file);
-    toast(`ШІ-варіант взято в дублі як Дубль ${t ? t.n : "?"} (позначка «ШІ»)`);
+    toast(`ШІ-варіант взято в дублі як Дубль ${t ? t.n : "?"} (позначка «ШІ»)${t && t.tempo !== 1 ? ` · темп ×${t.tempo.toFixed(2)} під оригінал` : ""}`);
   }
   async function discard(p, file) {
     stopPlay();
@@ -124,6 +125,7 @@ export const AI = (() => {
     if (!sec) return;
     sec.querySelector(".ai-count").textContent = `${p.ai.length} · голос ШІ, клонований з ваших дублів`;
     sec.querySelector(".takes").innerHTML = listHtml(p);
+    sec.querySelector(".ai-auto").innerHTML = autoBar(p);
     drawWaves(p, sec);
   }
 
@@ -136,10 +138,12 @@ export const AI = (() => {
     sec.innerHTML = `<div class="section-h"><h3>ШІ-варіанти</h3><span class="ai-count"></span>
         <span class="ai-keys"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> слухати · <kbd>⇧</kbd>+<kbd>1</kbd>… мій дубль ↔ ШІ</span></div>
       <div class="ai-gen-host"></div>
+      <div class="ai-auto"></div>
       <div class="takes"></div>
-      <p class="ai-note">Це синтез, а не запис. Для гри варіант треба «Взяти в дублі» (з’явиться дубль із позначкою «ШІ»), потім — «Обрати».</p>`;
+      <p class="ai-note">Це синтез, а не запис. Для гри варіант треба «Взяти в дублі» (з’явиться дубль із позначкою «ШІ»), потім — «Обрати»; або «★ Обрати найкращий для гри».</p>`;
     anchor.insertAdjacentElement("afterend", sec);
     bind(p, sec);
+    bindAuto(p, sec.querySelector(".ai-auto"));
     mountPanel(p, sec.querySelector(".ai-gen-host"));
     renderList(p);
   }
@@ -151,6 +155,7 @@ export const AI = (() => {
     try {
       const g = await getJSON(`/api/group/${cid}/${gid}`), ln = g.lines.find((x) => x.id === p.id);
       if (!ln || cid !== S.cat || gid !== S.unit || cur()?.id !== p.id) return;
+      if (ln.approved !== p.approved || ln.takes.length !== p.takes.length) return putPhrase({ cid, gid }, ln);   // автовибір змінив дублі / гру
       const sig = (a) => JSON.stringify(a.map((v) => [v.file, v.cer, v.similarity, v.adopted]));
       if (sig(ln.ai) === sig(p.ai)) return;
       p.ai = ln.ai;

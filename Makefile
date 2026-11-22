@@ -1,7 +1,7 @@
 PY := .venv/bin/python -I
 PYTHON311 ?= python3.11
 CORE_TESTS_A := tests/test_studio_core.py tests/test_eq.py tests/test_install_voices.py tests/test_guard_no_audio.py tests/test_docs_sync.py tests/test_doctor.py tests/test_game_root_api.py
-CORE_TESTS_B := tests/test_studio_proc.py tests/test_voices.py
+CORE_TESTS_B := tests/test_studio_proc.py tests/test_voices.py tests/test_ai_autofit.py
 CORE_TESTS_C := tests/test_gameconf.py tests/test_windows.py tests/test_run.py tests/test_textpack.py tests/test_install_pack.py tests/test_aistudio.py
 RUN := $(PY) tools/run.py
 

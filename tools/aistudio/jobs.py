@@ -17,7 +17,7 @@ from collections import deque
 from dataclasses import replace
 from pathlib import Path
 
-from studio import ai, aigen
+from studio import ai, aifit, aigen
 from studio.catalog import duration
 from studio.core import now
 
@@ -145,7 +145,8 @@ class JobQueue:
         self._emit(rec, "state")
 
     # ------------------------------------------------------------ публічне API
-    def submit(self, cid: str, gid: str, lid: str, params, *, parent: str | None = None) -> dict:
+    def submit(self, cid: str, gid: str, lid: str, params, *, parent: str | None = None, auto_pick: bool = False) -> dict:
+        """У чергу. `auto_pick` — після генерації обрати найкращий варіант для гри (aifit; лише без обраного живого дубля)."""
         p = params if isinstance(params, GenParams) else GenParams.from_dict(params)
         config.require_consent()
         eng = self.engine_factory(p.engine)
@@ -160,7 +161,8 @@ class JobQueue:
                    "params": p.to_dict(), "base_seed": p.seed if p.seed is not None else secrets.randbelow(SEED_MAX + 1),
                    "engine": eng.info.name, "license": eng.info.output_license, "parent": parent, "created": now(), "started": None,
                    "finished": None, "progress": {"done": 0, "total": p.n, "phase": "queued"}, "results": [], "error": None,
-                   "warnings": warnings, "unsupported": unsupported, "attempts": 0}
+                   "warnings": warnings, "unsupported": unsupported, "attempts": 0,
+                   "auto_pick": bool(auto_pick), "pick": None}
             self.jobs[rec["id"]] = rec
             self._save(rec)
             self.cv.notify_all()
@@ -282,7 +284,19 @@ class JobQueue:
             if rec["id"] in self._cancel:
                 self._set(rec, state="cancelled", results=results, finished=now())
             else:
-                self._set(rec, state="done", results=results, finished=now())
+                self._set(rec, state="done", results=results, pick=self._auto_pick(rec, results), finished=now())
+
+    def _auto_pick(self, rec: dict, results: list[dict]) -> dict | None:
+        """Автовибір серед варіантів ЦІЄЇ генерації; живий дубль чи «оригінал» мають пріоритет — тоді лише пояснення."""
+        if not rec.get("auto_pick") or not results:
+            return None
+        try:
+            res = self.svc.auto_pick_ai(rec["cid"], rec["gid"], rec["lid"], among=[r["file"] for r in results])
+        except Exception as ex:      # noqa: BLE001 — автовибір необов'язковий: варіанти вже збережені
+            self._emit(rec, "log", message=f"автовибір пропущено: {ex}")
+            return {"skipped": str(ex)}
+        self._emit(rec, "log", message=f"автовибір: {res['picked']['file']} → {res['picked']['take']} у грі")
+        return res["picked"]
 
     def _check_cancel(self, rec: dict) -> None:
         if rec["id"] in self._cancel:
@@ -329,7 +343,7 @@ class JobQueue:
                 raise
             except Exception as ex:      # noqa: BLE001 — метрики необов'язкові: варіанти вже збережені
                 self._emit(rec, "log", message=f"метрики пропущено: {ex}")
-        return [self._result(j) for j in made]
+        return aifit.rank([self._result(j) for j in made], lambda: aifit.target_dur(ln))
 
     def _generate(self, rec, eng, jobs, tmp, ln, unsupported) -> list:
         todo, made = list(jobs), []
@@ -372,7 +386,7 @@ class JobQueue:
                     "ai": True, "engine": eng.info.name, "model": eng.info.name, "license": eng.info.output_license, "seed": j.seed,
                     "temperature": j.temperature, "style": f"[{j.style}]" if j.style else None, "ref_takes": [r["take"] for r in j.refs], "refs": [{"take": r["take"], "key": r.get("key"), "approved": r.get("approved")} for r in j.refs],
                     "text": j.plain, "cer": None, "similarity": None, "dur": round(duration(j.out), 3), "created": now(),
-                    "params": j.params, "job": rec["id"], "parent": rec.get("parent"), "unsupported": unsupported})
+                    **aifit.peak_meta(j.out), "params": j.params, "job": rec["id"], "parent": rec.get("parent"), "unsupported": unsupported})
                 made.append(j)
             todo = failed
         if not made:
@@ -383,7 +397,8 @@ class JobQueue:
     def _result(j) -> dict:
         m = ai.read_sidecar(j.out) or {}
         return {"file": j.out.name, "n": j.k, "seed": j.seed, "cer": m.get("cer"), "similarity": m.get("similarity"),
-                "dur": m.get("dur"), "engine": m.get("engine"), "license": m.get("license")}
+                "dur": m.get("dur"), "engine": m.get("engine"), "license": m.get("license"), "peak_db": m.get("peak_db"),
+                "clipped": m.get("clipped")}
 
     # ------------------------------------------------------------ фоновий потік
     def start(self) -> None:

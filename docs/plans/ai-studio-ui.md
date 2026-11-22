@@ -56,3 +56,9 @@
 Індикатор «ШІ: N у черзі» (jobs states queued/running), смуга прогресу з `progress.done/total` і `phase` (`generating`, `metrics`), кнопка «Скасувати».
 Після `done`: `results[]` → оновити картку (`/api/lines`), нові варіанти мають CER/схожість (можуть бути `null`, якщо немає Whisper). Завдання переживають
 перезапуск студії; GPU один: `queue` не запускає двох одночасно, а CLI `ai-generate` поза студією відмовляє, якщо GPU зайнятий.
+
+## Автотривалість і автовибір (feat/ai-autoduration)
+`tools/studio/aifit.py` — чисті функції без моделей: `fit(dur, target)` (темп ×0.8–×1.25 під голос оригіналу, пояснення «не влазить»),
+`parts/score/rank` (CER, схожість, тривалість після підгонки, пік → 0–100, `rank`, `best`). Рейтинг — у `line.ai` і в `job.results`.
+`POST /api/ai/adopt {fit}` ставить дублю `tempo` (наявний механізм темпу дубля); `POST /api/ai/auto-pick` і `auto_pick` у `/api/ai/generate`
+(`job.pick`) — лише коли для гри не обрано живий дубль чи оригінал. UI — `web/js/ai-rank.js`.
