@@ -49,3 +49,13 @@ details[open] > summary::before { transform: rotate(90deg); }
 .gr-err { margin: 0; color: var(--danger); font-size: 12px; }
 .gr-note { margin: 0; color: var(--muted); font-size: 12px; }
 .game-root .ghost { padding: 5px 10px; font-size: 12px; }
+
+/* Чекбокси «Текст» / «Голос» і блок плану тексту */
+.inst-parts { display: flex; gap: 22px; padding: 10px 18px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.inst-parts[hidden], .inst-text[hidden] { display: none; }
+.inst-text { padding: 10px 18px; border-bottom: 1px solid var(--line); font-size: 13px; display: grid; gap: 6px; }
+.inst-tx { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.inst-tx select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font: 13px var(--font); max-width: 360px; }
+.inst-sum { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.inst-sum p { margin: 2px 0; }
+.inst-sum code { background: var(--bg); padding: 1px 5px; border-radius: 5px; }
