@@ -8,6 +8,8 @@
   test                    усі тести з покриттям
   studio [--port N] [--no-browser]
   install-voices [--apply]    план або встановлення голосів у гру;  uninstall-voices
+  install --target classic-1.31|reforged|legacy --parts text,voice [--full] [--ref SHA] [--apply]   текст + голос (план за замовчуванням)
+  uninstall --target ... --parts text,voice
   publish-voice --author НІК --consent
   check-voices | transcripts-local | refs
   game-root [ШЛЯХ]        показати або зберегти теку гри (data/local/settings.json)
@@ -33,7 +35,8 @@ CORE_TESTS_A = ["tests/test_studio_core.py", "tests/test_eq.py", "tests/test_ins
                 "tests/test_docs_sync.py", "tests/test_doctor.py"]
 CORE_TESTS_B = ["tests/test_studio_proc.py", "tests/test_voices.py"]
 # нове (кросплатформа) — теж швидке, входить у verify
-CORE_TESTS_C = ["tests/test_gameconf.py", "tests/test_windows.py", "tests/test_run.py"]
+CORE_TESTS_C = ["tests/test_gameconf.py", "tests/test_windows.py", "tests/test_run.py",
+                "tests/test_textpack.py", "tests/test_install_pack.py"]
 
 
 DOCKER_DIRS = ("audio", "data/studio", "data/local", "game-files", "voices", "reference", "reference-en")
@@ -158,6 +161,17 @@ def cmd_uninstall(_a) -> int:
     return _call([*py(), "tools/install_voices.py", "--uninstall"])
 
 
+def cmd_pack_install(a) -> int:
+    cmd = [*py(), "tools/install_pack.py", "install", "--target", a.target, "--parts", a.parts]
+    cmd += (["--full"] if a.full else []) + (["--ref", a.ref] if a.ref else []) + (["--apply"] if a.apply else [])
+    cmd += (["--fdf-template", a.fdf_template] if a.fdf_template else []) + (["--fonts-from", a.fonts_from] if a.fonts_from else [])
+    return _call(cmd)
+
+
+def cmd_pack_uninstall(a) -> int:
+    return _call([*py(), "tools/install_pack.py", "uninstall", "--target", a.target, "--parts", a.parts])
+
+
 def cmd_publish(a) -> int:
     if not a.author:
         print("Потрібно --author <нік> (і --consent: це мій власний голос, CC BY 4.0)")
@@ -226,6 +240,16 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--no-browser", action="store_true")
     add("install-voices", cmd_install, "голоси в гру (план; --apply — встановити)").add_argument("--apply", action="store_true")
     add("uninstall-voices", cmd_uninstall, "відкат встановлених голосів")
+    for name, fn in (("install", cmd_pack_install), ("uninstall", cmd_pack_uninstall)):
+        q = add(name, fn, "текст і/або голос для цілі (план; --apply — встановити)" if name == "install" else "відкат текст/голос")
+        q.add_argument("--target", default="classic-1.31", choices=("classic-1.31", "reforged", "legacy"))
+        q.add_argument("--parts", default="text,voice")
+        if name == "install":
+            q.add_argument("--full", action="store_true")
+            q.add_argument("--ref")
+            q.add_argument("--apply", action="store_true")
+            q.add_argument("--fdf-template")
+            q.add_argument("--fonts-from")
     p = add("publish-voice", cmd_publish, "дублі → voices/<нік>/")
     p.add_argument("--author")
     p.add_argument("--consent", action="store_true")
