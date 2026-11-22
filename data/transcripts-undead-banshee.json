@@ -1,82 +1,62 @@
 {
   "bansheepissed1.wav": {
-    "text": "Ну, когда же кончится эта мука?",
     "duration": 4.3
   },
   "bansheepissed2.wav": {
-    "text": "Твоя душа сгорит в огне.",
     "duration": 3.62
   },
   "bansheepissed3.wav": {
-    "text": "Умирать тяжело, а тяжело умирать еще тяжелее.",
     "duration": 8.4
   },
   "bansheepissed4.wav": {
-    "text": "Проблемы? И это ты называешь проблемами!",
     "duration": 7.98
   },
   "bansheepissed5.wav": {
-    "text": "Покой. Как много в этом звуке Для сердца нежити Слилось.",
     "duration": 12.56
   },
   "bansheeready1.wav": {
-    "text": "Мой крик будет нести смерть!",
     "duration": 3.08
   },
   "bansheewarcry1.wav": {
-    "text": "Я жажду мщенья!",
     "duration": 2.04
   },
   "bansheewhat1.wav": {
-    "text": "Ты зван меня!",
     "duration": 1.76
   },
   "bansheewhat2.wav": {
-    "text": "ética Автора",
     "duration": 5.3
   },
   "bansheewhat3.wav": {
-    "text": "Зачем вы без меня?",
     "duration": 3.44
   },
   "bansheewhat4.wav": {
-    "text": "Что ты кажешь?",
     "duration": 3.0
   },
   "bansheewhat5.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "bansheeyes1.wav": {
-    "text": "Если хочешь.",
     "duration": 2.66
   },
   "bansheeyes2.wav": {
-    "text": "ТААААА!",
     "duration": 1.0
   },
   "bansheeyes3.wav": {
-    "text": "Если так надо...",
     "duration": 2.0
   },
   "bansheeyes4.wav": {
-    "text": "Майдолг, а виноватся!",
     "duration": 3.58
   },
   "bansheeyes5.wav": {
-    "text": "Твоё желание... За ком?",
     "duration": 4.0
   },
   "bansheeyesattack1.wav": {
-    "text": "Аминь!",
     "duration": 2.0
   },
   "bansheeyesattack2.wav": {
-    "text": "Субтитры создавал DimaTorzok",
     "duration": 29.98
   },
   "bansheeyesattack3.wav": {
-    "text": "Ощути мою бару!",
     "duration": 3.34
   }
 }

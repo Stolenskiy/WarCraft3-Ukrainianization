@@ -1,86 +1,65 @@
 {
   "whitetaurenpissed1.wav": {
-    "text": "Жена всегда говорила мне, носи свои рога с гордостью.",
     "duration": 4.92
   },
   "whitetaurenpissed2.wav": {
-    "text": "Не все, кто с рогами рогоносцы.",
     "duration": 2.38
   },
   "whitetaurenpissed3.wav": {
-    "text": "Коль судьба нелегка, полюбишь и быка. Хм, это придумали мы, быки.",
     "duration": 6.8
   },
   "whitetaurenpissed4.wav": {
-    "text": "Можно копытом между глаз, а можно и рогом под брюхо. Тебе как?",
     "duration": 6.24
   },
   "whitetaurenpissed5.wav": {
-    "text": "Бешеный бык рассуждать не привык.",
     "duration": 2.82
   },
   "whitetaurenpissed6.wav": {
-    "text": "Не надо путать крупный рогатый скот с минотаврами.",
     "duration": 3.8
   },
   "whitetaurenready1.wav": {
-    "text": "Явился по твоему зову.",
     "duration": 1.82
   },
   "whitetaurenwarcry1.wav": {
-    "text": "Затапчу.",
     "duration": 1.2
   },
   "whitetaurenwhat1.wav": {
-    "text": "В чем дело?",
     "duration": 0.72
   },
   "whitetaurenwhat2.wav": {
-    "text": "Что тебя беспокоит?",
     "duration": 1.3
   },
   "whitetaurenwhat3.wav": {
-    "text": "Земля дает мне силы.",
     "duration": 1.78
   },
   "whitetaurenwhat4.wav": {
-    "text": "Я видел это во сне.",
     "duration": 1.36
   },
   "whitetaurenwhat5.wav": {
-    "text": "Что случилось?",
     "duration": 0.82
   },
   "whitetaurenyes1.wav": {
-    "text": "Вот оно что.",
     "duration": 0.82
   },
   "whitetaurenyes2.wav": {
-    "text": "Накрадобаш!",
     "duration": 1.16
   },
   "whitetaurenyes3.wav": {
-    "text": "вижу.",
     "duration": 1.0
   },
   "whitetaurenyes4.wav": {
-    "text": "Мать земля, помоги мне!",
     "duration": 1.64
   },
   "whitetaurenyes5.wav": {
-    "text": "как я и предвидел.",
     "duration": 1.18
   },
   "whitetaurenyesattack1.wav": {
-    "text": "Кровь и ярость.",
     "duration": 1.3
   },
   "whitetaurenyesattack2.wav": {
-    "text": "Возвращайся в землю!",
     "duration": 1.82
   },
   "whitetaurenyesattack3.wav": {
-    "text": "Чак Тагалус!",
     "duration": 1.0
   }
 }

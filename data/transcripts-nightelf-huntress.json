@@ -1,106 +1,80 @@
 {
   "huntresspissed1.wav": {
-    "text": "Вы меня смущаете.",
     "duration": 1.5
   },
   "huntresspissed2.wav": {
-    "text": "Берегите природу, вашу мать!",
     "duration": 2.58
   },
   "huntresspissed3.wav": {
-    "text": "Привет служителю светлых богов!",
     "duration": 2.18
   },
   "huntresspissed4.wav": {
-    "text": "Что совой обпень, что пнём об сову.",
     "duration": 2.56
   },
   "huntresspissed5.wav": {
-    "text": "Хотите, чтобы царил мир? Уважайте женщин!",
     "duration": 3.14
   },
   "huntresspissed6.wav": {
-    "text": "Крылышки моей совы подходят к любой одежде.",
     "duration": 2.78
   },
   "huntresspissed7.wav": {
-    "text": "Хулиган! Вы за это ответите!",
     "duration": 2.3
   },
   "huntresspissed8.wav": {
-    "text": "Об этом я и мечтать не смела.",
     "duration": 2.04
   },
   "huntressready1.wav": {
-    "text": "Богиня, наставь меня в пути.",
     "duration": 2.16
   },
   "huntresswarcry1.wav": {
-    "text": "Во имя Великой Матери!",
     "duration": 1.5
   },
   "huntresswhat1.wav": {
-    "text": "Поторопись.",
     "duration": 0.66
   },
   "huntresswhat2.wav": {
-    "text": "Слушаю.",
     "duration": 0.58
   },
   "huntresswhat3.wav": {
-    "text": "Я вся внимания.",
     "duration": 0.94
   },
   "huntresswhat4.wav": {
-    "text": "Внимаю воли богини.",
     "duration": 1.16
   },
   "huntresswhat5.wav": {
-    "text": "Я поклялась отомстить.",
     "duration": 1.28
   },
   "huntressyes1.wav": {
-    "text": "Воистину.",
     "duration": 0.68
   },
   "huntressyes2.wav": {
-    "text": "Я не боюсь.",
     "duration": 0.8
   },
   "huntressyes3.wav": {
-    "text": "Такова воля богини.",
     "duration": 1.06
   },
   "huntressyes4.wav": {
-    "text": "Ухожу в тень.",
     "duration": 0.9
   },
   "huntressyes5.wav": {
-    "text": "Моё ожидание завершилось.",
     "duration": 1.6
   },
   "huntressyesattack1.wav": {
-    "text": "Ищи!",
     "duration": 0.52
   },
   "huntressyesattack2.wav": {
-    "text": "Лови!",
     "duration": 0.42
   },
   "huntressyesattack3.wav": {
-    "text": "Бойтесь ночи!",
     "duration": 1.16
   },
   "huntressyesattack4.wav": {
-    "text": "Молитесь на рассвет!",
     "duration": 1.26
   },
   "huntressyesattack5.wav": {
-    "text": "Вперед!",
     "duration": 0.56
   },
   "sentineldeath1.wav": {
-    "text": "ООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООООО",
     "duration": 2.1
   }
 }

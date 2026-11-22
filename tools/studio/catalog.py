@@ -204,11 +204,14 @@ def direction_for(direction: str, hint: str) -> str:
     return "; ".join(x for x in dict.fromkeys(out) if x) or direction
 
 
+NO_TEXT = "(текст оригіналу недоступний — make transcripts-local або make transcribe)"
+
+
 # ---------------------------------------------------------------- каталог юнітів раси
 class UnitCatalog:
     """Голоси юнітів однієї раси: reference/units/<race>/<unit>/*.wav.
 
-    Тексти: data/transcripts-<race>-<unit>.json (або transcripts-<unit>.json);
+    Тривалості: data/transcripts-<race>-<unit>.json (або transcripts-<unit>.json), тексти оригіналів: те саме в data/local/ (gitignored);
     підказки/характер: docs/voice-bible/<race>.md.
     Файл для гри: Units/<race>/<unit>/<file>.wav (той самий шлях, що в CASC гри).
     """
@@ -245,11 +248,19 @@ class UnitCatalog:
         return out
 
     def _transcripts(self, unit: str) -> dict:
-        for name in (f"transcripts-{self.race}-{unit}.json", f"transcripts-{unit}.json"):
-            p = self.root / "data" / name
-            if p.exists():
-                return json.loads(p.read_text(encoding="utf-8"))
-        return {}
+        """Тривалості — з відстежуваного data/, тексти оригіналів — лише з локального data/local/ (ADR 0005)."""
+        out: dict = {}
+        for base in ("data", "data/local"):
+            for name in (f"transcripts-{self.race}-{unit}.json", f"transcripts-{unit}.json"):
+                p = self.root / base / name
+                if p.exists():
+                    try:
+                        for wav, info in json.loads(p.read_text(encoding="utf-8")).items():
+                            out.setdefault(wav, {}).update(info)
+                    except (ValueError, AttributeError):
+                        pass
+                    break
+        return out
 
     def lines(self, group_id: str) -> list[Line]:
         tr = self._transcripts(group_id)
@@ -263,7 +274,7 @@ class UnitCatalog:
             ru = (info.get("text") or "").strip()
             no_speech = bool(ru) and _garbage(ru)
             if not ru:
-                ru = "(транскрипту ще немає — послухайте оригінал)"
+                ru = NO_TEXT
             elif no_speech:
                 ru = "(без розбірливих слів — крик / звук)"
             hint, direction = bible_hint(binfo, p.name)

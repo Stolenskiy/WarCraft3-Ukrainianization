@@ -1,90 +1,68 @@
 {
   "herotaurenchieftainattack1.wav": {
-    "text": "Субтитры создавал DimaTorzok",
     "duration": 29.98
   },
   "herotaurenchieftainattack3.wav": {
-    "text": "ПОДПИШИСЬ!",
     "duration": 1.0
   },
   "herotaurenchieftainpissed1.wav": {
-    "text": "Ты не знаешь меня, я не знаю тебя, и почему ты все время тыкаешь?",
     "duration": 5.02
   },
   "herotaurenchieftainpissed2.wav": {
-    "text": "Хорошо иметь домик в деревне.",
     "duration": 2.36
   },
   "herotaurenchieftainpissed3.wav": {
-    "text": "Ты меня уже забодал.",
     "duration": 1.92
   },
   "herotaurenchieftainpissed4.wav": {
-    "text": "Пейте, дети, молоко. Будете здоровы!",
     "duration": 5.82
   },
   "herotaurenchieftainpissed5.wav": {
-    "text": "Матадор это не кетчуп, это закуска.",
     "duration": 4.58
   },
   "herotaurenchieftainpissed6.wav": {
-    "text": "Откуда у меня рога? Это понятно. Но вот у тебя...",
     "duration": 5.56
   },
   "herotaurenchieftainready1.wav": {
-    "text": "Я наточил топор!",
     "duration": 1.58
   },
   "herotaurenchieftainwarcry1.wav": {
-    "text": "За вождя и племя!",
     "duration": 1.74
   },
   "herotaurenchieftainwhat1.wav": {
-    "text": "Я готов!",
     "duration": 1.0
   },
   "herotaurenchieftainwhat2.wav": {
-    "text": "Жду приказаний.",
     "duration": 1.0
   },
   "herotaurenchieftainwhat3.wav": {
-    "text": "Что прикажете?",
     "duration": 0.82
   },
   "herotaurenchieftainwhat4.wav": {
-    "text": "Чем могу быть полезен?",
     "duration": 1.14
   },
   "herotaurenchieftainyes1.wav": {
-    "text": "Будет исполнена!",
     "duration": 1.06
   },
   "herotaurenchieftainyes2.wav": {
-    "text": "За наших предков!",
     "duration": 1.28
   },
   "herotaurenchieftainyes3.wav": {
-    "text": "Отличный план!",
     "duration": 1.06
   },
   "herotaurenchieftainyes4.wav": {
-    "text": "Слушаюсь, вождь.",
     "duration": 1.12
   },
   "herotaurenchieftainyesattack1.wav": {
-    "text": "За племя!",
     "duration": 0.9
   },
   "herotaurenchieftainyesattack2.wav": {
-    "text": "Крат и честь!",
     "duration": 0.88
   },
   "herotaurenchieftainyesattack3.wav": {
-    "text": "Они не пройдут.",
     "duration": 1.04
   },
   "warstompbirth1.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   }
 }

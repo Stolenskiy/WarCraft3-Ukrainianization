@@ -47,8 +47,22 @@ def test_real_data_parses():
         if md.name != "README.md":
             units = parse_bible(md)
             assert units and any(u["rows"] for u in units.values()), md.name
-    for f in (REPO / "data").glob("transcripts-*.json"):
-        assert all("text" in v for v in json.loads(f.read_text(encoding="utf-8")).values()), f.name
+    for f in (REPO / "data").glob("transcripts-*.json"):      # у git лише тривалості (ADR 0005), без data/local
+        assert all(set(v) == {"duration"} for v in json.loads(f.read_text(encoding="utf-8")).values()), f.name
+
+
+def test_missing_local_texts_show_placeholder(svc):
+    """Без data/local/ студія не падає: плейсхолдер замість тексту, тривалість із відстежуваного файлу, UA-текст лишається."""
+    from conftest import TMP_ROOT
+    loc = TMP_ROOT / "data/local"
+    bak = TMP_ROOT / "data/local.bak"
+    loc.rename(bak)
+    try:
+        by = {ln.id: svc.line_json("units-orc", "peon", ln) for ln in svc.lines("units-orc", "peon")}
+        assert "make transcripts-local" in by["peonyes1.wav"]["ru"] and "make transcribe" in by["peonyes1.wav"]["ru"]
+        assert by["peonyes1.wav"]["ru_dur"] == 0.8 and by["peonyes1.wav"]["ua"]
+    finally:
+        bak.rename(loc)
 
 
 def test_every_group_loads(svc):

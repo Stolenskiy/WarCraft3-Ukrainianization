@@ -4,7 +4,7 @@ CORE_TESTS_A := tests/test_studio_core.py tests/test_eq.py tests/test_install_vo
 CORE_TESTS_B := tests/test_studio_proc.py tests/test_voices.py
 
 .PHONY: studio test test-core lint guard check check-voices verify doctor hooks publish-voice refs \
-        setup setup-dev setup-refs install-voices uninstall-voices ai-voice
+        setup setup-dev setup-refs install-voices transcripts-local transcribe uninstall-voices ai-voice
 
 verify:      ## «перевір мою зміну» (≤ 20 с, без Chrome): lint + guard + check-voices + test-core
 	$(MAKE) --no-print-directory lint guard check-voices test-core
@@ -38,6 +38,12 @@ hooks:       ## увімкнути git-хуки репозиторію (.githook
 
 refs:        ## оригінали: EN з CASC гри → reference-en/; RU з мовного пакета (RU_PACK=…/ruru.w3mod) → reference/
 	$(PY) tools/build_refs.py
+
+transcripts-local: ## тексти оригіналів → data/local/ (gitignored), у git лишаються тривалості (ADR 0005)
+	$(PY) tools/split_transcripts.py
+
+transcribe:  ## Whisper-розшифровка reference/units/** → data/local/ (потрібні `make refs` і mlx-whisper)
+	$(PY) tools/transcribe.py --all
 
 setup: setup-dev setup-refs hooks   ## усе: dev-залежності + PyCASC + git-хуки
 

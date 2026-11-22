@@ -1,90 +1,68 @@
 {
   "wyvernriderdeath.wav": {
-    "text": "УРУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУУ",
     "duration": 2.13
   },
   "wyvernriderpissed1.wav": {
-    "text": "Малыш, я действительно умею летать. Малыш, я действительно умею летать.",
     "duration": 33.02
   },
   "wyvernriderpissed2.wav": {
-    "text": "Я вижу свой дом.",
     "duration": 1.46
   },
   "wyvernriderpissed3.wav": {
-    "text": "Летайте виверными орды!",
     "duration": 1.76
   },
   "wyvernriderpissed4.wav": {
-    "text": "Стиардесса! Пакет!",
     "duration": 1.68
   },
   "wyvernriderpissed5.wav": {
-    "text": "Всё выше и выше и выше!",
     "duration": 2.92
   },
   "wyvernriderpissed6.wav": {
-    "text": "Подари себе небо!",
     "duration": 1.76
   },
   "wyvernriderpissed7.wav": {
-    "text": "Ты не нравишься моей Виверне? Мне ты тоже не нравишься!",
     "duration": 4.16
   },
   "wyvernriderready1.wav": {
-    "text": "К полету готов!",
     "duration": 0.92
   },
   "wyvernriderwarcry1.wav": {
-    "text": "Смерть врагам Орты!",
     "duration": 1.54
   },
   "wyvernriderwhat1.wav": {
-    "text": "Враг в небе.",
     "duration": 0.94
   },
   "wyvernriderwhat2.wav": {
-    "text": "Ундаву!",
     "duration": 2.0
   },
   "wyvernriderwhat3.wav": {
-    "text": "Говори, вождь!",
     "duration": 1.42
   },
   "wyvernriderwhat4.wav": {
-    "text": "Жду приказаний.",
     "duration": 1.12
   },
   "wyvernrideryes1.wav": {
-    "text": "Навстречу ветру!",
     "duration": 1.38
   },
   "wyvernrideryes2.wav": {
-    "text": "Летим!",
     "duration": 0.6
   },
   "wyvernrideryes3.wav": {
-    "text": "Только вперёд!",
     "duration": 1.1
   },
   "wyvernrideryes4.wav": {
-    "text": "Эй-эй-эй!",
     "duration": 1.0
   },
   "wyvernrideryesattack1.wav": {
-    "text": "Икиру, ю!",
     "duration": 1.54
   },
   "wyvernrideryesattack2.wav": {
-    "text": "Крылатая смерть!",
     "duration": 1.8
   },
   "wyvernrideryesattack3.wav": {
-    "text": "За победу!",
     "duration": 0.92
   },
   "wyvernrideryesattack4.wav": {
-    "text": "Ураг в небе.",
     "duration": 0.88
   }
 }

@@ -19,6 +19,7 @@ backups/
 reference-en/
 reference-en-raw/
 data/studio/
+data/local/
 .coverage
 cov.md
 .ruff_cache/

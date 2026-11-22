@@ -8,6 +8,7 @@ voices/LICENSE.md та voices/<автор>/{voice.json, manifest.json, LICENSE.m
 """
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -17,7 +18,7 @@ EXTS = ("wav mp3 flac ogg opus m4a aac aif aiff webm w3x w3m mpq blp mdx pem key
 BAD = re.compile(
     r"\.(" + "|".join(EXTS) + r")$"
     r"|(^|/)(reference[^/]*|audio[^/]*|models|game-files|backups)/"
-    r"|^data/studio/"
+    r"|^data/(studio|local)/"
     r"|(^|/)\.env",
     re.I,
 )
@@ -40,11 +41,29 @@ def git_files(root: Path) -> list[str]:
     return run("ls-files", "-z") + run("diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z")
 
 
+def text_violations(root: Path, files) -> list[str]:
+    """data/transcripts-*.json у git — лише тривалості: поле "text" = оригінальні тексти Blizzard (ADR 0005)."""
+    bad = []
+    for f in sorted(set(files)):
+        if not re.fullmatch(r"data/transcripts-[^/]+\.json", f):
+            continue
+        r = subprocess.run(["git", "show", f":{f}"], cwd=root, capture_output=True)
+        raw = r.stdout if r.returncode == 0 else (root / f).read_bytes() if (root / f).exists() else b""
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(data, dict) and any(isinstance(v, dict) and "text" in v for v in data.values()):
+            bad.append(f)
+    return bad
+
+
 def main(root: Path | None = None) -> int:
     root = Path(root or Path(__file__).resolve().parent.parent)
-    bad = violations(git_files(root))
+    files = git_files(root)
+    bad = violations(files) + text_violations(root, files)
     if bad:
-        print("ЗАБОРОНЕНО комітити (аудіо, ресурси гри, секрети):", *bad, sep="\n  ", file=sys.stderr)
+        print("ЗАБОРОНЕНО комітити (аудіо, ресурси гри, секрети, data/local/, оригінальні тексти в data/transcripts-*.json):", *bad, sep="\n  ", file=sys.stderr)
         print("Дозволені лише пакети голосів: voices/<автор>/{voice.json,manifest.json,LICENSE.md,units/**.flac}.",
               file=sys.stderr)
         return 1

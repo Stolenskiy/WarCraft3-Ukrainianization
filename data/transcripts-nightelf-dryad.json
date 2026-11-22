@@ -1,90 +1,68 @@
 {
   "dryadpissed1.wav": {
-    "text": "Я не та дриада, которую ты ищешь.",
     "duration": 2.48
   },
   "dryadpissed2.wav": {
-    "text": "И если кто-нибудь еще раз, хоть одним пальцем.",
     "duration": 5.3
   },
   "dryadpissed3.wav": {
-    "text": "Хочешь, я угадаю, как тебя зовут?",
     "duration": 1.72
   },
   "dryadpissed4.wav": {
-    "text": "Ты щелкаешь? Я повинуюсь.",
     "duration": 2.68
   },
   "dryadpissed5.wav": {
-    "text": "Я сегодня не в форме.",
     "duration": 1.36
   },
   "dryadpissed6.wav": {
-    "text": "Если женщина не права, извинись перед ней.",
     "duration": 3.68
   },
   "dryadpissed7.wav": {
-    "text": "Если женщина что-то просит, надо ей это обязательно дать. Иначе она возьмет это сама. Продолжение следует...",
     "duration": 36.82
   },
   "dryadpissed8.wav": {
-    "text": "У женщин свои секреты.",
     "duration": 1.54
   },
   "dryadpissed9.wav": {
-    "text": "Я заманиваю своих врагов, подражая человеческой самке. «Ах, я так одинока! Так одинока!»",
     "duration": 8.42
   },
   "dryadready1.wav": {
-    "text": "Ах, как я люблю природу!",
     "duration": 3.4
   },
   "dryadwarcry1.wav": {
-    "text": "За Калимдор!",
     "duration": 0.88
   },
   "dryadwhat1.wav": {
-    "text": "Привет!",
     "duration": 0.26
   },
   "dryadwhat2.wav": {
-    "text": "Что произошло?",
     "duration": 0.8
   },
   "dryadwhat3.wav": {
-    "text": "Что случилось в наших лесах?",
     "duration": 1.56
   },
   "dryadwhat4.wav": {
-    "text": "О чем шумят деревья?",
     "duration": 1.22
   },
   "dryadyes1.wav": {
-    "text": "Во славу леса!",
     "duration": 1.2
   },
   "dryadyes2.wav": {
-    "text": "Бесшумно, словно рысь.",
     "duration": 1.8
   },
   "dryadyes3.wav": {
-    "text": "Не оставлять следов.",
     "duration": 1.16
   },
   "dryadyes4.wav": {
-    "text": "С радостью!",
     "duration": 0.9
   },
   "dryadyesattack2.wav": {
-    "text": "Отведай моего копья!",
     "duration": 1.2
   },
   "dryadyesattack3.wav": {
-    "text": "Охота начинается!",
     "duration": 1.56
   },
   "dryadyesattack4.wav": {
-    "text": "Точно в цель!",
     "duration": 1.28
   }
 }

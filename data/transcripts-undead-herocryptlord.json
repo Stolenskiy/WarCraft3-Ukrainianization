@@ -1,102 +1,77 @@
 {
   "cryptlordattackeffort1.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "cryptlordattackeffort2.wav": {
-    "text": "Субтитры сделал DimaTorzok",
     "duration": 29.98
   },
   "cryptlorddeath1.wav": {
-    "text": "Субтитры сделал DimaTorzok",
     "duration": 29.98
   },
   "impale.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "nerubiancryptlordpissed1.wav": {
-    "text": "Слышал я вас тут в городе химии, всякий травят.",
     "duration": 4.8
   },
   "nerubiancryptlordpissed2.wav": {
-    "text": "Всё не так плохо, как вы думаете. Всё намного, намного хуже.",
     "duration": 8.98
   },
   "nerubiancryptlordpissed3.wav": {
-    "text": "Мы нежить народ работящий. Такая уж наша тяжкая доля.",
     "duration": 8.74
   },
   "nerubiancryptlordpissed4.wav": {
-    "text": "А если смертные достают, то достают до смерти.",
     "duration": 8.76
   },
   "nerubiancryptlordpissed5.wav": {
-    "text": "Да, я паук. Приношу счастье в дом и все такое. В общем, держись от меня подальше.",
     "duration": 10.84
   },
   "nerubiancryptlordpissed6.wav": {
-    "text": "Сколь веревочка не веся, все равно совьется в плеть.",
     "duration": 8.54
   },
   "nerubiancryptlordready1.wav": {
-    "text": "Я явился по твоему зову.",
     "duration": 2.38
   },
   "nerubiancryptlordwarcry1.wav": {
-    "text": "За ледяной трон!",
     "duration": 1.78
   },
   "nerubiancryptlordwhat1.wav": {
-    "text": "Говори.",
     "duration": 0.8
   },
   "nerubiancryptlordwhat2.wav": {
-    "text": "Я слышал зов.",
     "duration": 1.84
   },
   "nerubiancryptlordwhat3.wav": {
-    "text": "Время уходит.",
     "duration": 1.34
   },
   "nerubiancryptlordwhat4.wav": {
-    "text": "Мне нет равных.",
     "duration": 1.7
   },
   "nerubiancryptlordwhat5.wav": {
-    "text": "Я служу ледяному трону.",
     "duration": 2.6
   },
   "nerubiancryptlordyes1.wav": {
-    "text": "Посмотрим.",
     "duration": 1.24
   },
   "nerubiancryptlordyes2.wav": {
-    "text": "Во славу Неруба!",
     "duration": 2.32
   },
   "nerubiancryptlordyes3.wav": {
-    "text": "Истинно так.",
     "duration": 1.76
   },
   "nerubiancryptlordyes4.wav": {
-    "text": "Интересно.",
     "duration": 1.16
   },
   "nerubiancryptlordyes5.wav": {
-    "text": "Несомненно.",
     "duration": 1.08
   },
   "nerubiancryptlordyesattack1.wav": {
-    "text": "Блять не знает пощады.",
     "duration": 1.92
   },
   "nerubiancryptlordyesattack2.wav": {
-    "text": "Живые мертвые пища!",
     "duration": 4.46
   },
   "nerubiancryptlordyesattack3.wav": {
-    "text": "Ты мне уйти от меня.",
     "duration": 1.88
   }
 }

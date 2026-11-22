@@ -70,8 +70,9 @@ afplay reference/units/orc/Peon/peonyes1.wav
 ```
 
 Слухайте не переклад, а **характер**: темп, настрій, куди він «тікає» голосом.
-Для багатьох юнітів уже є автоматичні розшифровки — `data/transcripts-<раса>-<юніт>.json`
-(російський текст + тривалість кожної фрази).
+Тексти оригіналів (російські розшифровки) у git не зберігаються (ADR 0005): один раз виконайте `make transcripts-local`
+(потрібні референси з RU-мовного пакета: `make refs`), або `make transcribe` (Whisper, `reference/units/`) —
+вони з'являться в `data/local/transcripts-<раса>-<юніт>.json`. У git лишаються лише тривалості.
 
 ### Крок 3. Опишіть персонажа і напишіть фрази
 
@@ -172,7 +173,7 @@ uv pip install --python .venv-fish/bin/python -e tools/fish-speech
 ```
 
 **2) Синтезувати фразу з клонуванням тембру** (еталон = російський wav,
-еталонний текст = російська розшифровка з `data/transcripts-orc-peon.json`):
+еталонний текст = російська розшифровка з `data/local/transcripts-orc-peon.json`):
 
 ```bash
 .venv-fish/bin/python tools/fish-speech/tools/api_client.py \

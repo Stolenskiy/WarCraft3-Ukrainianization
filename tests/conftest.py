@@ -72,7 +72,11 @@ def _build_fixture() -> None:
     (TMP_ROOT / "docs/voice-bible").mkdir(parents=True, exist_ok=True)
     (TMP_ROOT / "docs/voice-bible/orc.md").write_text(BIBLE_ORC, encoding="utf-8")
     (TMP_ROOT / "data").mkdir(exist_ok=True)
-    (TMP_ROOT / "data/transcripts-orc-peon.json").write_text(json.dumps(TRANSCRIPTS_PEON, ensure_ascii=False))
+    # як у репозиторії: тривалості в data/, синтетичні «оригінальні» тексти — в data/local/ (gitignored)
+    (TMP_ROOT / "data/local").mkdir(exist_ok=True)
+    (TMP_ROOT / "data/transcripts-orc-peon.json").write_text(
+        json.dumps({k: {"duration": v["duration"]} for k, v in TRANSCRIPTS_PEON.items()}))
+    (TMP_ROOT / "data/local/transcripts-orc-peon.json").write_text(json.dumps(TRANSCRIPTS_PEON, ensure_ascii=False))
 
 
 _build_fixture()

@@ -1,118 +1,89 @@
 {
   "druidoftheclawmorph1.wav": {
-    "text": ".",
     "duration": 1.4
   },
   "druidoftheclawmorphalternate1.wav": {
-    "text": "Вау!",
     "duration": 1.0
   },
   "druidoftheclawmorphedpissed2.wav": {
-    "text": "ВООДУШЕВЛЯЮЩАЯ МУЗЫКА",
     "duration": 0.68
   },
   "druidoftheclawmorphedpissed3.wav": {
-    "text": "Уф! Уф! Уф!",
     "duration": 3.34
   },
   "druidoftheclawmorphedwarcry1.wav": {
-    "text": "...",
     "duration": 0.88
   },
   "druidoftheclawmorphedwhat1.wav": {
-    "text": "Редактор субтитров А.Семкин Корректор А.Егорова",
     "duration": 1.06
   },
   "druidoftheclawmorphedyes1.wav": {
-    "text": "Аааа!",
     "duration": 0.5
   },
   "druidoftheclawmorphedyes2.wav": {
-    "text": "ГРУХ",
     "duration": 0.7
   },
   "druidoftheclawmorphedyesattack1.wav": {
-    "text": "ВООДУШЕВЛЯЮЩАЯ",
     "duration": 2.0
   },
   "druidoftheclawpissed1.wav": {
-    "text": "И тут я попер на него. Глаза бешеные.",
     "duration": 4.64
   },
   "druidoftheclawpissed2.wav": {
-    "text": "Лучше бы я впал в спячку.",
     "duration": 2.34
   },
   "druidoftheclawpissed3.wav": {
-    "text": "Лучше бы дал поесть. Лапа — продукт не калорийный.",
     "duration": 5.9
   },
   "druidoftheclawpissed4.wav": {
-    "text": "Ну что, оказать тебе услугу?",
     "duration": 3.1
   },
   "druidoftheclawpissed5.wav": {
-    "text": "А я без сна помру. Я слабый. Мне надо много спать и волю есть.",
     "duration": 8.52
   },
   "druidoftheclawpissed6.wav": {
-    "text": "Не валяй, дурака!",
     "duration": 1.42
   },
   "druidoftheclawpissed7.wav": {
-    "text": "Тише ты, железная лапа.",
     "duration": 3.42
   },
   "druidoftheclawready1.wav": {
-    "text": "Пора просыпаться.",
     "duration": 2.28
   },
   "druidoftheclawwarcry1.wav": {
-    "text": "За Нордосил!",
     "duration": 1.8
   },
   "druidoftheclawwhat1.wav": {
-    "text": "Меня будить?",
     "duration": 2.42
   },
   "druidoftheclawwhat2.wav": {
-    "text": "У нас мало времени.",
     "duration": 1.62
   },
   "druidoftheclawwhat3.wav": {
-    "text": "Не буди его мне, зверя!",
     "duration": 2.3
   },
   "druidoftheclawwhat4.wav": {
-    "text": "Когда начинать?",
     "duration": 1.18
   },
   "druidoftheclawyes1.wav": {
-    "text": "Уже в пути.",
     "duration": 0.92
   },
   "druidoftheclawyes2.wav": {
-    "text": "Сейчас.",
     "duration": 0.46
   },
   "druidoftheclawyes3.wav": {
-    "text": "Конечно.",
     "duration": 0.72
   },
   "druidoftheclawyes4.wav": {
-    "text": "Лайд аморкенна!",
     "duration": 1.86
   },
   "druidoftheclawyesattack1.wav": {
-    "text": "ЗАШЕБО!",
     "duration": 1.5
   },
   "druidoftheclawyesattack2.wav": {
-    "text": "Ваааа!",
     "duration": 1.06
   },
   "druidoftheclawyesattack3.wav": {
-    "text": "Они мертвы.",
     "duration": 1.06
   }
 }

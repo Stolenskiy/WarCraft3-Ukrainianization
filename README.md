@@ -60,8 +60,8 @@ Warcraft III Classic (а згодом — кампанійних місій), п
 
 - **Текстова українізація** меню 1.31, текстів і 203 карт — встановлюється в гру
   ([docs/ukrainian-ui-131.md](docs/ukrainian-ui-131.md), [docs/ukrainian-maps.md](docs/ukrainian-maps.md)).
-- **Інвентар** 2401 голосового файлу 155 юнітів (`data/inventory-units.csv`) і транскрипти
-  російських оригіналів (`data/transcripts-*.json`).
+- **Інвентар** 2401 голосового файлу 155 юнітів (`data/inventory-units.csv`) і тривалості
+  оригінальних реплік (`data/transcripts-*.json`; самі російські тексти — локально в `data/local/`, не в git).
 - **Voice bible** — 55 аркушів персонажів 4 рас: характер, тембр, українські репліки,
   «як грати» ([docs/voice-bible/](docs/voice-bible/README.md)).
 - **Студія запису** власним голосом з оригіналом RU/EN ([tools/studio/README.md](tools/studio/README.md)).
@@ -80,7 +80,7 @@ Warcraft III Classic (а згодом — кампанійних місій), п
 └──────────────────┘                            │ tools/transcribe.py
                                                 │ (mlx-whisper large-v3-turbo)
                                                 ▼
-                                     data/transcripts-orc-peon.json
+                                     data/local/transcripts-orc-peon.json
                                                 │
                                                 │ редактор тексту (людина!)
                                                 ▼
