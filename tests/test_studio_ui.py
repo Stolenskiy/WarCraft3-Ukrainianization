@@ -110,10 +110,10 @@ def measure(pg, action, prefix="take:", ms=700):
 def baseline(pg):
     """«Нахил» дубля без EQ: та сама кнопка A/B у режимі «без EQ»."""
     pg.click("#tabProc")
-    pg.click("#eqBypass")
+    pg.click("#eqB")
     m, chain = measure(pg, lambda: pg.click(".take [data-play^='take:']"))
     assert not [n for n in chain if n["kind"] == "biquad"], chain        # bypass справді обходить EQ
-    pg.click("#eqBypass")
+    pg.click("#eqA")
     pg.evaluate("__studio.stopPlay()")
     return tilt(m)
 
@@ -162,7 +162,9 @@ def test_eq_follows_profile_switch_and_live_slider(eqpage, svc):
     pg.select_option("#eqSel", boost)
     pg.wait_for_function(f"() => __studio.EQ.id === '{boost}'")
     measure(pg, lambda: pg.click(".take [data-play^='take:']"), ms=200)
-    sl = pg.locator("input[data-eq='gain'][data-i='0']")              # слайдер під час звучання → живе оновлення
+    pg.click("#tabProc")
+    pg.click("#eqMode [data-mode='bands']")
+    sl = pg.locator("input[data-eq='gain'][data-i='0']")              # поле смуги під час звучання → живе оновлення
     sl.evaluate("(e) => { e.value = -12; e.dispatchEvent(new Event('input', { bubbles: true })); }")
     pg.wait_for_timeout(260)
     chain = pg.evaluate("__chain()")
@@ -220,7 +222,7 @@ def test_bypass_toggle_is_audible_while_playing(eqpage):
     pg = eqpage
     t0 = baseline(pg)
     m1, _ = measure(pg, lambda: pg.click(".take [data-play^='take:']"), ms=400)
-    pg.click("#eqBypass")                                              # під час звучання
+    pg.click("#eqB")                                                    # під час звучання
     pg.wait_for_timeout(260)
     m2 = pg.evaluate("__measure(400)")
     assert tilt(m1) - t0 > 8
@@ -259,14 +261,13 @@ def test_playing_take_shows_eq_chip(eqpage):
 
 
 def test_shortcuts_work_with_focus_on_eq_slider(eqpage):
-    """L/A/B проходять із повзунка EQ; стрілки лишаються повзунку (значення змінюється, репліка — ні)."""
+    """L/A/B проходять із вузла кривої EQ; стрілки лишаються вузлу (значення змінюється, репліка — ні)."""
     pg = eqpage
     pg.click("#tabProc")
-    sl = pg.locator("input[data-eq='gain'][data-i='0']")
-    sl.focus()
-    idx, v0 = pg.evaluate("__studio.S.idx"), sl.input_value()
-    pg.keyboard.press("ArrowLeft")
-    assert sl.input_value() != v0 and pg.evaluate("__studio.S.idx") == idx
+    pg.locator(".eq-node[data-node='0']").focus()
+    idx, v0 = pg.evaluate("__studio.S.idx"), pg.evaluate("__studio.EQ.prof.bands[0].gain_db")
+    pg.keyboard.press("ArrowDown")
+    assert pg.evaluate("__studio.EQ.prof.bands[0].gain_db") == v0 - 0.5 and pg.evaluate("__studio.S.idx") == idx
     pg.keyboard.press("KeyL")
     pg.wait_for_function("() => __studio.playing && __studio.playing.id.startsWith('take:')", timeout=8000)
     pg.keyboard.press("KeyA")                                          # A/B без зупинки
@@ -275,7 +276,7 @@ def test_shortcuts_work_with_focus_on_eq_slider(eqpage):
     assert "on" not in (pg.locator("[data-eq-chip]").get_attribute("class") or "").split()
     pg.locator("[data-eq-chip]").click()                               # клік по чипу — назад
     pg.wait_for_function("() => !__studio.EQ.bypass")
-    assert pg.get_attribute("#eqBypass", "aria-pressed") == "false"
+    assert pg.get_attribute("#eqB", "aria-pressed") == "false" and pg.get_attribute("#eqA", "aria-pressed") == "true"
     assert not pg.errors, pg.errors
 
 
@@ -303,6 +304,7 @@ def test_shelf_has_no_q_control(eqpage, svc):
     svc.eq_save(CID, GID, shelf)
     pg.evaluate("__studio.eqLoad()")
     pg.click("#tabProc")
+    pg.click("#eqMode [data-mode='bands']")
     pg.wait_for_selector("input[data-eq='freq']")
     assert pg.locator("input[data-eq='q']").count() == 0
 

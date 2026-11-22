@@ -73,6 +73,11 @@
         <h3>Прослуховування</h3>
         <label class="switch" title="Програти дубль одразу після запису"><input type="checkbox" id="optAutoplay" checked><span></span>Слухати після запису</label>
       </section>
+      <div class="ab-bar" id="abBar" role="group" aria-label="Порівняння A/B">
+        <div class="seg mini"><button id="eqA" class="on" aria-pressed="true" title="Слухати з EQ (клавіша A перемикає)">A · з EQ</button><button id="eqB" aria-pressed="false" title="Слухати без EQ">B · без</button></div>
+        <button class="ghost" id="eqRepeat" title="Повторити останній дубль з початку, щоб порівняти той самий фрагмент">⟲</button>
+        <span class="ab-note" id="abNote"></span>
+      </div>
     </section>
   </aside>
 

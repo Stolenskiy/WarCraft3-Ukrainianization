@@ -3,14 +3,11 @@
 .eq { margin: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); }
 .eq #eq { padding: 12px; font-size: 12px; color: #c3c8d0; display: grid; gap: 8px; }
 .eq select, .eq input[type=text] { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; }
-.eq canvas { width: 100%; height: 72px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
 .eq-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
 .eq-row .ghost, .eq .ghost.wide { padding: 5px 10px; font-size: 12px; }
 .eq .ghost.wide { width: 100%; border-color: var(--accent); color: var(--text); }
 .eq .ghost.on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
 .eq .ghost.danger { color: var(--danger); }
-.eq-band { border-top: 1px solid var(--line); padding-top: 6px; display: grid; gap: 2px; }
-.eq-band b { color: var(--gold); font-weight: 600; }
 .eq-sl { display: grid; grid-template-columns: 1fr auto; align-items: center; color: var(--muted); }
 .eq-sl output { color: var(--text); font-variant-numeric: tabular-nums; }
 .eq-sl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 2px 0; }
@@ -19,3 +16,32 @@
 .eq-chip.on { border-color: var(--gold); color: var(--gold); background: rgba(240, 164, 65, .12); }
 .ghost.wide.warn { color: var(--gold); border-color: rgba(240,164,65,.5); }
 .stale-chip { color: var(--gold); font-size: 12px; font-weight: 600; margin-left: 6px; }
+
+/* Редактор: профіль, крива з вузлами, режими, макроси, таблиця смуг, липка смуга A/B */
+.eq-head { display: flex; gap: 8px; align-items: center; }
+.eq-head select { flex: 1; min-width: 0; }
+.eq-head .linkish { white-space: nowrap; font-size: 12px; color: var(--gold); }
+.eq-why { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.eq-why:empty { display: none; }
+.eq-svg { width: 100%; height: auto; display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; touch-action: none; user-select: none; }
+.eq-svg .g { stroke: var(--line); stroke-width: 1; } .eq-svg .g.z { stroke: #3a414e; }
+.eq-svg .t { fill: var(--muted); font: 9px var(--font); }
+.eq-svg .eq-line { fill: none; stroke: var(--warn); stroke-width: 2; }
+.eq-svg .eq-ref { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.eq-svg.off .eq-line { stroke: var(--muted); }
+.eq-node { cursor: grab; outline: none; }
+.eq-node:active { cursor: grabbing; }
+.eq-node .hit { fill: transparent; }
+.eq-node .dot { stroke: var(--bg); stroke-width: 2; }
+.eq-node.sel .dot, .eq-node:focus-visible .dot { stroke: var(--text); stroke-width: 2; }
+.eq-macros { display: flex; gap: 6px; flex-wrap: wrap; }
+.eq-macros .ghost { flex: 1; padding: 5px 6px; font-size: 12px; }
+.eq-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.eq-tbl th { text-align: left; font-weight: 500; color: var(--muted); padding: 2px 4px; }
+.eq-tbl td { padding: 2px 4px; color: var(--muted); }
+.eq-tbl tr.sel td { background: var(--raise); }
+.eq-tbl input { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 4px; font: inherit; font-variant-numeric: tabular-nums; }
+.eq-tbl .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.ab-bar { position: sticky; bottom: 0; z-index: 2; margin-top: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--line); }
+.ab-bar .ghost { padding: 3px 10px; }
+.ab-note { flex-basis: 100%; font-size: 11px; color: var(--muted); line-height: 1.35; }

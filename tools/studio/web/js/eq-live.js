@@ -3,10 +3,10 @@ import { AC, play, playing } from "./audio.js";
 import { eqRender } from "./eq-panel.js";
 import { esc } from "./util.js";
 
-// Профіль {name, enabled, gain_db, bands:[{type,freq_hz,gain_db,q}]} (дані й ffmpeg — eq.py).
+// Профіль {name, enabled, gain_db, amount, bands:[{type,freq_hz,gain_db,q}]} (дані й ffmpeg — eq.py).
 // Прослуховування дублів іде через BiquadFilterNode з тими самими параметрами; файл для гри
-// змінюється лише кнопкою «Застосувати до обраних дублів».
-export const EQ = { data: null, id: null, prof: null, bypass: false, live: null, naming: false };
+// змінюється лише кнопкою «Оновити файли гри».
+export const EQ = { data: null, id: null, prof: null, bypass: false, live: null, naming: false, sel: 0, mode: "simple" };
 
 export const eqClone = (o) => JSON.parse(JSON.stringify(o));
 
@@ -14,20 +14,21 @@ export const eqOwn = () => EQ.data && EQ.data.profiles.find((p) => p.id === EQ.i
 
 export const eqDirty = () => { const b = EQ.data && EQ.data.profiles.find((p) => p.id === EQ.id); return !!b && JSON.stringify(eqPlain(b)) !== JSON.stringify(eqPlain(EQ.prof)); };
 
-export const eqPlain = (p) => ({ name: p.name, enabled: p.enabled, gain_db: p.gain_db, bands: p.bands });
+export const eqPlain = (p) => ({ name: p.name, enabled: p.enabled, gain_db: p.gain_db, amount: p.amount ?? 1, bands: p.bands });
 
 function eqNodeSpec(b) {  // Web Audio: Q фільтрів HP/LP — у дБ
   return { type: b.type, frequency: b.freq_hz, gain: b.gain_db, Q: b.type === "highpass" || b.type === "lowpass" ? 20 * Math.log10(b.q) : b.q };
 }
 
-export function eqApply(node, b) {
+/** «Сила» профілю множить підсилення смуг (як у eq.to_ffmpeg), стеля ±12 дБ. */
+export function eqApply(node, b, amount = EQ.prof ? EQ.prof.amount ?? 1 : 1) {
   const s = eqNodeSpec(b);
-  node.type = s.type; node.frequency.value = s.frequency; node.gain.value = s.gain; node.Q.value = s.Q;
+  node.type = s.type; node.frequency.value = s.frequency; node.gain.value = Math.max(-12, Math.min(12, s.gain * amount)); node.Q.value = s.Q;
 }
 
 // Граф дубля завжди: src → dry → вихід, та src → [EQ-ланцюг] → wet → вихід. A/B і зміна профілю лише
 // перемикають гучність dry/wet (setTargetAtTime), тож працюють і на дублі, що вже звучить (eqRewire).
-const eqActive = () => !!EQ.prof && EQ.prof.enabled && !EQ.bypass;
+const eqActive = () => !!EQ.prof && EQ.prof.enabled && EQ.prof.amount !== 0 && !EQ.bypass;
 
 const EQ_RAMP = 0.015;   // стала часу перемикання, с
 
@@ -87,7 +88,7 @@ export function eqMatch(buf, url) {
       try {
         const oc = new OfflineAudioContext(buf.numberOfChannels, buf.length, buf.sampleRate);
         const s = oc.createBufferSource(); s.buffer = buf;
-        const nodes = P.bands.map((b) => { const n = oc.createBiquadFilter(); eqApply(n, b); return n; });
+        const nodes = P.bands.map((b) => { const n = oc.createBiquadFilter(); eqApply(n, b, P.amount ?? 1); return n; });
         const vol = oc.createGain(); vol.gain.value = Math.pow(10, P.gain_db / 20);
         [s, ...nodes, vol, oc.destination].reduce((x, n) => (x.connect(n), n));
         s.start();
@@ -102,7 +103,9 @@ export function eqMatch(buf, url) {
   return eqMatchJobs.get(key);
 }
 
-export function eqToggleAB() { EQ.bypass = !EQ.bypass; eqRender(); eqRewire(); }
+export function eqSetBypass(v) { EQ.bypass = v; eqRender(); eqRewire(); }
+
+export const eqToggleAB = () => eqSetBypass(!EQ.bypass);
 
 export function eqChip() {  // чип «EQ · профіль» на дублі, що звучить: золотий — з EQ, сірий — без (B); клік / A — перемкнути
   document.querySelectorAll("[data-eq-chip]").forEach((c) => c.remove());

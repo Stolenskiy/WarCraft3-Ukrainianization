@@ -143,10 +143,11 @@ def test_equalizer_panel(page):
     pg = page
     pg.click("#tabProc")
     assert pg.input_value("#eqSel") == "orc-peon"
-    pg.wait_for_function("() => document.querySelector('#eqCurve').getContext('2d').getImageData(0,0,248,72).data.some(v => v)")
-    pg.locator("input[data-eq='gain'][data-i='1']").fill("-4")                 # рух слайдера → профіль змінено
-    pg.click("#eqBypass")
-    pg.click("#eqBypass")
+    pg.wait_for_function("() => document.querySelector('#eqLine').getAttribute('d').length > 100")      # крива намальована
+    pg.click("#eqMode [data-mode='bands']")
+    pg.locator("input[data-eq='gain'][data-i='1']").fill("-4")                 # зміна смуги → профіль змінено
+    pg.click("#eqB")
+    pg.click("#eqA")
     pg.click("#eqNew")
     pg.fill("#eqName", "Мій peon")
     pg.click("#eqSaveNew")
@@ -156,8 +157,36 @@ def test_equalizer_panel(page):
     pg.wait_for_selector(".cue.on")
     pg.click("#tabProc")
     assert pg.eval_on_selector("#eqSel", "s => s.selectedOptions[0].text") == "Мій peon"
+    pg.click("#eqMode [data-mode='bands']")
     assert pg.input_value("input[data-eq='gain'][data-i='1']") == "-4"
     pg.click("#eqDel")                                                         # confirm → діалог
+    assert not pg.errors, pg.errors
+
+
+def test_eq_node_drag_wheel_and_macro(page):
+    """Вузол кривої: колесо — Q, перетягування змінює freq/gain (Pointer Events); макрос додає зміну, «Сила» — повзунок."""
+    pg = page
+    pg.click("#tabProc")
+    pg.wait_for_function("() => document.querySelector('#eqLine').getAttribute('d').length > 100")
+    i = pg.evaluate("__studio.EQ.prof.bands.findIndex(b => b.type === 'peaking')")
+    node = pg.locator(f".eq-node[data-node='{i}'] .dot")
+    b0 = pg.evaluate(f"({{...__studio.EQ.prof.bands[{i}]}})")
+    box = node.bounding_box()
+    x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+    pg.mouse.move(x, y)
+    pg.mouse.wheel(0, -100)                                                    # колесо вгору — Q більший
+    assert pg.evaluate(f"__studio.EQ.prof.bands[{i}].q") > b0["q"]
+    pg.mouse.down()
+    pg.mouse.move(x + 40, y - 20, steps=5)
+    pg.mouse.up()
+    b1 = pg.evaluate(f"__studio.EQ.prof.bands[{i}]")
+    assert b1["freq_hz"] > b0["freq_hz"] and b1["gain_db"] > b0["gain_db"], (b0, b1)
+    assert "змінено" in pg.inner_text(".eq-head")
+    n = pg.evaluate("__studio.EQ.prof.bands.length")
+    pg.click("[data-macro='bright']")
+    assert pg.evaluate("__studio.EQ.prof.bands.length") >= n
+    pg.locator("input[data-eq='amount']").fill("50")
+    assert pg.evaluate("__studio.EQ.prof.amount") == 0.5
     assert not pg.errors, pg.errors
 
 
