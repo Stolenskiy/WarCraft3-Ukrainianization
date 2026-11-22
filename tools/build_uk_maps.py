@@ -21,12 +21,13 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gameconf
 import wc3map
 from map_translations import DESCS, NAMES, PLAYERS
 
 ORIG_ROOT = "/tmp/wc3-maps-orig/war3.w3mod"
 DEFAULT_OUT = "/tmp/wc3-maps-uk"
-GAME_ROOT = "/Applications/Warcraft III Classic"
+GAME_ROOT = str(gameconf.get_game_root())
 GAME_MAPS = os.path.join(GAME_ROOT, "Maps")
 BACKUP_DIR = os.path.join(GAME_ROOT, "Backups", "maps-english-originals")
 

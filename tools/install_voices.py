@@ -28,10 +28,12 @@ import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))   # `python -I` не додає теку скрипта
+import gameconf  # noqa: E402
+
 import voices  # noqa: E402
 
 ROOT = Path(os.environ.get("WC3UA_ROOT") or Path(__file__).resolve().parent.parent)
-GAME = Path(os.environ.get("WC3_GAME_ROOT", "/Applications/Warcraft III Classic"))
+GAME = gameconf.get_game_root()
 LOCK = threading.Lock()
 
 
