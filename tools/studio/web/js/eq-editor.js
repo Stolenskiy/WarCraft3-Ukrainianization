@@ -22,7 +22,7 @@ function curve(P, amount) {
   for (let i = 0; i < N; i++) fr[i] = F0 * Math.pow(F1 / F0, i / (N - 1));
   for (const b of P.bands) {
     const n = AC.createBiquadFilter(); eqApply(n, b, amount); n.getFrequencyResponse(fr, mag, ph);
-    for (let i = 0; i < N; i++) tot[i] *= mag[i];
+    for (let i = 0; i < N; i++) tot[i] *= Number.isFinite(mag[i]) ? mag[i] : 1;   // за Найквістом getFrequencyResponse дає NaN
   }
   return Array.from(fr, (f, i) => `${i ? "L" : "M"}${px(f).toFixed(1)},${py(clamp(20 * Math.log10(Math.max(1e-4, tot[i])), -DB - 2, DB + 2)).toFixed(1)}`).join("");
 }

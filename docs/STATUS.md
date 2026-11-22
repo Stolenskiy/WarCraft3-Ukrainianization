@@ -9,7 +9,7 @@ _Оновлено: 2026-11-22_
 - ADR 0005: тексти оригіналів — лише `data/local/` (`make transcripts-local`). Voice bible для 4 рас (`docs/voice-bible/`), тексти peon звірені.
 - Студія запису v3 (`tools/studio/`): усі раси, дублі/кошик/undo, вибір для гри, оригінал RU/EN.
 - Оригінали (`make refs`): EN 2384 з CASC гри (без пари 17, нежить); RU 2401 — з рос. мовного пакета репаку.
-- CI на GitHub (`.github/workflows/ci.yml`) = `make check`: ruff, guard, check-voices, тести з Chrome, покриття ≥ 94% (храповик).
+- CI на GitHub (`.github/workflows/ci.yml`) = `make check`: ruff, guard, check-voices, тести з Chrome, покриття ≥ 95% (храповик).
 - Голоси спільноти: `voices/<нік>/` (FLAC, CC BY 4.0), `make publish-voice`, `make check-voices`, вибір автора у вікні встановлення.
 - Агентна готовність (feat/agentic): `AGENTS.md`, `make verify|doctor|hooks|guard`, скіли й `docs/runbooks/`, ADR, глосарій, LICENSE (MIT).
 ## Зараз

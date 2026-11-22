@@ -45,7 +45,7 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 ## Workflow
 - Cross-platform (macOS/Windows/Linux/Docker): never hardcode a game path (use `gameconf`), no `/tmp`, `open`, `os.symlink` or `.venv/bin` assumptions
   outside `tools/run.py`/`opener.py`; open text files with `encoding="utf-8"`; every `make` target has a `python tools/run.py` equivalent.
-- New behaviour → test next to it (`tests/`). `fail_under` in `pyproject.toml` only goes up (CI ratchet; currently 94).
+- New behaviour → test next to it (`tests/`). `fail_under` in `pyproject.toml` only goes up (CI ratchet; currently 95).
 - End of a session that changes state: update `docs/STATUS.md` (≤ 40 lines; decisions section is not revisited without the owner).
 - Doc drift is tested (`tests/test_docs_sync.py`): new API route → server docstring + `tools/studio/README.md`; new make target → keep it real.
 - Cheap and fast: read by the map, review inline, use sub-agents only for fully specified weaker tasks.

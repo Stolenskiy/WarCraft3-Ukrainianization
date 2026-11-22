@@ -327,6 +327,14 @@ def test_screenshot_for_review(page):
     page.wait_for_timeout(600)
     page.screenshot(path=str(out))
     print(f"\nscreenshot: {out}")
+    shots = os.environ.get("STUDIO_SCREENSHOT_DIR")                           # набір для рев'ю: обидва розміри, вкладки «Репліки» й «Обробка»
+    if shots:
+        for w, h in ((1440, 900), (1280, 800)):
+            page.set_viewport_size({"width": w, "height": h})
+            for tab in ("Cues", "Proc"):
+                page.click(f"#tab{tab}")
+                page.wait_for_timeout(300)
+                page.screenshot(path=os.path.join(shots, f"studio-{w}x{h}-{tab.lower()}.png"))
 
 
 def _trim_of(pg):

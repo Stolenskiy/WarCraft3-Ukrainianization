@@ -14,7 +14,7 @@ export async function loadCatalogs() {
   const c = catOf();
   if (c) {
     const done = c.groups.reduce((a, g) => a + g.done, 0), total = c.groups.reduce((a, g) => a + g.total, 0);
-    $("#overallName").textContent = c.title.split(" — ")[0];
+    $("#overallName").textContent = "раса";
     $("#overallNum").textContent = `${done} / ${total}`;
     $("#overallBar").style.width = `${(100 * done) / Math.max(1, total)}%`;
   }
