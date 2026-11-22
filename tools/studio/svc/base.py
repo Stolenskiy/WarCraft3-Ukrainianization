@@ -119,7 +119,7 @@ class Base:
             takes.append({"file": t["file"], "n": take_no(t["file"]), "created": t.get("created"),
                           "deleted": t.get("deleted"), "exists": p.exists(), "trim": t.get("trim"), "tempo": t.get("tempo") or 1.0,
                           "peak_db": t.get("peak_db"), "clipped": bool(t.get("clipped", False)),
-                          "source": t.get("source"), "engine": t.get("engine"),
+                          "source": t.get("source"), "engine": t.get("engine"), "enhanced_from": t.get("enhanced_from"),
                           "dur": round(duration(p), 3) if p.exists() else 0})
         return {"id": ln.id, "kind": ln.kind, "kind_ua": ln.kind_ua, "ru": ln.ru, "ru_dur": round(ln.ru_dur, 3),
                 "has_en": ln.ref_en is not None, "has_ru": ln.has_ru,

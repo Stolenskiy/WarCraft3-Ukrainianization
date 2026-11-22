@@ -61,6 +61,11 @@ API:
   GET  /api/ai/job?id=                       одне завдання
   POST /api/ai/cancel {id}                   скасувати (running: підпроцес двигуна убито)
   GET  /api/ai/events?after=<id>             події черги {id,ts,job,type state|progress|log,state}; UI опитує раз на 1–2 с
+  GET  /api/enhance/status                   ШІ-очищення дублів (Sidon): state ready|missing_env|missing_model, ліцензія, розмір, jobs
+  GET  /api/enhance/jobs                     завдання очищення: state, phase, done/total, results [{lid,file,new_file,gain_db,approved|error}], keys, eta
+  POST /api/enhance {items:[{cid,gid,lid,file}],approve}   у чергу; результат — НОВІ дублі source "enhanced" (approve: замість обраного)
+  POST /api/enhance/setup                    встановити .venv-enhance + модель (≈ 290 МБ) у фоні
+  POST /api/enhance/cancel {id}              скасувати (running: підпроцес моделі убито)
   GET  /api/text/targets                     цілі текстового пакета + тека гри + визначена ціль + що вже встановлено нами
   POST /api/text/plan {target?,full?}        сухий прогін тексту у фоні (upstream-кеш, збірка, plan_text) → {id,state running|ready|error,log,plan}
   GET  /api/text/job?id=                     стан плану: plan = коміт upstream, нові/змінені/без змін, пропуски, підсумок клавіш

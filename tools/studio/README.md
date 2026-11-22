@@ -303,6 +303,7 @@ SVG-крива 20 Гц – 11 кГц (±12 дБ) з вузлами — тягн�
 | `GET /api/install/plan`, `POST /api/install`, `GET /api/uninstall/plan`, `POST /api/uninstall`, `POST /api/open-dir` | встановлення в гру |
 | `GET /api/game-root`, `POST /api/game-root` | тека гри (`routes/gameroot.py` → `tools/gameconf.py`) |
 | `GET /api/voices`, `POST /api/voices/choice`, `POST /api/voices/publish` | голоси спільноти |
+| `GET /api/enhance/status`, `/api/enhance/jobs`; `POST /api/enhance`, `/api/enhance/setup`, `/api/enhance/cancel` | ШІ-очищення дублів: луна й шум → новий дубль «очищено» (`routes/enhance.py` → `tools/aistudio/enhance_jobs.py`, модель Sidon у `tools/aistudio/enhance.py`) |
 | `GET /api/ai/status`, `/api/ai/engines`, `/api/ai/refs`, `/api/ai/jobs`, `/api/ai/job`, `/api/ai/events`; `POST /api/ai/consent`, `/api/ai/engine`, `/api/ai/generate`, `/api/ai/again`, `/api/ai/based-on`, `/api/ai/cancel` | ШІ-студія (`routes/aistudio.py` → `tools/aistudio/api.py`; план `docs/plans/ai-studio-ui.md`) |
 | `GET /api/text/targets`, `/api/text/job`; `POST /api/text/plan`, `/api/text/apply`, `/api/text/uninstall` | чекбокс «Текст» у вікні встановлення (`routes/textinstall.py` → `tools/install_pack.py`) |
 

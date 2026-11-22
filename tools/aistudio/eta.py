@@ -24,8 +24,8 @@ class Timing:
         except (OSError, ValueError, AssertionError):
             self.data = {}
 
-    def est(self, engine: str) -> dict[str, float]:
-        return {**DEFAULT, **{k: float(v) for k, v in self.data.get(engine, {}).items() if k in DEFAULT}}
+    def est(self, engine: str, defaults: dict[str, float] | None = None) -> dict[str, float]:
+        return {**(defaults or DEFAULT), **{k: float(v) for k, v in self.data.get(engine, {}).items() if k in DEFAULT}}
 
     def learn(self, engine: str, key: str, sec) -> None:
         if key not in DEFAULT or not isinstance(sec, (int, float)) or not 0 < sec < 3600:

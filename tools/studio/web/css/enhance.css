@@ -1,0 +1,11 @@
+/* ШІ-очищення запису: бейдж дубля, секція у вкладці «Обробка», прогрес (стилі смуги — ai-gen.css: .aip, .aiq-bar.big). */
+:root { --enh: #5fb8a6; }
+.badge-enh { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: #0e1013; background: var(--enh); padding: 2px 7px; border-radius: 5px; }
+.proc-file.enh { display: grid; gap: 8px; }
+.proc-file.enh .btn { justify-self: stretch; }
+.enh-miss { color: var(--muted); margin: 0; }
+.enh-progs, .enh-line { display: grid; gap: 8px; }
+.enh-line { margin: 0 0 10px; }
+.aip.enh-p { border-color: rgba(95, 184, 166, .5); background: rgba(95, 184, 166, .1); }
+.aip.enh-p .aip-top b { color: var(--enh); }
+.aip.enh-p .aiq-bar.big b { background: linear-gradient(90deg, var(--enh), #a6e3d6); }
