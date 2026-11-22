@@ -1,90 +1,90 @@
 {
- "Units/Orc/peon/peondeath.wav": {
+ "Units/orc/peon/peondeath.wav": {
   "dur": 1.846,
   "peak_db": -0.46,
   "sha256": "366e5a0c5506835251b76fcbea10580148b84d4ce0a4988a88b5b2fe79a5fddf"
  },
- "Units/Orc/peon/peonpissed1.wav": {
+ "Units/orc/peon/peonpissed1.wav": {
   "dur": 1.128,
   "peak_db": -0.26,
   "sha256": "4a6f3fcbf0c8f72c7c6ffa25b2c531fee18bef5335f74cce6d3f756d03ceb5b2"
  },
- "Units/Orc/peon/peonpissed2.wav": {
+ "Units/orc/peon/peonpissed2.wav": {
   "dur": 1.758,
   "peak_db": -0.26,
   "sha256": "01a2227159b4c694a88a880804a808ac6a3263581b3e2536236df8c0b242b8c7"
  },
- "Units/Orc/peon/peonpissed3.wav": {
+ "Units/orc/peon/peonpissed3.wav": {
   "dur": 1.71,
   "peak_db": -0.26,
   "sha256": "253165d98bb30b758df0bbb65b224402acfbaa9826f6a02e08fb30f1048fe6dc"
  },
- "Units/Orc/peon/peonpissed4.wav": {
+ "Units/orc/peon/peonpissed4.wav": {
   "dur": 2.327,
   "peak_db": -0.26,
   "sha256": "652dbc37fff5db3a6178859044f913ceb791d766735a006071c23f05632c9213"
  },
- "Units/Orc/peon/peonready1.wav": {
+ "Units/orc/peon/peonready1.wav": {
   "dur": 2.071,
   "peak_db": -0.26,
   "sha256": "851b2d2a94ed4d18240c0aedbc829a518e58a5fc154ef874fffe93f69e9f2f17"
  },
- "Units/Orc/peon/peonwarcry1.wav": {
+ "Units/orc/peon/peonwarcry1.wav": {
   "dur": 1.592,
   "peak_db": -0.26,
   "sha256": "41c2e43b7b6fecd250c947f77fc2235d151d981bf76775aacea7d5951ef80ad6"
  },
- "Units/Orc/peon/peonwhat1.wav": {
+ "Units/orc/peon/peonwhat1.wav": {
   "dur": 0.954,
   "peak_db": -0.26,
   "sha256": "77c9597102b9df94b1c02ae70f732bfa91defb3b0ce1aa8f6cd80858bccf0cab"
  },
- "Units/Orc/peon/peonwhat2.wav": {
+ "Units/orc/peon/peonwhat2.wav": {
   "dur": 1.043,
   "peak_db": -2.32,
   "sha256": "a5427448ec1a8eb1537a8eeadac719b1f5099ed7fc3635406bfae22c727b5fd4"
  },
- "Units/Orc/peon/peonwhat3.wav": {
+ "Units/orc/peon/peonwhat3.wav": {
   "dur": 1.514,
   "peak_db": -0.26,
   "sha256": "70588c2fc146aec1352ff2cd708f1e394666ea84a07d6038f65872db6d9cd496"
  },
- "Units/Orc/peon/peonwhat4.wav": {
+ "Units/orc/peon/peonwhat4.wav": {
   "dur": 2.745,
   "peak_db": -0.26,
   "sha256": "ffd40387f46c917c87a3a9c6334bea0c2ca8b2ebcd9986f4ccb262cd4067db77"
  },
- "Units/Orc/peon/peonyes1.wav": {
+ "Units/orc/peon/peonyes1.wav": {
   "dur": 1.672,
   "peak_db": -3.12,
   "sha256": "70180dddfa263b72004edc8ac596a4f3f6c577820f8256ba85dc2a297f4fb4a0"
  },
- "Units/Orc/peon/peonyes2.wav": {
+ "Units/orc/peon/peonyes2.wav": {
   "dur": 1.254,
   "peak_db": -1.65,
   "sha256": "6fb63ae03d8bbfc364d0cc037c34389afc9c4cd5cbf5022c14a7e48784e85d83"
  },
- "Units/Orc/peon/peonyes3.wav": {
+ "Units/orc/peon/peonyes3.wav": {
   "dur": 0.885,
   "peak_db": -1.99,
   "sha256": "308586928acf209094db44626fd79ad9c121a097786605b4fe18bd6e15de6427"
  },
- "Units/Orc/peon/peonyes4.wav": {
+ "Units/orc/peon/peonyes4.wav": {
   "dur": 1.857,
   "peak_db": -0.26,
   "sha256": "a121bcbf16a5e785beeafad7166f6cd84e4b91df49cd165cfa4a2e40bcd4a465"
  },
- "Units/Orc/peon/peonyesattack1.wav": {
+ "Units/orc/peon/peonyesattack1.wav": {
   "dur": 0.869,
   "peak_db": -0.26,
   "sha256": "1fea4b6cb284170d59ec8395af2ad6ca8cd17964108a9b41758bfbdee270c139"
  },
- "Units/Orc/peon/peonyesattack2.wav": {
+ "Units/orc/peon/peonyesattack2.wav": {
   "dur": 1.386,
   "peak_db": -0.26,
   "sha256": "e6327012ad7fe691374d3b169bc60b3e04f7bb9702b6487a6bb5a2f422df3111"
  },
- "Units/Orc/peon/peonyesattack3.wav": {
+ "Units/orc/peon/peonyesattack3.wav": {
   "dur": 0.965,
   "peak_db": -1.97,
   "sha256": "142c4a1fcfbe17e98ef6a23671c496580462c6d0e0a30c56036e999b7b4cbdc4"
