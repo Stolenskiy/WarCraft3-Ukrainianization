@@ -1,0 +1,62 @@
+/* Панель «✨ Згенерувати», вибір двигуна, референси, черга ШІ в шапці. Токени — app.css/base.css; акцент --ai з ai.css. */
+.ai-gen { border: 1px solid rgba(154, 126, 224, .4); border-radius: 12px; background: var(--panel); margin: 0 0 10px; }
+.ai-gen > summary { cursor: pointer; padding: 9px 14px; font-weight: 600; color: var(--ai); list-style: none; }
+.ai-gen > summary::-webkit-details-marker { display: none; }
+.ai-gen-body { display: grid; gap: 10px; padding: 4px 14px 14px; }
+.ai-f { display: grid; gap: 4px; min-width: 0; }
+.ai-f.unsup { opacity: .45; cursor: not-allowed; }
+.ai-f.unsup * { pointer-events: none; }
+.ai-f.unsup { pointer-events: auto; }
+.ai-l { font-size: 12px; color: var(--muted); font-weight: 600; }
+.ai-l small { font-weight: 400; color: var(--faint); }
+.ai-gen textarea, .ai-gen input[type=text], .ai-gen input:not([type]), .ai-gen input[type=number], .ai-gen input[type=password], .ai-gen select {
+  background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font: 13px var(--font); width: 100%; box-sizing: border-box; }
+.ai-gen textarea { resize: vertical; min-height: 44px; }
+.ai-gen select { width: auto; }
+.ai-ins { display: flex; gap: 4px; flex-wrap: wrap; }
+.ai-ins .ghost { padding: 2px 9px; font-size: 12px; }
+.ai-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.ai-chip { font: 12px var(--font); color: var(--ai); background: transparent; border: 1px solid rgba(154, 126, 224, .45); border-radius: 99px; padding: 2px 10px; cursor: pointer; }
+.ai-chip small { color: var(--faint); }
+.ai-chip.on { background: var(--ai); color: #0e1013; } .ai-chip.on small { color: #3a2f5c; }
+.ai-chip:disabled { cursor: not-allowed; }
+.ai-row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.ai-row .grow { flex: 1; min-width: 180px; }
+.ai-row input[type=range] { width: 100%; accent-color: var(--ai); }
+.ai-row #aiSeed { width: 130px; }
+.ai-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ai-actions .btn.primary { background: var(--ai); border-color: var(--ai); color: #0e1013; }
+.ai-note { color: var(--faint); font-size: 12px; margin: 2px 0; }
+.ai-warn { color: var(--gold); font-size: 12px; margin: 2px 0; }
+.ai-fix { margin: 2px 0; padding: 6px 10px; border-radius: 8px; background: rgba(242, 85, 75, .1); border: 1px solid rgba(242, 85, 75, .35); font-size: 12px; color: var(--text); }
+.ai-fix code, .ai-note code { background: var(--bg); padding: 1px 6px; border-radius: 5px; user-select: all; }
+.ai-eng-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.ai-eng-row label { display: flex; gap: 6px; align-items: center; }
+.ai-lic { color: var(--faint); font-size: 12px; }
+.ai-b { font-size: 11px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.ai-b.com, .ai-b.st-ready { color: var(--ok); border-color: rgba(70, 196, 106, .45); }
+.ai-b.nc, .ai-b.st-missing_model, .ai-b.st-missing_key, .ai-b.st-missing_env { color: var(--gold); border-color: rgba(240, 164, 65, .5); }
+.ai-chk { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.ai-chk input { margin-top: 3px; }
+.ai-cloud { display: grid; gap: 6px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 8px; }
+.ai-key { display: flex; gap: 8px; }
+.ai-refs { display: grid; gap: 3px; max-height: 180px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: var(--bg); }
+.ai-ref { display: flex; gap: 8px; align-items: center; font-size: 12px; padding: 2px 4px; border-radius: 6px; cursor: pointer; }
+.ai-ref:hover { background: var(--panel-2); }
+.ai-ref.clip { opacity: .8; }
+.ai-ref-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.ai-ref-t b { color: var(--text); }
+.play.mini { width: 24px; height: 24px; font-size: 10px; flex: none; }
+.ai-consent { width: min(520px, 100%); }
+.ai-consent .modal-body { display: grid; gap: 10px; }
+.ai-params { margin-top: 4px; font-size: 12px; color: var(--faint); }
+.ai-params summary { cursor: pointer; }
+.ai-params pre { margin: 4px 0 0; padding: 8px; background: var(--bg); border-radius: 8px; overflow: auto; max-height: 160px; color: var(--muted); }
+/* черга в шапці */
+.ai-queue { position: relative; }
+.ai-queue > button { display: grid; gap: 3px; border-color: rgba(154, 126, 224, .5); color: var(--ai); font-size: 12px; padding: 4px 10px; }
+.aiq-bar { display: block; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.aiq-bar b { display: block; height: 100%; background: var(--ai); width: 0; transition: width .4s; }
+.aiq-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 35; width: 320px; display: grid; gap: 6px; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+.aiq-job { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 12px; }
+.aiq-job small { color: var(--muted); }

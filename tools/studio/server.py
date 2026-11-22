@@ -49,6 +49,23 @@ API:
   POST /api/voices/publish {nickname?,consent}  game-files/ → voices/<нік>/ (FLAC, manifest.json, voice.json); без consent:true або з
                                              нікнеймом поза [a-z0-9-]{2,32} → 400; відповідь: added/updated/removed/total_mb/git (команди; git не запускається)
   GET  /audio/voice/<автор>/<Units/раса/юніт/файл.wav>   прослуховування рядка автора (або "local"); лише файли з маніфесту з тим самим sha, інакше 404
+  GET  /api/ai/status[?deep=1]                готовність ШІ (Fish), платформа, consent, consent_text, schema (межі, пресети стилів), engines
+  GET  /api/ai/engines                       двигуни: метадані, ліцензія, kind, supports, status {state,detail}, warnings, upload_consent
+  POST /api/ai/consent {accept}              згода «це мій власний голос» (без неї генерація не стартує)
+  POST /api/ai/engine {name,upload_consent?,api_key?}   згода на вивантаження дублів / ключ (data/local/settings.json; назад ключ не віддається)
+  GET  /api/ai/refs?cid=&gid=&lid=[&approved=1]  власні дублі каталогу для вибору референсів (лише audio/self-recorded)
+  POST /api/ai/generate {cid,gid,lid,params}  у чергу (queued; warnings, unsupported, license); params: text_override, style, ref_takes, variability, seed, n, engine
+  POST /api/ai/again {cid,gid,lid,file}      «Ще варіант»: ті самі параметри, новий seed, n=1
+  POST /api/ai/based-on {cid,gid,lid,file}   параметри варіанта для форми (нічого не запускає)
+  GET  /api/ai/jobs[?state=queued,running]   завдання за порядком черги (progress {done,total,phase}, results, license)
+  GET  /api/ai/job?id=                       одне завдання
+  POST /api/ai/cancel {id}                   скасувати (running: підпроцес двигуна убито)
+  GET  /api/ai/events?after=<id>             події черги {id,ts,job,type state|progress|log,state}; UI опитує раз на 1–2 с
+  GET  /api/text/targets                     цілі текстового пакета + тека гри + визначена ціль + що вже встановлено нами
+  POST /api/text/plan {target?,full?}        сухий прогін тексту у фоні (upstream-кеш, збірка, plan_text) → {id,state running|ready|error,log,plan}
+  GET  /api/text/job?id=                     стан плану: plan = коміт upstream, нові/змінені/без змін, пропуски, підсумок клавіш
+  POST /api/text/apply {id}                  записати підготовлений план у гру (лише після плану; бекап, CHANGE-LOG, відкат)
+  POST /api/text/uninstall {target?}         відкат тексту (install_pack.uninstall_text)
 Плани встановлення (install/plan) містять у файлах author/wanted/fallback/alts і ключі authors/choice для вибору голосу.
 Кожна дія (крім install*) повертає оновлену репліку (той самий формат, що в /api/group).
 """

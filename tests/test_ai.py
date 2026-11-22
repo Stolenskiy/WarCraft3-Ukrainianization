@@ -44,7 +44,8 @@ def test_list_ai_per_line_with_schema(svc):
     lst = svc.line_json(CID, GID, svc.line(CID, GID, LID))["ai"]
     assert [v["n"] for v in lst] == [1, 2]                         # окрема нумерація, лише цієї репліки
     assert lst[0] == {"file": "peonyes1.ai1.wav", "n": 1, "engine": "fish-s2-pro", "cer": 0.1, "similarity": 0.85,
-                      "dur": 0.7, "style": "[cheerful]", "adopted": None, "discarded": False}
+                      "dur": 0.7, "style": "[cheerful]", "adopted": None, "discarded": False,
+                      "license": None, "seed": lst[0]["seed"], "refs": None, "params": None}
     meta = json.loads((AI_DIR / "peonyes1.ai1.json").read_text())
     assert set(ai.SIDECAR_KEYS) <= set(meta) and meta["ai"] is True
 

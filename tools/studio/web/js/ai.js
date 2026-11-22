@@ -2,10 +2,15 @@
    Хуки: AI.mount(p) в кінці renderCard (card.js), AI.cueMark(p) у renderCues (cues.js). Усе інше — тут.
    Дані: p.ai = [{file, n, engine, cer, similarity, dur, style, adopted}], аудіо — /audio/ai/<cid>/<gid>/<file>. */
 
+import { again, basedOn, mountGen } from "./ai-gen.js";
+import { onLine } from "./ai-queue.js";
+import { AIS, loadStatus, shortLic } from "./ai-state.js";
+import { getJSON } from "./api.js";
 import { loadBuf, play, playing, stopPlay } from "./audio.js";
+import { renderCues } from "./cues.js";
 import { act, putPhrase } from "./phrase.js";
 import { Rec } from "./rec.js";
-import { aurl, cur, ids, urlRef } from "./state.js";
+import { S, aurl, cur, ids, urlRef } from "./state.js";
 import { toast } from "./toast.js";
 import { takeItem } from "./trim.js";
 import { esc, fmt } from "./util.js";
@@ -31,19 +36,30 @@ export const AI = (() => {
       <span class="ai-q ${cerCls}" title="Розбірливість: частка символів, які Whisper почув не так, як у тексті (CER). 0 % — ідеально">CER ${pct(cer)}</span>`;
   }
 
+  /** Параметри варіанта (з побічного json): коротко + повний json у розкривному блоці. */
+  function paramsLine(v) {
+    const q = v.params;
+    if (!q) return "";
+    const refs = (v.refs || []).map((r) => `${r.take}${r.approved ? "" : " (не затв.)"}`).join(", ");
+    return `<details class="ai-params"><summary>параметри: seed ${esc(v.seed ?? q.seed ?? "—")} · варіативність ${esc(q.variability ?? "—")}${q.style ? ` · стиль ${esc(q.style)}` : ""}${refs ? ` · референси: ${esc(refs)}` : ""}</summary>
+      <pre>${esc(JSON.stringify({ params: q, license: v.license, refs: v.refs }, null, 2))}</pre></details>`;
+  }
+
   function row(p, v) {
     const id = "ai:" + v.file, own = ownTake(p);
     return `<div class="take ai-take ${v.adopted ? "adopted" : ""}" data-ai-row="${esc(v.file)}">
       <button class="play" data-play="${esc(id)}" title="Послухати ШІ-варіант (клавіша ${v.n})">▶</button>
-      <div><div class="take-head"><span class="badge-ai" title="Згенеровано ШІ з вашим голосом">ШІ</span><b>Варіант ${v.n}</b>
+      <div><div class="take-head"><span class="badge-ai" title="Згенеровано ШІ з вашим голосом${v.license ? `. Ліцензія результату: ${esc(v.license)}` : ""}">ШІ${v.license ? ` · ${esc(shortLic(v.license))}` : ""}</span><b>Варіант ${v.n}</b>
         <span class="ai-engine">${esc(v.engine || "")}</span>
         <span class="fit">${v.dur != null ? fmt(v.dur) : ""}</span>${quality(v)}
         ${v.style ? `<span class="ai-style" title="Стильова підказка з «Як грати»">${esc(v.style)}</span>` : ""}
         ${v.adopted ? `<span class="ai-adopted" title="Уже скопійовано у ваші дублі">У ДУБЛЯХ</span>` : ""}</div>
-        <div class="wave-box"><canvas class="wave" data-wave="${esc(id)}"></canvas></div></div>
+        <div class="wave-box"><canvas class="wave" data-wave="${esc(id)}"></canvas></div>${paramsLine(v)}</div>
       <div class="take-actions">
         <button class="btn" data-ai-ab-ref="${esc(v.file)}" title="Спершу оригінал, потім ШІ-варіант">Оригінал → ШІ</button>
         <button class="btn" data-ai-ab-own="${esc(v.file)}" ${own ? "" : "disabled"} title="${own ? `Мій дубль ${own.n}, потім ШІ-варіант (Shift+${v.n})` : "Власних дублів ще немає"}">Мій дубль ↔ ШІ</button>
+        <button class="btn" data-ai-again="${esc(v.file)}" title="Ще один варіант: ті самі параметри, новий seed">Ще варіант</button>
+        <button class="btn" data-ai-based="${esc(v.file)}" ${v.params ? "" : "disabled"} title="${v.params ? "Скопіювати параметри цього варіанта у форму «Згенерувати»" : "У цього варіанта немає збережених параметрів"}">На основі цього</button>
         <button class="btn primary" data-ai-adopt="${esc(v.file)}" ${v.adopted ? "disabled" : ""} title="Скопіювати в дублі як новий дубль (з позначкою ШІ); далі — як будь-який дубль">Взяти в дублі</button>
         <button class="btn icon" data-ai-discard="${esc(v.file)}" title="Сховати цей варіант">✕</button></div></div>`;
   }
@@ -86,26 +102,61 @@ export const AI = (() => {
       }
       if (d.aiAbRef) return play([{ url: urlRef(p), id: "ref" }, aiItem(d.aiAbRef)]);
       if (d.aiAbOwn && own) return play([takeItem(p, own.file), aiItem(d.aiAbOwn)]);
+      if (d.aiAgain) return again(p, d.aiAgain);
+      if (d.aiBased) return basedOn(p, d.aiBased, () => mountPanel(p, sec.querySelector(".ai-gen-host")));
       if (d.aiAdopt) return adopt(p, d.aiAdopt);
       if (d.aiDiscard) return discard(p, d.aiDiscard);
     };
   }
 
+  const listHtml = (p) => (p.ai.length ? p.ai.map((v) => row(p, v)).join("") : `<p class="ai-note">Варіантів ще немає — відкрийте «✨ Згенерувати».</p>`);
+
+  function mountPanel(p, host) {
+    if (AIS.status) return mountGen(p, host);
+    host.innerHTML = `<p class="ai-note">Завантаження налаштувань ШІ…</p>`;
+    loadStatus().then(() => { if (host.isConnected && cur() === p) mountGen(p, host); })
+      .catch((e) => { host.innerHTML = `<p class="ai-warn">ШІ недоступний: ${esc(e.message)}</p>`; });
+  }
+
+  /** Перемальовує лише список варіантів (панель і фокус у формі не чіпаємо). */
+  function renderList(p) {
+    const sec = document.querySelector("#aiSection");
+    if (!sec) return;
+    sec.querySelector(".ai-count").textContent = `${p.ai.length} · голос ШІ, клонований з ваших дублів`;
+    sec.querySelector(".takes").innerHTML = listHtml(p);
+    drawWaves(p, sec);
+  }
+
   function mount(p) {
     document.querySelector("#aiSection")?.remove();
-    if (!p.ai || !p.ai.length) return;
     const anchor = document.querySelector("#main .rec-zone");
     if (!anchor) return;
     const sec = document.createElement("div");
     sec.id = "aiSection"; sec.className = "ai-section";
-    sec.innerHTML = `<div class="section-h"><h3>ШІ-варіанти</h3><span>${p.ai.length} · голос ШІ, клонований з ваших дублів</span>
+    sec.innerHTML = `<div class="section-h"><h3>ШІ-варіанти</h3><span class="ai-count"></span>
         <span class="ai-keys"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> слухати · <kbd>⇧</kbd>+<kbd>1</kbd>… мій дубль ↔ ШІ</span></div>
-      <div class="takes">${p.ai.map((v) => row(p, v)).join("")}</div>
+      <div class="ai-gen-host"></div>
+      <div class="takes"></div>
       <p class="ai-note">Це синтез, а не запис. Для гри варіант треба «Взяти в дублі» (з’явиться дубль із позначкою «ШІ»), потім — «Обрати».</p>`;
     anchor.insertAdjacentElement("afterend", sec);
     bind(p, sec);
-    drawWaves(p, sec);
+    mountPanel(p, sec.querySelector(".ai-gen-host"));
+    renderList(p);
   }
+
+  /** Черга щось змінила в поточній групі: підтягнути ШІ-варіанти поточної репліки (нові з’являються без перезавантаження). */
+  onLine(async () => {
+    const p = cur(), cid = S.cat, gid = S.unit;
+    if (!p) return;
+    try {
+      const g = await getJSON(`/api/group/${cid}/${gid}`), ln = g.lines.find((x) => x.id === p.id);
+      if (!ln || cid !== S.cat || gid !== S.unit || cur()?.id !== p.id) return;
+      const sig = (a) => JSON.stringify(a.map((v) => [v.file, v.cer, v.similarity, v.adopted]));
+      if (sig(ln.ai) === sig(p.ai)) return;
+      p.ai = ln.ai;
+      renderList(p); renderCues();
+    } catch (e) { console.warn("ai refresh", e); }
+  });
 
   // клавіатура: 1–3 — слухати варіант, Shift+1–3 — «мій дубль ↔ ШІ»
   document.addEventListener("keydown", (e) => {

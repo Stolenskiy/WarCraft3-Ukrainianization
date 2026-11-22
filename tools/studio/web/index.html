@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="/static/css/install.css">
 <link rel="stylesheet" href="/static/css/voices.css">
 <link rel="stylesheet" href="/static/css/ai.css">
+<link rel="stylesheet" href="/static/css/ai-gen.css">
 </head>
 <body>
 <header class="top">
@@ -32,6 +33,10 @@
     <span class="chev">▾</span>
   </button>
   <div class="top-actions">
+    <div class="ai-queue" id="aiQueue" hidden>
+      <button class="ghost" id="aiQueueBtn" title="Черга ШІ-генерації: прогрес і скасування" aria-haspopup="true"><span id="aiQueueTxt"></span><i class="aiq-bar"><b id="aiQueueBar"></b></i></button>
+      <div class="aiq-pop" id="aiQueuePop" hidden></div>
+    </div>
     <div class="seg mini" id="optLang" title="Якою мовою звучить оригінал"><span>Оригінал</span><button data-lang="ru">RU</button><button data-lang="en">EN</button></div>
     <div class="split" id="installSplit">
       <button class="btn primary" id="installBtn" title="Скопіювати обрані дублі в теку гри (з бекапом і відкатом)">Встановити в гру</button>
@@ -107,6 +112,11 @@
   <div class="modal-box">
     <div class="modal-head"><h3 id="installTitle">Дублі й гра</h3>
       <div class="seg mini" id="installMode"><button data-mode="install" class="on">Встановити</button><button data-mode="uninstall">Прибрати з гри</button></div><button class="ghost" id="installClose" title="Закрити (Esc)">✕</button></div>
+    <div class="inst-parts" id="installParts" hidden role="group" aria-label="Що встановлювати">
+      <label class="ai-chk"><input type="checkbox" id="partText"> Текст <small class="cnt">меню, підказки, гарячі клавіші (upstream)</small></label>
+      <label class="ai-chk"><input type="checkbox" id="partVoice" checked> Голос <small class="cnt">ваші дубли з game-files/</small></label>
+    </div>
+    <div class="inst-text" id="installText" hidden></div>
     <div class="modal-body inst-body" id="installBody"></div>
     <div class="modal-foot">
       <span class="modal-hint">Позначте, що саме. Оригінали й симлінки повертаються з бекапу.</span>

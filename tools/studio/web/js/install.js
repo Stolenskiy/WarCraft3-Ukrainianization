@@ -4,6 +4,7 @@ import { play } from "./audio.js";
 import { renderCard } from "./card.js";
 import { select } from "./cues.js";
 import { mountGameRoot } from "./gameroot.js";
+import { textApply, textBlocks, textOpen, textReady, textSetup, textVoiceOn } from "./install-text.js";
 import { S, cur } from "./state.js";
 import { toast } from "./toast.js";
 import { $, esc, nFiles } from "./util.js";
@@ -79,15 +80,17 @@ function instSync() {                          // стани груп (повн�
     d.querySelector(":scope > summary .cnt").textContent = d.classList.contains("inst-race")
       ? `· ${on} з ${bx.length} обрано` : `· ${nFiles(bx.length)}` + (on < bx.length ? ` · ${on} обрано` : "");
   }
-  const n = instBoxes().filter((b) => b.checked).length, un = Inst.mode === "uninstall";
-  const go = $("#installGo");
-  go.textContent = (un ? "Прибрати" : "Встановити") + (n ? ` (${n})` : "");
-  go.classList.toggle("warn", un); go.disabled = !n || Inst.busy;
+  const un = Inst.mode === "uninstall", n = instBoxes().filter((b) => b.checked).length * (un || textVoiceOn());
+  const go = $("#installGo"), tx = textReady();
+  go.textContent = (un ? "Прибрати" : "Встановити") + (tx ? " текст" + (n ? " + голос" : "") : "") + (n ? ` (${n})` : "");
+  go.classList.toggle("warn", un); go.disabled = (!n && !tx) || textBlocks() && !tx || Inst.busy;
+  go.title = textBlocks() ? "Спершу перегляньте план тексту (або зніміть «Текст»)" : "";
 }
 
 async function instLoad(keep) {                   // keep = {open: [data-key], off: [rel]} — стан дерева переживає перерахунок
   const state = keep || null;
   document.querySelectorAll("#installMode button").forEach((b) => b.classList.toggle("on", b.dataset.mode === Inst.mode));
+  textSetup(Inst.mode, instSync);
   $("#installBody").innerHTML = `<p class="inst-note">Перевіряю…</p>`;
   $("#installGo").disabled = true;
   try {
@@ -108,20 +111,23 @@ async function instLoad(keep) {                   // keep = {open: [data-key], o
   }
 }
 
-function openInstall() { instModal().hidden = false; instLoad(); }
+function openInstall() { instModal().hidden = false; textOpen(); instLoad(); }
 
 const closeInstall = () => { instModal().hidden = true; };
 
 async function instRun() {
   if (Inst.busy) return;
-  const files = instBoxes().filter((b) => b.checked).map((b) => b.dataset.f), un = Inst.mode === "uninstall";
-  if (!files.length) return;
+  const un = Inst.mode === "uninstall", tx = textReady();
+  const files = textVoiceOn() || un ? instBoxes().filter((b) => b.checked).map((b) => b.dataset.f) : [];
+  if (!files.length && !tx) return;
   Inst.busy = true; $("#installGo").disabled = true;
   try {
-    const r = await post(un ? "/api/uninstall" : "/api/install", { files });
+    const t = tx ? await textApply() : null;                       // спершу текст (з відкатом усього запуску при збої), потім голос
+    const r = files.length ? await post(un ? "/api/uninstall" : "/api/install", { files }) : null;
     closeInstall();
-    toast(un ? `Прибрано з гри файлів: ${r.removed}` + (r.restored_links.length ? `; симлінків повернуто: ${r.restored_links.length}` : "") + "."
-      : `Встановлено файлів: ${r.installed}` + (r.materialized.length ? `; теки відкріплено від Mods: ${r.materialized.length}` : "") + ". Перезапустіть гру.", false, 9000);
+    const txt = t ? `Текст: встановлено файлів ${t.installed}. ` : "";
+    toast(!r ? txt + "Перезапустіть гру." : un ? `Прибрано з гри файлів: ${r.removed}` + (r.restored_links.length ? `; симлінків повернуто: ${r.restored_links.length}` : "") + "."
+      : txt + `Встановлено файлів: ${r.installed}` + (r.materialized.length ? `; теки відкріплено від Mods: ${r.materialized.length}` : "") + ". Перезапустіть гру.", false, 9000);
     if (cur()) { try { renderCard(); } catch {} }
   } catch (e) { toast("Не вдалося: " + e.message, true, 10000); closeInstall(); }
   finally { Inst.busy = false; }
