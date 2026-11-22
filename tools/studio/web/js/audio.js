@@ -1,4 +1,5 @@
 /* Web Audio: контекст, декодування, програвання черги, «Як у грі». */
+import { charUrl } from "./character.js";
 import { EQ, eqChip, eqConnect, eqMatch } from "./eq-live.js";
 import { S } from "./state.js";
 import { toast } from "./toast.js";
@@ -25,6 +26,8 @@ export function loadBuf(url) {
 }
 
 export let playToken = null, playing = null; // playing: {id, src, t0, dur}
+let tail = null;                              // «голос персонажа» (друге джерело) може звучати довше за дубль: хвіст простору
+const CHAR_TAIL = 1.2;                        // с, скільки хвоста дозволити після кінця дубля
 
 export async function play(items) {
   stopPlay();
@@ -36,17 +39,22 @@ export async function play(items) {
     try { buf = await loadBuf(it.url); } catch { toast("Не вдалося відкрити аудіо", true); return; }
     if (it.nocache) bufCache.delete(it.url);           // «Як у грі»: той самий url не тримаємо, налаштування могли змінитись
     if (playToken !== token) return;
-    if (String(it.id).startsWith("take:")) {         // EQ має встигнути завантажитись (інакше дубль зазвучить без нього)
+    let wbuf = null, key = it.url;
+    if (String(it.id).startsWith("take:")) {         // EQ і пресет персонажа мають встигнути завантажитись
       await S.eqReady;
-      if (EQ.prof && EQ.prof.enabled) await eqMatch(buf, it.url);
+      const cu = await charUrl(it.id.slice(5));
+      if (cu) { try { wbuf = await loadBuf(cu); key = cu; } catch { toast("Голос персонажа не підготувався — звучить без нього", true); } }
+      if (EQ.prof && (EQ.prof.enabled || wbuf)) await eqMatch(buf, key, wbuf);
       if (playToken !== token) return;
     }
     await new Promise((res) => {
-      const src = AC.createBufferSource();
-      src.buffer = buf; eqConnect(src, it.id, buf, it.url); src.onended = res;
+      const src = AC.createBufferSource(), w = wbuf && AC.createBufferSource();
+      src.buffer = buf; if (w) w.buffer = wbuf;
+      eqConnect(src, it.id, buf, key, w, wbuf); src.onended = res;
       const off = it.start || 0, len = (it.end ?? buf.duration) - off; // ручне обрізання дубля
       playing = { id: it.id, src, t0: AC.currentTime, dur: len, off, full: buf.duration };
       src.start(0, off, len);
+      if (w && off < wbuf.duration) { tail = w; w.start(0, off, Math.min(wbuf.duration - off, len + CHAR_TAIL)); }
       markPlaying();
     });
     if (playToken !== token) return;
@@ -58,6 +66,7 @@ export async function play(items) {
 
 export function stopPlay() {
   playToken = null;
+  if (tail) { try { tail.stop(); } catch {} tail = null; }
   if (playing) { try { playing.src.onended = null; playing.src.stop(); } catch {} drawWave(playing.id); playing = null; }
   markPlaying();
 }

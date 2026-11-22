@@ -77,7 +77,7 @@ export async function eqLoad() {
 }
 
 /** Позначки «файл застарів» у репліках групи (після зміни призначеного EQ сервер знає, що файли гри відстали). */
-async function eqStaleSync() {
+export async function eqStaleSync() {
   try {
     const g = await getJSON(`/api/group/${encodeURIComponent(S.cat)}/${encodeURIComponent(S.unit)}`), by = Object.fromEntries(g.lines.map((l) => [l.id, l.stale]));
     let changed = false;
