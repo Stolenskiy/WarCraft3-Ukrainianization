@@ -145,7 +145,8 @@ class JobQueue:
         self._emit(rec, "state")
 
     # ------------------------------------------------------------ публічне API
-    def submit(self, cid: str, gid: str, lid: str, params, *, parent: str | None = None, auto_pick: bool = False) -> dict:
+    def submit(self, cid: str, gid: str, lid: str, params, *, parent: str | None = None, auto_pick: bool = False,
+               draft: dict | None = None) -> dict:
         """У чергу. `auto_pick` — після генерації обрати найкращий варіант для гри (aifit; лише без обраного живого дубля)."""
         p = params if isinstance(params, GenParams) else GenParams.from_dict(params)
         config.require_consent()
@@ -163,6 +164,8 @@ class JobQueue:
                    "finished": None, "progress": {"done": 0, "total": p.n, "phase": "queued"}, "results": [], "error": None,
                    "warnings": warnings, "unsupported": unsupported, "attempts": 0,
                    "auto_pick": bool(auto_pick), "pick": None}
+            if draft:
+                rec["draft"] = draft                               # ШІ-чернетка юніта/раси (draft.py): {batch, approve}
             self.jobs[rec["id"]] = rec
             self._save(rec)
             self.cv.notify_all()

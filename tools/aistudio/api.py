@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from . import config, refs, setup
+from .draft import Drafts
 from .engines import get_engine, list_engines
 from .jobs import JobQueue
 from .params import GenParams, schema
@@ -11,6 +12,7 @@ class AiStudio:
     def __init__(self, svc, queue: JobQueue | None = None) -> None:
         self.svc = svc
         self.queue = queue or JobQueue(svc)
+        self.drafts = Drafts(svc, self.queue)              # «ШІ-чернетка юніта / раси»: слухає чергу (одразу обрати)
 
     # ---- стан і налаштування
     def status(self, deep: bool = False) -> dict:
@@ -62,3 +64,13 @@ class AiStudio:
 
     def events(self, after: int = 0) -> list[dict]:
         return self.queue.events(after)
+
+    # ---- ШІ-чернетка юніта / раси (draft.py)
+    def draft_plan(self, cid: str, gid: str | None = None, engine: str | None = None) -> dict:
+        return self.drafts.plan(cid, gid, engine)
+
+    def draft(self, cid: str, gid: str | None = None, engine: str | None = None, approve: bool = False) -> dict:
+        return self.drafts.submit(cid, gid, engine, approve)
+
+    def draft_cancel(self, cid: str | None = None, gid: str | None = None, batch: str | None = None) -> dict:
+        return self.drafts.cancel(cid, gid, batch)

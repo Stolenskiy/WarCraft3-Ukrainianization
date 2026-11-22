@@ -1,4 +1,5 @@
 /* Каталоги (раси), юніти: шапка, поповер вибору, відкриття юніта. */
+import { mixHtml, mixTitle, openDraft, raceMix, renderDraftBar } from "./ai-draft.js";
 import { getJSON } from "./api.js";
 import { stopPlay } from "./audio.js";
 import { renderCard } from "./card.js";
@@ -17,6 +18,7 @@ export async function loadCatalogs() {
     $("#overallName").textContent = "раса";
     $("#overallNum").textContent = `${done} / ${total}`;
     $("#overallBar").style.width = `${(100 * done) / Math.max(1, total)}%`;
+    $("#overallNum").title = mixTitle(raceMix(c));
   }
   const g = groupOf();
   if (g) {
@@ -24,6 +26,7 @@ export async function loadCatalogs() {
     $("#unitSub").textContent = `${catOf().title.split(" — ")[0]} · ${g.done} з ${g.total} готово`;
     $("#unitAvatar").textContent = initials(g.title);
   }
+  renderDraftBar();
 }
 
 let popCat = null; // яка раса відкрита в поповері
@@ -37,9 +40,11 @@ function renderUnitGrid() {
   const card = (g) => `<button class="unit-card ${c.id === S.cat && g.id === S.unit ? "on" : ""} ${g.done === g.total ? "complete" : ""}" data-unit="${esc(g.id)}" data-unit-cat="${esc(c.id)}">
       <span class="avatar">${esc(initials(g.title))}</span>
       <span class="meta"><b>${esc(g.title)}</b><small>${g.done} / ${g.total} · ${esc(g.id)}</small>
-      <div class="bar"><i style="width:${(100 * g.done) / Math.max(1, g.total)}%"></i></div></span></button>`;
+      ${g.mix ? mixHtml(g.mix) : `<div class="bar"><i style="width:${(100 * g.done) / Math.max(1, g.total)}%"></i></div>`}</span></button>`;
   const sections = [...new Set(c.groups.map((g) => g.section))];
-  $("#unitGrid").innerHTML = `<div class="seg cat-tabs">${tabs}</div>` + sections.map((sec) =>
+  const draft = `<div class="race-draft">${mixHtml(raceMix(c))}<button class="btn quiet" data-draft-race="${esc(c.id)}"
+    title="ШІ озвучить вашим голосом усі репліки раси, де ще немає ні вашого дубля, ні ШІ-варіанта">✨ ШІ-чернетка раси…</button></div>`;
+  $("#unitGrid").innerHTML = `<div class="seg cat-tabs">${tabs}</div>${draft}` + sections.map((sec) =>
     `<div class="pop-group">${esc(sec)}</div><div class="pop-grid">${c.groups.filter((g) => g.section === sec).map(card).join("")}</div>`).join("");
 }
 
@@ -71,6 +76,8 @@ $("#unitBtn").onclick = () => toggleUnitPopover();
 $("#unitPopover").onclick = (e) => {
   const tab = e.target.closest("[data-cat]");
   if (tab) { popCat = tab.dataset.cat; return renderUnitGrid(); }
+  const dr = e.target.closest("[data-draft-race]");
+  if (dr) { toggleUnitPopover(false); return openDraft(dr.dataset.draftRace, "race"); }
   const c = e.target.closest("[data-unit]");
   if (c) { toggleUnitPopover(false); openUnit(c.dataset.unitCat, c.dataset.unit); }
   else if (e.target.id === "unitPopover") toggleUnitPopover(false);

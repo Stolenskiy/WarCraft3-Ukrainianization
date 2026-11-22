@@ -122,3 +122,27 @@ def ai_cancel(c: Ctx):
 @api
 def ai_events(c: Ctx):
     return studio(c.svc).events(int(c.query.get("after", 0)))
+
+
+@route("GET", "/api/ai/draft")
+@api
+def ai_draft_plan(c: Ctx):
+    q = c.query
+    return studio(c.svc).draft_plan(q["cid"], q.get("gid") or None, q.get("engine") or None)
+
+
+@route("POST", "/api/ai/draft")
+@api
+def ai_draft(c: Ctx):
+    ai, d = studio(c.svc), c.data
+    res = ai.draft(d["cid"], d.get("gid") or None, d.get("engine") or None, bool(d.get("approve")))
+    if res["queued"]:
+        ai.queue.start()
+    return res
+
+
+@route("POST", "/api/ai/draft/cancel")
+@api
+def ai_draft_cancel(c: Ctx):
+    d = c.data
+    return studio(c.svc).draft_cancel(d.get("cid"), d.get("gid"), d.get("batch"))

@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="/static/css/ai-gen.css">
 <link rel="stylesheet" href="/static/css/ai-rank.css">
 <link rel="stylesheet" href="/static/css/enhance.css">
+<link rel="stylesheet" href="/static/css/ai-draft.css">
 </head>
 <body>
 <header class="top">
@@ -30,7 +31,7 @@
   <button id="unitBtn" class="unit-btn" title="Обрати юніт">
     <span class="avatar" id="unitAvatar"></span>
     <span class="unit-btn-text"><b id="unitTitle">…</b>
-      <small><span id="unitSub"></span><span class="unit-prog-t" title="Затверджено по всій расі"> · <span id="overallName"></span> <b id="overallNum"></b></span></small></span>
+      <small><span id="unitSub"></span><span id="unitMix" class="unit-mix"></span><span class="unit-prog-t" title="Затверджено по всій расі"> · <span id="overallName"></span> <b id="overallNum"></b></span></small></span>
     <span class="bar unit-prog" aria-hidden="true"><i id="overallBar"></i></span>
     <span class="chev">▾</span>
   </button>
@@ -64,6 +65,7 @@
       <button role="tab" id="tabProc" aria-selected="false" aria-controls="paneProc" tabindex="-1">Обробка <small id="procTag"></small></button>
     </div>
     <section class="pane on" id="paneCues" role="tabpanel" aria-labelledby="tabCues">
+      <div class="draft-bar" id="draftBar"></div>
       <div class="seg" id="filter">
         <button data-f="all" class="on">Усі</button>
         <button data-f="todo">Залишилось</button>

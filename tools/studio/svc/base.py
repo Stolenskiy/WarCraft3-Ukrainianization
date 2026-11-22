@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import threading
+from collections import Counter
 from pathlib import Path
 
 from .. import ai as ai_mod
@@ -99,6 +100,13 @@ class Base:
         st = self.store(cid).data["groups"].get(gid, {})
         return sum(1 for ln in lines if st.get(ln.id, {}).get("approved") or st.get(ln.id, {}).get("original")), len(lines)
 
+    def voice_mix(self, cid: str, gid: str) -> dict:
+        """Прогрес «живі / ШІ / оригінал» групи (`ai.voice_kind`): ai включає ai_game (ШІ обрано для гри), orig — kept (залишено свідомо)."""
+        stems, st = ai_mod.ai_stems(cid, gid), self.store(cid).data["groups"].get(gid, {})
+        n = Counter(ai_mod.voice_kind(st.get(ln.id), ln.stem in stems) for ln in self.lines(cid, gid))
+        return {"live": n["live"], "ai": n["ai"] + n["ai_game"], "orig": n["orig"] + n["kept"], "ai_game": n["ai_game"],
+                "kept": n["kept"], "total": sum(n.values())}
+
     def catalogs_json(self) -> list[dict]:
         with self.lock:
             out = []
@@ -107,7 +115,7 @@ class Base:
                 for g in self.groups(cid):
                     done, total = self.progress(cid, g.id)
                     gs.append({"id": g.id, "title": g.title, "section": g.section, "traits": g.traits,
-                               "done": done, "total": total})
+                               "done": done, "total": total, "mix": self.voice_mix(cid, g.id)})
                 out.append({"id": cid, "title": c.title, "groups": gs})
             return out
 
