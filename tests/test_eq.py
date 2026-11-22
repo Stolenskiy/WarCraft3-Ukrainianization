@@ -117,6 +117,19 @@ def test_reexport_group(svc):
     assert svc.reexport_group(CID, "grunt")["done"] == []
 
 
+def test_stale_game_files(svc):
+    svc.add_take(CID, GID, LID, wav_bytes())
+    line = svc.approve(CID, GID, LID, "peonyes1.take1.wav")
+    assert line["stale"] is False and svc.eq_json(CID, GID)["stale"] == 0
+    svc.eq_assign(CID, GID, "orc-tauren")                                   # змінили EQ → файл у грі застарів
+    assert svc.eq_json(CID, GID)["stale"] == 1
+    assert svc.group_json(CID, GID)["lines"][0]["stale"] is True
+    r = svc.reexport_group(CID, GID)
+    assert r["lines"][0]["stale"] is False and svc.eq_json(CID, GID)["stale"] == 0
+    svc.set_settings({"denoise": True})                                     # змінили обробку → знову застарів
+    assert svc.eq_json(CID, GID)["stale"] == 1
+
+
 def test_eq_api(api):  # noqa: F811
     code, d = api(f"/api/eq?cid={CID}&gid={GID}")
     assert code == 200 and d["selected"] == "orc-peon" and len(d["profiles"]) >= 20

@@ -59,9 +59,9 @@ function renderCardHtml(newFile) {
         ${p.ua_custom && p.ua_hint && p.ua_hint !== p.ua ? `<button class="linkish" id="resetText">повернути «${esc(p.ua_hint)}»</button>` : ""}</div>
       ${p.direction ? `<div class="direction"><b>Як грати</b>${esc(p.direction)}</div>` : ""}
       ${p.original ? `<div class="approved-banner orig"><span>♪</span><span class="grow">Залишено оригінал (${p.original.lang.toUpperCase()}) — переозвучення не потрібне → <code>game-files/${esc(p.game_rel)}</code></span>
-        <button class="btn quiet" id="playGame">▶ Як у грі</button><button class="btn quiet" id="clearOrig">Скасувати</button></div>` : ""}
-      ${p.approved ? `<div class="approved-banner"><span>✓</span><span class="grow">У грі — <b>Дубль ${apprTake ? apprTake.n : "?"}</b> → <code>game-files/${esc(p.game_rel)}</code></span>
-        <button class="btn quiet" id="playGame">▶ Як у грі</button><button class="btn quiet" id="unapprove">Скасувати вибір</button></div>` : ""}
+        <button class="btn quiet" id="playGame" title="Грає файл, що зараз лежить у грі">▶ Файл у грі</button><button class="btn quiet" id="clearOrig">Скасувати</button></div>` : ""}
+      ${p.approved ? `<div class="approved-banner"><span>✓</span><span class="grow">У грі — <b>Дубль ${apprTake ? apprTake.n : "?"}</b> → <code>game-files/${esc(p.game_rel)}</code>${p.stale ? ` <b class="stale-chip" title="Файл у грі зроблено з іншим EQ чи обробкою — оновіть у вкладці «Обробка»">файл застарів</b>` : ""}</span>
+        <button class="btn quiet" id="playGame" title="Грає файл, що зараз лежить у грі">▶ Файл у грі</button><button class="btn quiet" id="unapprove">Скасувати вибір</button></div>` : ""}
     </div></div>
 
     <div class="rec-zone">

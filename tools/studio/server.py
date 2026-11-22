@@ -28,7 +28,8 @@ API:
   GET  /api/preview?cid=&gid=&lid=&file=     «Як у грі» для будь-якого дубля: wav, зібраний тим самим
                                              ланцюжком і налаштуваннями, що й копія для гри (кеш preview-cache/)
   POST /api/open-dir  {cid,gid}                    відкрити теку game-files у Finder
-  GET  /api/eq?cid=&gid=                     {selected, default, profiles:[{id,builtin,name,enabled,gain_db,bands}]}
+  GET  /api/eq?cid=&gid=                     {selected, default, stale, profiles:[{id,builtin,name,enabled,gain_db,bands}]}
+                                             stale = скільки обраних файлів гри зроблено з іншим EQ/обробкою
   POST /api/eq/profile {cid,gid,profile,id?,assign?}  створити (без id) / оновити власний профіль
   POST /api/eq/delete {cid,gid,id}                 видалити власний профіль (пресети — ні)
   POST /api/eq/assign {cid,gid,profile_id}         профіль групи (null → типовий)

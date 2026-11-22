@@ -10,8 +10,10 @@ class EqMixin:
         with self.lock:
             self.groups(cid)
             sel = self.eq.effective_id(cid, gid)
+            st = self.store(cid)
+            stale = sum(self.is_stale(cid, gid, st.entry(gid, ln.id)) for ln in self.lines(cid, gid))
             return {"selected": sel, "default": eq_mod.default_id(cid, gid, self.eq.presets),
-                    "profiles": self.eq.listing()}
+                    "profiles": self.eq.listing(), "stale": stale}
 
     def _eq(self, fn, *a):
         try:
@@ -53,6 +55,7 @@ class EqMixin:
                 if not src.exists() or not export_take(src, self.game_path(ln), self._export_filters(cid, gid, t, trim, ln)):
                     failed.append(ln.id)
                     continue
+                t["game_hash"] = self._game_hash(cid, gid, t, trim)
                 st.log(gid, ln.id, f"обробку (EQ «{prof}») застосовано до дубля {take_no(t['file'])}")
                 done.append(ln.id)
             if done:

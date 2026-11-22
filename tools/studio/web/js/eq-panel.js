@@ -74,7 +74,7 @@ function eqRenderInner() {
       ${own && dirty ? `<button class="ghost" id="eqUpdate">Оновити профіль</button>` : ""}
       ${own ? `<button class="ghost danger" id="eqDel">Видалити</button>` : ""}
     </div>
-    <button class="ghost wide" id="eqReexport" title="Перезаписати файли для гри з поточним EQ">Застосувати до обраних дублів</button>
+    <button class="ghost wide ${EQ.data.stale ? "warn" : ""}" id="eqReexport" title="Перезаписати обрані файли для гри з поточним EQ і обробкою">Оновити файли гри${EQ.data.stale ? ` (${EQ.data.stale})` : ""}</button>
     <p class="eq-hint">${EQ.data.selected === EQ.id ? "" : "Профіль для гри — «" + esc((P.find((p) => p.id === EQ.data.selected) || {}).name) + "». "}${P.find((p) => p.id === EQ.id).builtin ? "Пресет лише для читання: правки зберігайте як новий профіль. " : ""}Зміни чути одразу; у файли для гри потрапляють після застосування.</p>`;
   eqCurve();
 }
@@ -88,7 +88,17 @@ export async function eqLoad() {
   if (my !== eqLoadSeq) return;
   EQ.id = EQ.data.selected; EQ.naming = false; EQ.bypass = false;
   EQ.prof = eqClone(eqPlain(EQ.data.profiles.find((p) => p.id === EQ.id)));
-  eqRender(); eqRewire();
+  eqRender(); eqRewire(); eqStaleSync();
+}
+
+/** Позначки «файл застарів» у репліках групи (після зміни призначеного EQ сервер знає, що файли гри відстали). */
+async function eqStaleSync() {
+  try {
+    const g = await getJSON(`/api/group/${encodeURIComponent(S.cat)}/${encodeURIComponent(S.unit)}`), by = Object.fromEntries(g.lines.map((l) => [l.id, l.stale]));
+    let changed = false;
+    for (const p of S.phrases) if (p.id in by && !!p.stale !== by[p.id]) { p.stale = by[p.id]; changed = true; }
+    if (changed) renderCard();
+  } catch { /* позначка необовʼязкова */ }
 }
 
 async function eqCommit(path, body, msg) {  // відповідь — новий стан /api/eq
@@ -97,6 +107,7 @@ async function eqCommit(path, body, msg) {  // відповідь — новий
     EQ.id = EQ.data.saved_id || EQ.data.selected; EQ.naming = false;
     EQ.prof = eqClone(eqPlain(EQ.data.profiles.find((p) => p.id === EQ.id)));
     eqRender(); eqRewire(); if (msg) toast(msg);
+    eqStaleSync();
     return true;
   } catch (e) { toast(String(e.message || e), true); return false; }
 }
@@ -149,7 +160,8 @@ async function eqReexport() {
     const r = await post("/api/eq/reexport", { cid: S.cat, gid: S.unit });
     const byId = Object.fromEntries(r.lines.map((l) => [l.id, l]));
     S.phrases = S.phrases.map((p) => byId[p.id] || p);
-    renderCues(); renderCard();
+    EQ.data.stale = r.lines.filter((l) => l.stale).length;
+    renderCues(); renderCard(); eqRender();
     toast(r.done.length ? `EQ застосовано до ${r.done.length} дубл. ${r.failed.length ? `(помилок: ${r.failed.length})` : ""}` : "Немає обраних дублів", !r.done.length);
   } catch (e) { toast(String(e.message || e), true); }
 }

@@ -16,3 +16,5 @@
 .eq-hint { margin: 0; color: var(--muted); font-size: 11px; }  /* --muted на --panel-2 ≈ 5.6:1 */
 .eq-chip { position: absolute; right: 6px; bottom: 6px; z-index: 3; font: 600 11px/1 var(--font); padding: 3px 8px; border-radius: 99px; border: 1px solid var(--faint); background: transparent; color: var(--muted); cursor: pointer; }
 .eq-chip.on { border-color: var(--gold); color: var(--gold); background: rgba(240, 164, 65, .12); }
+.ghost.wide.warn { color: var(--gold); border-color: rgba(240,164,65,.5); }
+.stale-chip { color: var(--gold); font-size: 12px; font-weight: 600; margin-left: 6px; }

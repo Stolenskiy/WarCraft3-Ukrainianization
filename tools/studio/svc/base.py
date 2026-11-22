@@ -128,7 +128,7 @@ class Base:
                 "ua_custom": e["ua_text"] is not None, "ua_hint": ln.ua_hint, "direction": ln.direction,
                 "approved": e["approved"], "original": e["original"], "orig_hint": cat_mod.looks_nonverbal(
                     ln.no_speech, e["ua_text"] if e["ua_text"] is not None else ln.ua_hint, ln.ru),
-                "game_exists": self.game_path(ln).exists(),
+                "game_exists": self.game_path(ln).exists(), "stale": self.is_stale(cid, gid, e),
                 "takes": takes, "ai": ai_mod.list_ai(cid, gid, ln.stem), "history": e["history"][-50:]}
 
     def group_json(self, cid: str, gid: str) -> dict:

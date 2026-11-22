@@ -80,12 +80,24 @@ class ExportMixin:
             st.log(gid, lid, msg)
             return self._done(cid, gid, ln)
 
+    def _game_hash(self, cid: str, gid: str, t: dict, auto_trim: bool | None = None) -> str:
+        """Відбиток обробки без вирівнювання гучності: що б сьогодні дало «обрізання → … → EQ» для цього дубля."""
+        cfg = self.settings.get()
+        key = json.dumps([self._base_filters(cid, gid, t, auto_trim, cfg), cfg["loudness"]], sort_keys=True)
+        return hashlib.sha1(key.encode()).hexdigest()[:12]
+
+    def is_stale(self, cid: str, gid: str, e: dict) -> bool:
+        """Файл у грі зроблено з іншою обробкою, ніж діє зараз (старі записи без відбитка — не застарілі)."""
+        t = next((x for x in e["takes"] if x["file"] == e["approved"]), None) if e["approved"] else None
+        return bool(t and t.get("game_hash") and t["game_hash"] != self._game_hash(cid, gid, t))
+
     def _write_game(self, cid: str, gid: str, t: dict, ln: Line, auto_trim: bool | None = None) -> None:
         """Записати копію дубля для гри (увесь ланцюжок _export_filters). Невдача → StudioError, старий файл гри
         лишається; сира копія — лише коли ffmpeg взагалі немає."""
         src, dst = self.take_path(cid, gid, t), self.game_path(ln)
         dst.parent.mkdir(parents=True, exist_ok=True)
         if export_take(src, dst, self._export_filters(cid, gid, t, auto_trim, ln)):
+            t["game_hash"] = self._game_hash(cid, gid, t, auto_trim)
             return
         if shutil.which("ffmpeg") is None:
             shutil.copy2(src, dst)
