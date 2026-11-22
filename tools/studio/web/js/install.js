@@ -85,6 +85,10 @@ function instSync() {                          // стани груп (повн�
   go.textContent = (un ? "Прибрати" : "Встановити") + (tx ? " текст" + (n ? " + голос" : "") : "") + (n ? ` (${n})` : "");
   go.classList.toggle("warn", un); go.disabled = (!n && !tx) || textBlocks() && !tx || Inst.busy;
   go.title = textBlocks() ? "Спершу перегляньте план тексту (або зніміть «Текст»)" : "";
+  const hint = $("#installHint");             // причина неактивної кнопки — видимо, не лише в title
+  hint.classList.toggle("need", !un && textBlocks());
+  hint.textContent = !un && textBlocks() ? "Крок 1: натисніть «Показати план тексту» (у гру нічого не пишеться) або зніміть «Текст». Згода не потрібна."
+    : "Позначте, що саме. Оригінали й симлінки повертаються з бекапу.";
 }
 
 async function instLoad(keep) {                   // keep = {open: [data-key], off: [rel]} — стан дерева переживає перерахунок

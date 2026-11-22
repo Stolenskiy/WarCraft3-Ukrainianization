@@ -164,12 +164,14 @@ def test_install_modal_text_checkbox_dry_run(page, tmp_path, monkeypatch):  # no
     pg.wait_for_selector("#txTarget")
     assert pg.input_value("#txTarget") == "classic-1.31" and "визначено" in pg.inner_text("#installText")
     assert pg.is_disabled("#installGo") and "план тексту" in pg.get_attribute("#installGo", "title")   # без плану запис заблоковано
+    assert "Показати план тексту" in pg.inner_text("#installHint") and "need" in pg.get_attribute("#installHint", "class")   # причина видима
     pg.click("#txPlan")
     pg.wait_for_selector(".inst-sum")
     sm = pg.inner_text(".inst-sum")
     assert "abcdef0123" in sm and "нових 2" in sm and "маркерів додано 42" in sm and str(game) in sm
     assert not (game / "Units").exists()                                              # сухий прогін нічого не записав
     assert pg.is_enabled("#installGo") and "Встановити текст" in pg.inner_text("#installGo")
+    assert "Позначте" in pg.inner_text("#installHint")
     pg.click("#installGo")
     pg.wait_for_selector("#toast >> text=Текст: встановлено файлів 2")
     assert (game / "Units/OrcUnitStrings.txt").is_file() and (game / "Backups/ua-text/manifest.json").is_file()
