@@ -17,7 +17,7 @@ from pathlib import Path
 
 DEFAULT_SETTINGS = {"auto_trim": True, "denoise": False, "loudness": True}
 
-# Тиша на краях (поріг −45 дБ RMS) — те саме, що рахує voiceSpan у app.js.
+# Тиша на краях (поріг −45 дБ RMS) — те саме, що рахує voiceSpan у web/js/wave.js.
 AUTO_TRIM = ("silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.08,areverse,"
              "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.12,areverse")
 # Помірне шумоговорення: afftdn гасить стаціонарний шум не більше ніж на 10 дБ (тож «водянистих»

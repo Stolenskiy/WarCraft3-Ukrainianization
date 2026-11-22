@@ -7,11 +7,11 @@
 ## Архітектура
 
 ```text
-web/ (index.html, app.css, app.js)    UI: vanilla JS, без збірки й залежностей
+web/ (index.html, js/*.js, css/*.css) UI: нативні ES-модулі, без збірки й залежностей (карта — «Модулі»)
         │  HTTP JSON + wav (лише 127.0.0.1, POST вимагає X-Studio: 1)
-server.py                             маршрути → методи Service; API описано в docstring
+server.py + routes/*.py               HTTP-обгортка + реєстр маршрутів (`@route`) → методи Service; API — docstring server.py
         │
-core.py   Service + Store             стан, дублі, затвердження, журнал; інваріанти — в docstring
+core.py → svc/*.py   Service + Store  стан, дублі, затвердження, журнал; інваріанти — docstring core.py
 proc.py                               обробка для гри: налаштування, фільтри, гучність, кеш «Як у грі»
         │
 catalog.py  Catalog → Group → Line    ЗВІДКИ репліки: референси, транскрипти, voice bible
@@ -43,7 +43,7 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 ніколи не змінюється — обрізання застосовує лише експорт у гру: `Service._export_filters` ставить
 `atrim=…,asetpts=PTS-STARTPTS` ПЕРШИМ, потім авто-обрізання тиші (якщо ввімкнене), потім решту обробки.
 Зміна `trim` затвердженого дубля одразу перекопіює файл у `game-files`. API: `POST /api/trim
-{cid,gid,lid,file,start,end[,auto_trim]}` (`null,null` — скинути). UI: `mountTrim` у `app.js`;
+{cid,gid,lid,file,start,end[,auto_trim]}` (`null,null` — скинути). UI: `mountTrim` у `web/js/trim.js`;
 прослуховування дубля в студії теж іде в межах обрізання.
 
 ## Залишити оригінал
@@ -102,13 +102,13 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 | `test_original.py` | «Залишити оригінал»: байти, `.originals.json`, взаємовиключність із дублем, API, план встановлення | ~2 с |
 | `test_ai.py` | ШІ-варіанти: перелік/adopt/discard/безпека, схема json, конвеєр `aigen` з підмінним двигуном | ~5 с |
 | `test_install_voices.py` | `install_voices`: план/встановлення/відкат, матеріалізація симлінків юнітів (Mods байт-у-байт), API `/api/install*` | ~1 с |
-| `test_studio_e2e.py` | Chrome + фейковий мікрофон: запис, хвилі, вибір, кошик/undo, RU/EN, раси, індикатор перевантаження, вікно «Встановити в гру»; друкує покриття app.js і шлях скріншота | ~9 с |
+| `test_studio_e2e.py` | Chrome + фейковий мікрофон: запис, хвилі, вибір, кошик/undo, RU/EN, раси, індикатор перевантаження, вікно «Встановити в гру»; друкує покриття JS (сума по `/static/js/*`) і шлях скріншота | ~9 с |
 
 Аудіо гри в тестах і CI не потрібне. Нова поведінка → тест; покриття Python ≥ `fail_under`.
 
 ## Перевантаження мікрофона
 
-Під час запису відлік |x| ≥ 0.98 (`clipCheck` в `app.js`) червонить метр і показує «перевантаження» в панелі
+Під час запису відлік |x| ≥ 0.98 (`clipCheck` у `web/js/clip.js`) червонить метр і показує «перевантаження» в панелі
 запису (раз на дубль). Сервер при `add_take` рахує з wav (stdlib `wave`+`array`) `peak_db` і `clipped`
 (≥ 3 відліки |x| ≥ 0.98, `core.wav_peak`) і зберігає їх у дублі (`line_json.takes[]`; у старих дублів полів
 немає → `peak_db: null`, `clipped: false`). У рядку дубля — червоний бейдж із порадою, після збереження — тост.
@@ -141,7 +141,7 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 Автор `local` = власна `game-files/`. Пріоритет: рядок > юніт > раса > порядок `default`; перший, у кого Є файл, виграє; якщо явно
 обраного автора файла немає — наступний за `default` і позначка `fallback`. Без збереженого вибору `default = ["local"]`
 (поведінка як раніше). API: `GET /api/voices`, `POST /api/voices/choice`, `POST /api/voices/publish`, `GET /audio/voice/<автор>/<Units/…wav>`
-(лише файли з маніфесту з тим самим sha; решта 404); докладно — docstring `server.py`. UI: кнопка «Голоси спільноти» (порядок ↑↓,
+(лише файли з маніфесту з тим самим sha; решта 404); докладно — docstring `server.py`, маршрути — `routes/voices.py`. UI: кнопка «Голоси спільноти» (порядок ↑↓,
 публікація зі згодою) і `<select>` автора на рівнях раса / юніт / рядок у вікні встановлення, ▶ — прослухати. Публікація пропускає (і прибирає з пакета) оригінали з `game-files/.originals.json`, а `check_voices` падає, якщо опублікований FLAC збігається з таким оригіналом; обрані дублі з `source: "ai"` позначаються `"ai": true` у manifest.json і «ШІ» в UI. Публікація не запускає git —
 повертає команди. Тести: `tests/test_voices.py` (публікація, перевірка, вибір, встановлення суміші, API, traversal) і e2e `test_community_voices_flow`.
 
@@ -163,7 +163,7 @@ API: `line.ai = [{file, n, engine, cer, similarity, dur, style, adopted}]` у `/
 `GET /audio/ai/<cid>/<gid>/<file>` (лише файли зі списку репліки — шлях не будується з вводу);
 `POST /api/ai/adopt {cid,gid,lid,file}` КОПІЮЄ варіант у дублі: новий `takeN` (max+1) із `source:"ai"`, `engine`, `ai_file`
 у записі дубля — далі обрізання/темп/EQ/«Обрати для гри» як у будь-якого; `POST /api/ai/discard` ховає варіант
-(`discarded` у json, файл лишається). UI — `web/ai.js` + `ai.css` (хуки в `app.js`: `AI.mount` у `renderCard`,
+(`discarded` у json, файл лишається). UI — `web/js/ai.js` + `web/css/ai.css` (хуки: `AI.mount` у `renderCard` (`card.js`),
 `AI.cueMark` у `renderCues`, бейдж «ШІ» у `takeRow`): рядки з ▶, бейджем «ШІ», двигуном, схожістю/CER,
 «Оригінал → ШІ», «Мій дубль ↔ ШІ», «Взяти в дублі»; клавіші <kbd>1</kbd>–<kbd>3</kbd> слухати, <kbd>⇧</kbd>+цифра — A/B.
 Метрики: схожість = косинус x-vector WavLM (`microsoft/wavlm-base-plus-sv`) до власних дублів інших реплік; CER =
@@ -201,8 +201,8 @@ A/B «З EQ / Без EQ», «Зберегти як новий профіль», 
 відкриває теку першої репліки групи — якщо місії потребують іншого, винести це в Catalog.
 Додати тест у `tests/test_studio_core.py` (каталог з'являється, репліки вантажаться).
 
-**Нова дія** (напр. «інверсія фази»): метод у `Service` (під `self.lock`, лог у журнал,
-повертає `line_json`), маршрут у `server.py` (`actions`), кнопка в `app.js`, тест на інваріант.
+**Нова дія** (напр. «інверсія фази»): метод у міксині `svc/<тема>.py` (під `self.lock`, лог у журнал,
+повертає `line_json`), маршрут `@route` у `routes/<фіча>.py`, кнопка/обробник у `web/js/<фіча>.js`, тест на інваріант.
 
 ## API (маршрути)
 

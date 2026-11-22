@@ -228,6 +228,11 @@ def test_api_bad_requests(api):
     assert api("/api/nope", {})[0] == 404
     assert api("/nope")[0] == 404
     assert api("/static/../core.py")[0] == 404
+    assert api("/static/js/..%2f..%2fserver.py")[0] == 404                # вихід із web/js
+    assert api("/static/js/main.css")[0] == 404 and api("/static/css/main.js")[0] == 404   # розширення відповідає теці
+    code, js = api("/static/js/main.js")
+    assert code == 200 and b"window.__studio" in js
+    assert api("/static/css/base.css")[0] == 200
     assert api("/api/take?cid=units-orc&gid=peon&lid=peonyes1.wav", raw=b"not a wav")[0] == 400
 
 

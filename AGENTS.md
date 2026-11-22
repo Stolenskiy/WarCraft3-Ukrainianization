@@ -15,7 +15,9 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 | Task | Where |
 |---|---|
 | Studio architecture, data, extension points, pitfalls | `tools/studio/README.md` |
-| New processing step (ffmpeg chain) | `docs/runbooks/add-processing-step.md` |
+| New processing step (ffmpeg chain) | `docs/runbooks/add-processing-step.md` → `tools/studio/svc/export.py` |
+| New UI button / panel / feature | `tools/studio/web/js/<feature>.js` (entry `main.js`), `web/css/<feature>.css`; README «Модулі» |
+| New API route / Service action | `tools/studio/routes/<feature>.py` (`@route`) → `svc/<theme>.py` |
 | New line source / catalog (campaign, races) | `docs/runbooks/add-catalog.md` |
 | Studio UI test (Chrome, fake mic) | `docs/runbooks/studio-e2e-test.md` |
 | Publish / review a community voice pack | `docs/runbooks/release-voice-pack.md`, `docs/CONTRIBUTING.md` |
@@ -25,7 +27,7 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 | Character, texts, voice bible | `docs/voice-bible/README.md` |
 | Why things are the way they are | `docs/decisions/` (ADRs) |
 | Menus / maps / local install | `docs/ukrainian-ui-131.md`, `docs/ukrainian-maps.md`, `docs/install-local.md` |
-| Planned refactor of the studio | `docs/plans/modularize-studio.md` |
+| Why/how the studio was split into modules | `docs/plans/modularize-studio.md` (done) |
 
 ## Hard boundaries
 - Game folder `/Applications/Warcraft III Classic`: only via `make install-voices` (dry run by default; `APPLY=1` only with the
@@ -48,5 +50,6 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 ## Parallel work
 - One git worktree + branch per feature (`git worktree add ../wc3-wt-<name> -b feat/<name>`); never edit another worktree's files.
 - Keep a per-branch note in `docs/status/<branch>.md` (what is done / next / risks); it is folded into `docs/STATUS.md` at merge time.
-- Hot files (`app.js`, `app.css`, `core.py`, `server.py`): small, focused diffs; rebase on main before merging.
+- Studio is modular (no file > 300 lines, guarded by `tests/test_docs_sync.py`): one feature = one module in `web/js/`, `web/css/`, `routes/`, `svc/` —
+  parallel agents rarely touch the same file; hot spots are `web/js/card.js`, `web/js/main.js`, `svc/export.py`. Rebase on main before merging.
 - PR checklist: `.github/pull_request_template.md`. Agent-authored PRs: `docs/CONTRIBUTING.md` → «Для AI-агентів».

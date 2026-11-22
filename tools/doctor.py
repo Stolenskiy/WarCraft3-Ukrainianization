@@ -34,7 +34,7 @@ def checks() -> list[tuple[str, str, bool, str]]:
                 "" if ver == "3.11" else "make setup-dev" + (f"   (зараз {ver})" if ver else "")))
     out.append(("ffmpeg", "тести обробки, студія", True,
                 "" if shutil.which("ffmpeg") else "brew install ffmpeg   (Linux: apt install ffmpeg)"))
-    out.append(("node", "make lint (node --check app.js)", True,
+    out.append(("node", "make lint (node --check web/js/*.js)", True,
                 "" if shutil.which("node") else "brew install node   (Linux: apt install nodejs)"))
     chrome = CHROME_APP.exists() or any(shutil.which(c) for c in ("google-chrome", "google-chrome-stable", "chrome"))
     pw = bool(venv_py.exists() and _run(str(venv_py), "-c", "import playwright;print(1)") == "1")
