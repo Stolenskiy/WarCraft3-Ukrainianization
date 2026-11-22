@@ -60,3 +60,28 @@ def list_ai(cid: str, gid: str, stem: str, include_discarded: bool = False) -> l
 def ai_path(cid: str, gid: str, stem: str, name: str) -> Path | None:
     """Шлях до відомого ШІ-варіанта репліки; ім'я береться лише зі списку, не з довільного вводу."""
     return next((ai_dir(cid, gid) / v["file"] for v in list_ai(cid, gid, stem, True) if v["file"] == name), None)
+
+
+def ai_stems(cid: str, gid: str) -> set[str]:
+    """Стеми реплік групи, у яких є хоча б один видимий (не прихований) ШІ-варіант — один прохід теки (прогрес, чернетка)."""
+    d, out = ai_dir(cid, gid), set()
+    for p in d.glob("*.ai*.wav") if d.is_dir() else []:
+        m = AI_RE.match(p.name)
+        if m and m["stem"] not in out and (meta := read_sidecar(p)) is not None and not meta.get("discarded"):
+            out.add(m["stem"])
+    return out
+
+
+def voice_kind(e: dict | None, has_variant: bool) -> str:
+    """Чим озвучена репліка (живий запис — пріоритет): live — є власний дубль (обраний чи ні), ai_game — у грі ШІ-дубль,
+    kept — свідомо залишено оригінал, ai — лише ШІ (варіант чи ШІ-дубль, не обраний), orig — нічого (у грі ще оригінал)."""
+    e = e or {}
+    takes = [t for t in e.get("takes", []) if not t.get("deleted")]
+    appr = next((t for t in takes if t["file"] == e.get("approved")), None)
+    if appr is not None:
+        return "ai_game" if appr.get("source") == "ai" else "live"
+    if e.get("original"):
+        return "kept"
+    if any(t.get("source") != "ai" for t in takes):
+        return "live"
+    return "ai" if has_variant or takes else "orig"

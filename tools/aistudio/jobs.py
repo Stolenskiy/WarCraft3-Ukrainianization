@@ -145,7 +145,7 @@ class JobQueue:
         self._emit(rec, "state")
 
     # ------------------------------------------------------------ публічне API
-    def submit(self, cid: str, gid: str, lid: str, params, *, parent: str | None = None) -> dict:
+    def submit(self, cid: str, gid: str, lid: str, params, *, parent: str | None = None, draft: dict | None = None) -> dict:
         p = params if isinstance(params, GenParams) else GenParams.from_dict(params)
         config.require_consent()
         eng = self.engine_factory(p.engine)
@@ -161,6 +161,8 @@ class JobQueue:
                    "engine": eng.info.name, "license": eng.info.output_license, "parent": parent, "created": now(), "started": None,
                    "finished": None, "progress": {"done": 0, "total": p.n, "phase": "queued"}, "results": [], "error": None,
                    "warnings": warnings, "unsupported": unsupported, "attempts": 0}
+            if draft:
+                rec["draft"] = draft                               # ШІ-чернетка юніта/раси (draft.py): {batch, approve}
             self.jobs[rec["id"]] = rec
             self._save(rec)
             self.cv.notify_all()

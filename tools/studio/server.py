@@ -5,7 +5,8 @@
   - POST вимагає X-Studio: 1 (браузер не надішле його з чужого сайту без CORS) і, якщо є, Origin
     із тим самим хостом; тіло ≤ MAX_UPLOAD.
 API:
-  GET  /api/catalogs                         каталоги → групи з прогресом і характером
+  GET  /api/catalogs                         каталоги → групи з прогресом і характером; mix {live,ai,orig,ai_game,kept,total} —
+                                             «живі / ШІ / оригінал» (studio.ai.voice_kind; живий запис має пріоритет)
   GET  /api/group/<cid>/<gid>                усі репліки групи зі станом
   GET  /audio/<ref|ref-en|take|game|ai>/<cid>/<gid>/<name>   аудіо (лише відомі файли; ai — ШІ-варіанти з audio/ai/)
   POST /api/take?cid=&gid=&lid=   (тіло — wav)    новий дубль
@@ -61,6 +62,12 @@ API:
   GET  /api/ai/job?id=                       одне завдання
   POST /api/ai/cancel {id}                   скасувати (running: підпроцес двигуна убито)
   GET  /api/ai/events?after=<id>             події черги {id,ts,job,type state|progress|log,state}; UI опитує раз на 1–2 с
+  GET  /api/ai/draft?cid=[&gid=][&engine=]   план ШІ-чернетки раси / юніта (нічого не запускає): groups [{gid,title,todo:[lid],mix}],
+                                             todo, refs (обрані власні дублі раси), per_line і ahead (с), active (завдань чернетки в черзі)
+  POST /api/ai/draft {cid,gid?,engine?,approve}  ШІ-заглушки для реплік без власного дубля й без ШІ: завдання на репліку (n=1,
+                                             draft {batch,approve}) → {batch,queued,jobs,skipped}; approve — готовий варіант одразу
+                                             обрати для гри, лише якщо нічого не обрано й немає власного запису
+  POST /api/ai/draft/cancel {cid?,gid?,batch?}   скасувати активні завдання чернетки → {cancelled}
   GET  /api/enhance/status                   ШІ-очищення дублів (Sidon): state ready|missing_env|missing_model, ліцензія, розмір, jobs
   GET  /api/enhance/jobs                     завдання очищення: state, phase, done/total, results [{lid,file,new_file,gain_db,approved|error}], keys, eta
   POST /api/enhance {items:[{cid,gid,lid,file}],approve}   у чергу; результат — НОВІ дублі source "enhanced" (approve: замість обраного)

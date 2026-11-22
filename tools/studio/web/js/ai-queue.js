@@ -6,12 +6,15 @@ import { S } from "./state.js";
 import { toast } from "./toast.js";
 import { $, esc } from "./util.js";
 
-const Q = { jobs: [], at: Date.now(), prev: new Map(), last: 0, timer: null, ready: false, onLine: () => {} };
+const Q = { jobs: [], at: Date.now(), prev: new Map(), last: 0, timer: null, ready: false, onLine: () => {}, subs: [] };
+const MAX_ROWS = 12;                                     // ШІ-чернетка раси — сотні завдань: решта — одним рядком
 const active = () => Q.jobs.filter((j) => j.state === "queued" || j.state === "running");
 
 export const onLine = (fn) => { Q.onLine = fn; };
+/** Після кожного оновлення списку завдань: fn(jobs, prev) — prev: Map id → {state} до оновлення (ai-draft.js). */
+export const onJobs = (fn) => { Q.subs.push(fn); };
 
-const label = (j) => `${j.lid.replace(/\.wav$/, "")} · ${j.params.n} ${j.params.n === 1 ? "варіант" : "варіанти"}`;
+const label = (j) => `${j.draft ? "чернетка · " : ""}${j.lid.replace(/\.wav$/, "")} · ${j.params.n} ${j.params.n === 1 ? "варіант" : "варіанти"}`;
 const phaseUa = { queued: "у черзі", loading: "завантаження моделі", generating: "генерація", metrics: "перевірка (розпізнавання)" };
 
 /** «≈ 1 хв 05 с» / «≈ 40 с» / «ще трохи…» (оцінка вичерпалась, а двигун ще працює). */
@@ -47,12 +50,15 @@ export function render() {
   const last = act.reduce((m, j) => Math.max(m, leftOf(j) ?? 0), 0);
   $("#aiQueueTxt").textContent = `ШІ: ${run.length ? `${run.length} генерує` : ""}${run.length && wait ? " · " : ""}${wait ? `${wait} у черзі` : ""} · ${leftUa(last)}`;
   $("#aiQueueBar").style.width = `${Math.round(100 * (run[0] ? frac(run[0]) : 0))}%`;
-  $("#aiQueuePop").innerHTML = act.map((x) => `<div class="aiq-job" data-job="${esc(x.id)}"><span><b>${esc(label(x))}</b><br><small>${esc(x.engine)} · ${esc(stepUa(x))}
-    · ${esc(leftUa(leftOf(x)))}</small>${bar(x)}</span><button class="ghost" data-cancel="${esc(x.id)}" title="Скасувати завдання">Скасувати</button></div>`).join("");
+  const drafts = act.filter((j) => j.draft).length, more = act.length - MAX_ROWS;
+  $("#aiQueuePop").innerHTML = act.slice(0, MAX_ROWS).map((x) => `<div class="aiq-job" data-job="${esc(x.id)}"><span><b>${esc(label(x))}</b><br><small>${esc(x.engine)} · ${esc(stepUa(x))}
+    · ${esc(leftUa(leftOf(x)))}</small>${bar(x)}</span><button class="ghost" data-cancel="${esc(x.id)}" title="Скасувати завдання">Скасувати</button></div>`).join("")
+    + (more > 0 ? `<p class="aiq-more">… і ще ${more} у черзі · усе разом ${esc(leftUa(last))}</p>` : "")
+    + (drafts ? `<button class="ghost aiq-draft-cancel" data-draft-cancel title="Зупинити всі завдання ШІ-чернетки (готові варіанти лишаються)">Скасувати всю ШІ-чернетку · ${drafts}</button>` : "");
 }
 
 function finished(j, was) {
-  if (was === j.state) return;
+  if (was === j.state || j.draft) return;               // чернетка: один підсумковий тост на пакет (ai-draft.js)
   if (j.state === "done") toast(`ШІ: готово — ${label(j)} (${j.license})`, false, 6000);
   else if (j.state === "failed") toast(`ШІ: не вдалося — ${j.error || "помилка двигуна"}`, true, 10000);
   else if (j.state === "cancelled") toast("ШІ: завдання скасовано");
@@ -62,6 +68,7 @@ async function refresh() {
   Q.jobs = await getJSON("/api/ai/jobs");
   Q.at = Date.now();
   let touched = false;
+  const before = new Map(Q.prev);
   for (const j of Q.jobs) {
     const was = Q.prev.get(j.id), sig = `${j.state}:${j.progress.done}:${j.progress.phase}`;
     if (Q.ready) finished(j, was ? was.state : "queued");   // нове після старту — теж «було в черзі» (встигло завершитись між опитуваннями)
@@ -71,6 +78,7 @@ async function refresh() {
   Q.ready = true;
   render();
   if (touched) Q.onLine();
+  Q.subs.forEach((fn) => fn(Q.jobs, before));
 }
 
 async function tick() {
@@ -88,10 +96,13 @@ export function kick() { clearTimeout(Q.timer); Q.timer = setTimeout(tick, 50); 
 
 $("#aiQueueBtn").onclick = () => { const p = $("#aiQueuePop"); p.hidden = !p.hidden; };
 document.addEventListener("click", async (e) => {      // «Скасувати» — у спливному списку черги і в прогресі репліки
-  const b = e.target.closest("#aiQueuePop [data-cancel], #aiLineProg [data-cancel]");
+  const b = e.target.closest("#aiQueuePop [data-cancel], #aiLineProg [data-cancel], [data-draft-cancel]");
   if (!b) return;
   b.disabled = true;
-  try { await post("/api/ai/cancel", { id: b.dataset.cancel }); } catch (er) { toast(er.message, true); }
+  try {
+    if (b.dataset.cancel) await post("/api/ai/cancel", { id: b.dataset.cancel });
+    else toast(`ШІ-чернетку зупинено: скасовано завдань ${(await post("/api/ai/draft/cancel", {})).cancelled}`);
+  } catch (er) { toast(er.message, true); }
   kick();
 });
 document.addEventListener("click", (e) => { if (!e.target.closest("#aiQueue")) $("#aiQueuePop").hidden = true; });

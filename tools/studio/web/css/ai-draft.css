@@ -1,0 +1,32 @@
+/* ШІ-чернетка юніта / раси (ai-draft.js): смуга «живі / ШІ / оригінал», рядок у бічній панелі, меню юнітів, діалог. */
+#paneCues { grid-template-rows: auto auto minmax(0, 1fr); }
+.mix { display: grid; gap: 3px; min-width: 0; }
+.mixbar { display: flex; height: 4px; border-radius: 99px; background: var(--raise); overflow: hidden; }
+.mixbar i { display: block; height: 100%; transition: width .3s; }
+.mixbar .m-live { background: var(--ok); }
+.mixbar .m-ai { background: var(--ai, #9a7ee0); }
+.mix-t { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.mix-t b { font-weight: 600; }
+.mix-t .m-live { color: var(--ok); }
+.mix-t .m-ai { color: var(--ai, #9a7ee0); }
+.unit-mix { font-variant-numeric: tabular-nums; }
+
+.draft-bar { display: flex; align-items: center; gap: 10px; margin: 12px 12px 0; }
+.draft-bar .mix { flex: 1; }
+.draft-bar .btn { padding: 5px 10px; font-size: 12px; white-space: nowrap; }
+
+.race-draft { display: flex; align-items: center; gap: 12px; margin: -4px 0 14px; }
+.race-draft .mix { flex: 1; max-width: 420px; }
+.unit-card .mix { margin-top: 4px; }
+
+.draft-box { width: min(560px, 100%); }
+.draft-box .modal-body { display: grid; gap: 10px; }
+.draft-box .modal-body p { margin: 0; }
+.draft-scope { margin: 0; }
+.draft-mix .mix { max-width: 360px; }
+.draft-eta { color: var(--text); font-size: 13px; }
+.draft-box .ai-chk small { color: var(--faint); }
+
+.aiq-pop { max-height: 70vh; overflow-y: auto; }
+.aiq-more { margin: 2px 0 0; color: var(--faint); font-size: 12px; }
+.aiq-draft-cancel { font-size: 12px; }
