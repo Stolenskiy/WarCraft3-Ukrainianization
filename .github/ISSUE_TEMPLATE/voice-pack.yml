@@ -3,7 +3,7 @@ description: Хочу додати свій голос (voices/<нік>/) або
 labels: [voices]
 body:
   - type: markdown
-    attributes: { value: "Лише власний голос, CC BY 4.0, без аудіо Blizzard. Див. docs/CONTRIBUTING.md та voices/LICENSE.md." }
+    attributes: { value: "Лише власний голос; живі записи CC BY 4.0, ШІ-репліки CC BY-NC 4.0; без аудіо Blizzard. Див. docs/CONTRIBUTING.md та voices/LICENSE.md." }
   - type: input
     id: nick
     attributes: { label: Нікнейм (a-z0-9-, 2–32) }
@@ -13,7 +13,7 @@ body:
     attributes:
       label: Підтвердження
       options:
-        - { label: "Це мій власний голос, я погоджуюсь на ліцензію CC BY 4.0", required: true }
+        - { label: "Це мій власний голос, я погоджуюсь на CC BY 4.0 (живі записи) і CC BY-NC 4.0 (ШІ-репліки)", required: true }
         - { label: "У пакеті немає аудіо гри; ШІ-репліки позначені", required: true }
   - type: textarea
     id: scope

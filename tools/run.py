@@ -13,6 +13,7 @@
   publish-voice --author НІК --consent
   check-voices | transcripts-local | refs
   game-root [ШЛЯХ]        показати або зберегти теку гри (data/local/settings.json)
+  ai-generate --line К/Г/Р [--params JSON] | ai-setup [--accept-license] | ai-status | ai-consent --accept   ШІ-студія
   docker [аргументи]      `docker compose up --build` (студія в контейнері, http://127.0.0.1:8765)
 
 Лише stdlib. Команди — ті самі Python-скрипти/pytest, що й у Makefile; інтерпретатор — .venv (bin або Scripts).
@@ -36,9 +37,10 @@ CORE_TESTS_A = ["tests/test_studio_core.py", "tests/test_eq.py", "tests/test_ins
 CORE_TESTS_B = ["tests/test_studio_proc.py", "tests/test_voices.py"]
 # нове (кросплатформа) — теж швидке, входить у verify
 CORE_TESTS_C = ["tests/test_gameconf.py", "tests/test_windows.py", "tests/test_run.py",
-                "tests/test_textpack.py", "tests/test_install_pack.py"]
+                "tests/test_textpack.py", "tests/test_install_pack.py", "tests/test_aistudio.py"]
 
 
+AI_COMMANDS = ("ai-generate", "ai-setup", "ai-status", "ai-consent")
 DOCKER_DIRS = ("audio", "data/studio", "data/local", "game-files", "voices", "reference", "reference-en")
 
 
@@ -208,6 +210,10 @@ def cmd_game_root(a) -> int:
     return 0 if d["valid"] else 1
 
 
+def cmd_ai(a) -> int:     # лише для --help; справжній розбір аргументів — у main() (ai-* передаються як є)
+    return _call([*py(), "tools/ai_cli.py", a.cmd[3:]])
+
+
 def cmd_docker(a) -> int:
     if not shutil.which("docker"):
         print("Docker не знайдено. Встановіть Docker Desktop (або docker engine + compose plugin) і запустіть його.")
@@ -257,11 +263,17 @@ def build_parser() -> argparse.ArgumentParser:
     add("transcripts-local", cmd_transcripts, "тексти оригіналів → data/local/")
     add("refs", cmd_refs, "оригінали з гри → reference-en/")
     add("game-root", cmd_game_root, "показати/задати теку гри").add_argument("path", nargs="?")
+    for name, h in (("ai-generate", "ШІ-варіанти: --line каталог/група/репліка --params JSON"), ("ai-setup", "Fish S2-Pro: venv + ваги (після згоди з ліцензією)"),
+                    ("ai-status", "готовність ШІ-студії"), ("ai-consent", "згода «це мій власний голос» (--accept)")):
+        add(name, cmd_ai, h)
     add("docker", cmd_docker, "студія в Docker").add_argument("args", nargs="*")
     return ap
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] in AI_COMMANDS:         # ШІ-студія: власний розбір аргументів у tools/aistudio/cli.py
+        return _call([*py(), "tools/ai_cli.py", argv[0][3:], *argv[1:]])
     a = build_parser().parse_args(argv)
     return a.fn(a)
 

@@ -1,6 +1,7 @@
 """Перевірка пакетів голосів у voices/ (запускається в `make check`, тобто в CI на кожному PR).
 
 Для кожного voices/<автор>/:
+  * ШІ-репліки ("ai": true) у manifest.json мають engine і license двигуна (Fish: CC BY-NC 4.0);
   * voice.json: id = назва теки (a-z0-9-, 2–32), license = CC BY 4.0, consent = true, name без «@»; ніде немає «@»;
   * лише voice.json, manifest.json, (необов'язково) LICENSE.md і units/<раса>/<юніт>/<файл>.flac (інше — «сторонній файл»);
   * кожен FLAC: 22050 Hz, mono, 16 біт, ≤ 1 МБ, 0.2–30 с, без метаданих, є в manifest.json зі збіжним sha256;
@@ -101,6 +102,21 @@ def _author(root: Path, top: Path, known: set[str]) -> list[str]:
     return e
 
 
+def _entry_license(ent: dict, who: str) -> list[str]:
+    """ШІ-репліки несуть ліцензію двигуна (Fish → CC BY-NC 4.0; невідомий двигун → NC); живі — CC BY 4.0 (за замовчуванням)."""
+    if ent.get("ai") is True:
+        eng, lic = ent.get("engine"), ent.get("license")
+        if not isinstance(eng, str) or not eng:
+            return [f"{who}: ШІ-репліка без поля engine у manifest.json"]
+        want = voices.engine_license(eng)
+        if lic != want:
+            return [f"{who}: ШІ-репліка (двигун {eng}) має license {want!r}, а не {lic!r}"]
+        return []
+    if "license" in ent and ent["license"] != voices.LICENSE:
+        return [f"{who}: license у записі без ai має бути {voices.LICENSE} або відсутнім"]
+    return []
+
+
 def _original(root: Path, p: Path, rel: str, pre: str) -> list[str]:
     """Заборона публікувати оригінал Blizzard: збіг PCM з файлом із game-files/.originals.json (якщо він є локально)."""
     try:
@@ -164,6 +180,7 @@ def _flac(top: Path, p: Path, rel: str, man: dict, known: set[str], pre: str) ->
             e.append(f"{who}: peak_db у manifest.json має бути числом")
         if "ai" in ent and ent["ai"] is not True:
             e.append(f"{who}: ai у manifest.json має бути true або відсутнім")
+        e += _entry_license(ent, who)
         if not re.fullmatch(r"[0-9a-f]{64}", str(ent.get("sha256"))):
             e.append(f"{who}: некоректний sha256 у manifest.json")
     return e

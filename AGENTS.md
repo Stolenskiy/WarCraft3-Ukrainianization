@@ -20,6 +20,7 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 | Studio UI test (Chrome, fake mic) | `docs/runbooks/studio-e2e-test.md` |
 | Publish / review a community voice pack | `docs/runbooks/release-voice-pack.md`, `docs/CONTRIBUTING.md` |
 | ANY write into the game folder | `.claude/skills/game-change/SKILL.md` |
+| AI voice studio backend / add an AI engine | `docs/plans/ai-studio-ui.md`, `docs/runbooks/add-ai-engine.md`, `tools/aistudio/` |
 | Terms UA ↔ code (дубль=take, репліка=line…) | `docs/GLOSSARY.md` |
 | Expensive-to-rediscover facts (CASC, symlinks, Whisper, macOS) | `docs/gotchas.md` |
 | Character, texts, voice bible | `docs/voice-bible/README.md` |
@@ -41,6 +42,10 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
   No attribution lines (no «Co-Authored-By», no «Generated with»). Push only with `git push origin`; never force-push main.
 - Never edit `.claude/settings.json` and never propose changes to it (owner's rule). Automation goes through git hooks, CI, make targets.
 - Clone only your own voice. No actor voices, no local TTS «for a try» (see `docs/decisions/0003-*`).
+- AI voice (`tools/aistudio/`): references are ONLY the user's own takes under `audio/self-recorded/<catalog>/` (any own take, user's choice; default = approved) —
+  never `reference*/` or actor audio (`refs.py`, tested); generation needs `ai_consent` («це мій власний голос»); every AI output is labelled «ШІ».
+  Cloud engines: API keys only in `data/local/settings.json`/env (`make guard` blocks keys), explicit per-engine upload consent.
+- Licences: live recordings in voice packs CC BY 4.0; AI lines CC BY-NC 4.0 (`"ai": true, "license", "engine"` in manifest; engine metadata decides, unknown = NC) — ADR 0007.
 - No new dependencies without need: studio = stdlib + ffmpeg, UI = vanilla JS, no build step.
 
 ## Workflow

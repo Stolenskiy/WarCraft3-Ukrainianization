@@ -1,8 +1,8 @@
 """Голоси спільноти: публікація власних записів, вибір «чий голос» і декодування для гри.
 
-Пакет автора (у git, ліцензія CC BY 4.0):
+Пакет автора (у git): живі записи — CC BY 4.0; ШІ-репліки (`"ai": true`) — ліцензія двигуна (Fish: CC BY-NC 4.0), див. voices/LICENSE.md:
   voices/<автор>/voice.json     {id, name, license, consent, created, updated}
-  voices/<автор>/manifest.json  {<шлях у грі>: {sha256, dur, peak_db}}   напр. "Units/orc/peon/peonyes1.wav"
+  voices/<автор>/manifest.json  {<шлях у грі>: {sha256, dur, peak_db[, ai, license, engine]}}   напр. "Units/orc/peon/peonyes1.wav"
   voices/<автор>/units/<раса>/<юніт>/<файл>.flac   FLAC 22050 Hz mono s16 — ГОТОВІ для гри файли
 
 Публікуємо лише game-files/ (власні затверджені дублі користувача) — ніколи reference*/ чи аудіо гри.
@@ -29,7 +29,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 SR = 22050
-LICENSE = "CC BY 4.0"
+LICENSE = "CC BY 4.0"                 # живі записи
+AI_LICENSE = "CC BY-NC 4.0"          # ШІ-репліки за замовчуванням (Fish Audio Research License — некомерційна, ADR 0007)
+DEFAULT_ENGINE = "fish-s2-pro"
 AUTHOR_RE = re.compile(r"^[a-z0-9-]{2,32}$")
 MIN_DUR, MAX_DUR, MAX_BYTES = 0.2, 30.0, 1_000_000
 LOCAL = "local"
@@ -189,17 +191,33 @@ def originals(root: Path) -> dict:
     return m if isinstance(m, dict) else {}
 
 
+def engine_license(engine: str | None) -> str:
+    """Ліцензія ШІ-реплік двигуна (метадані двигуна в tools/aistudio/engines); невідомий двигун → CC BY-NC 4.0."""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from aistudio.engines import output_license
+        return output_license(engine)
+    except Exception:      # noqa: BLE001 — без реєстру діє найсуворіша ліцензія
+        return AI_LICENSE
+
+
 def ai_rels(root: Path) -> set[str]:
-    """Шляхи, чий обраний дубль має source == "ai" (згенеровано ШІ власним голосом): стан студії data/studio/units-*.json."""
-    out: set[str] = set()
+    """Шляхи, чий обраний дубль має source == "ai" (згенеровано ШІ власним голосом)."""
+    return set(ai_engines(root))
+
+
+def ai_engines(root: Path) -> dict[str, str]:
+    """{шлях: двигун} для обраних дублів із source == "ai": стан студії data/studio/units-*.json."""
+    out: dict[str, str] = {}
     for sp in sorted((Path(root) / "data/studio").glob("units-*.json")):
         st = _read_json(sp, {})
         for gid, lines in (st.get("groups") or {}).items() if isinstance(st, dict) else []:
             for lid, e in (lines or {}).items():
                 if not isinstance(e, dict) or not e.get("approved"):
                     continue
-                if any(isinstance(t, dict) and t.get("file") == e["approved"] and t.get("source") == "ai" for t in e.get("takes", [])):
-                    out.add(f"Units/{sp.stem[6:]}/{gid}/{lid}")
+                for t in e.get("takes", []):
+                    if isinstance(t, dict) and t.get("file") == e["approved"] and t.get("source") == "ai":
+                        out[f"Units/{sp.stem[6:]}/{gid}/{lid}"] = str(t.get("engine") or DEFAULT_ENGINE)
     return out
 
 
@@ -244,13 +262,13 @@ def author_info(root: Path, author: str) -> dict:
     rels = author_rels(root, author)
     if author == LOCAL:
         return {"id": LOCAL, "name": "Мій голос (локально)", "local": True, "license": "", "files": len(rels),
-                "bytes": 0, "ai": len(ai_rels(root) & set(rels)), "coverage": coverage(rels)}
+                "bytes": 0, "ai": len(ai_rels(root) & set(rels)), "ai_license": AI_LICENSE, "coverage": coverage(rels)}
     vj = _read_json(voices_dir(root) / author / "voice.json", {})
     size = sum(p.stat().st_size for p in (voices_dir(root) / author).rglob("*.flac"))
     return {"id": author, "name": vj.get("name", author), "local": False, "license": vj.get("license", ""),
             "created": vj.get("created"), "updated": vj.get("updated"), "files": len(rels), "bytes": size,
             "ai": sum(1 for e in manifest(root, author).values() if isinstance(e, dict) and e.get("ai")),
-            "coverage": coverage(rels)}
+            "ai_license": vj.get("ai_license"), "coverage": coverage(rels)}
 
 
 # ---------------------------------------------------------------- публікація
@@ -268,7 +286,7 @@ def publish(author: str, nickname: str, root: Path, consent: bool = False) -> di
     man: dict[str, dict] = {}
     added = updated = unchanged = 0
     skipped: list[dict] = []
-    own, ai = {canon_rel(r) for r in originals(root)}, {canon_rel(r) for r in ai_rels(root)}
+    own, ai = {canon_rel(r) for r in originals(root)}, {canon_rel(r): eng for r, eng in ai_engines(root).items()}
     for src_rel in local_rels(root):
         src = root / "game-files" / src_rel
         rel = canon_rel(src_rel)
@@ -300,7 +318,8 @@ def publish(author: str, nickname: str, root: Path, consent: bool = False) -> di
                 os.replace(tmp, dst)
         finally:
             tmp.unlink(missing_ok=True)
-        man[rel] = {"sha256": digest, "dur": dur, "peak_db": peak, **({"ai": True} if rel in ai else {})}
+        man[rel] = {"sha256": digest, "dur": dur, "peak_db": peak,
+                    **({"ai": True, "license": engine_license(ai[rel]), "engine": ai[rel]} if rel in ai else {})}
     if not man:
         raise VoiceError("немає що публікувати: game-files/ порожня або всі файли пропущено")
     removed = 0
@@ -313,10 +332,13 @@ def publish(author: str, nickname: str, root: Path, consent: bool = False) -> di
         if d.is_dir() and not any(d.iterdir()):
             d.rmdir()
     today = dt.date.today().isoformat()
+    ai_lics = {e["license"] for e in man.values() if e.get("ai")}
+    ai_license = (sorted(ai_lics)[0] if len(ai_lics) == 1 else AI_LICENSE) if ai_lics else None   # змішані → найсуворіша
     vj = _read_json(out / "voice.json", {})
     (out / "manifest.json").write_text(json.dumps(man, indent=1, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
     (out / "voice.json").write_text(json.dumps({
         "id": author, "name": nickname, "license": LICENSE, "consent": True,
+        **({"ai_license": ai_license} if ai_license else {}),
         "created": vj.get("created", today), "updated": today}, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     total = sum(p.stat().st_size for p in out.rglob("*.flac"))
     return {"author": author, "added": added, "updated": updated, "removed": removed, "unchanged": unchanged,
