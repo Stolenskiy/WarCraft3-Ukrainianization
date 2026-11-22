@@ -81,7 +81,7 @@ def test_plan_lists_materialization_and_changes_nothing(world):
     before = _tree(game)
     pl = iv.plan(game, root)
     assert [m["rel"] for m in pl["materialize"]] == ["Units/orc/grunt"]
-    assert pl["materialize"][0]["entries"] == 2 and pl["materialize"][0]["link"].startswith("../../Mods/")
+    assert pl["materialize"][0]["entries"] == 2 and pl["materialize"][0]["link"].replace("\\", "/").startswith("../../Mods/")
     assert {c["rel"] for c in pl["files"]} == {"Units/orc/grunt/gruntyes1.wav", "Units/orc/grunt/gruntwhat1.wav",
                                               "Units/orc/peon/peonyes1.wav"}
     assert pl["skipped"] == [] and _tree(game) == before
@@ -99,7 +99,7 @@ def test_materialize_install_uninstall_roundtrip(world):
     orig = game / "Mods/Reforged Models/units/orc/grunt"
     for n in ("grunt.mdx", "grunt_diffuse.blp"):
         assert (g / n).is_symlink() and os.path.isabs(os.readlink(g / n))
-        assert os.readlink(g / n) == str(orig / n) and (g / n).read_bytes() == (orig / n).read_bytes()
+        assert iv._norm_link(os.readlink(g / n)) == iv._norm_link(str(orig / n)) and (g / n).read_bytes() == (orig / n).read_bytes()
     w = g / "gruntyes1.wav"
     assert w.is_file() and not w.is_symlink() and w.read_bytes()[:4] == b"RIFF"
     assert os.path.realpath(w).startswith(os.path.realpath(g))

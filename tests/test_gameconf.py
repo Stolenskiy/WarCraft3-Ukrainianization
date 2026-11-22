@@ -131,7 +131,7 @@ def test_linux_wine_prefixes(tmp_path, monkeypatch):
     assert str(wc) in gameconf.candidates() and str(wine) in gameconf.candidates()
     path, source, valid = gameconf.resolve()
     assert source == "auto" and valid and Path(path) in (wc, wine)
-    assert gameconf.default_root().endswith("drive_c/Program Files (x86)/Warcraft III")
+    assert Path(gameconf.default_root()).as_posix().endswith("drive_c/Program Files (x86)/Warcraft III")
 
 
 def test_linux_custom_wineprefix(tmp_path, monkeypatch):
