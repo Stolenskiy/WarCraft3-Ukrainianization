@@ -13,6 +13,7 @@
 .ghost.danger:hover { color: var(--danger); border-color: rgba(242,85,75,.5); }
 .modal-head .seg { margin: 0 12px; flex: 1; max-width: 320px; }
 .modal-hint { color: var(--muted); font-size: 12px; align-self: center; }
+.modal-hint.need { color: var(--warn, #e0b050); font-weight: 600; }
 .btn.warn { background: var(--danger); border-color: var(--danger); color: #fff; }
 .inst-game, .inst-note { color: var(--muted); margin: 0 0 8px; }
 .inst-err { color: var(--danger); }

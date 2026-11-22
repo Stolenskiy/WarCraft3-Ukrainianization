@@ -46,7 +46,7 @@ function render() {
   box.innerHTML = `<div class="inst-tx"><label>Ціль <select id="txTarget" ${run ? "disabled" : ""}>${opts}</select></label>
       <small class="cnt">визначено за текою гри: ${esc(i.detected)}</small>
       <label class="ai-chk" title="Кампанії й відео з upstream: ≈ 1 ГБ завантаження"><input type="checkbox" id="txFull" ${T.full ? "checked" : ""} ${run ? "disabled" : ""}> з кампаніями (FULL)</label>
-      <button class="btn" id="txPlan" ${run ? "disabled" : ""}>${T.state === "ready" ? "Перерахувати план" : "Показати план тексту"}</button></div>
+      <button class="btn ${T.state === "ready" ? "" : "primary"}" id="txPlan" ${run ? "disabled" : ""}>${T.state === "ready" ? "Перерахувати план" : "Показати план тексту"}</button></div>
     ${run ? `<p class="inst-note" data-tx-run>Готую (завантаження upstream і збірка)… ${esc(T.log.slice(-1)[0] || "")}</p>` : ""}
     ${T.state === "error" ? `<p class="inst-err" data-tx-err>${esc(T.error)}</p>` : ""}
     ${T.state === "ready" ? summary(T.job.plan) : T.state === "idle" ? `<p class="inst-note">Спершу перегляньте план (у гру нічого не пишеться), потім «Встановити».</p>` : ""}`;
