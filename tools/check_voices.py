@@ -21,6 +21,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))   # `python -I` не додає теку скрипта
 import voices  # noqa: E402
 
+# Службові файли ОС (Finder, Провідник Windows) — у git не потрапляють (.gitignore), тож і перевірка їх не рахує.
+OS_JUNK = frozenset({".DS_Store", "Thumbs.db", "desktop.ini"})
 
 def known_lines(root: Path) -> set[str] | None:
     p = root / "data/inventory-units.csv"
@@ -41,6 +43,8 @@ def check(root: Path) -> list[str]:
         errs.append("data/inventory-units.csv відсутній — не можна звірити репліки")
         known = set()
     for top in sorted(base.iterdir()):
+        if top.name in OS_JUNK:
+            continue
         if top.is_dir():
             errs += _author(root, top, known)
         elif top.name == "LICENSE.md":      # спільна ліцензія пакетів (CC BY 4.0)
@@ -80,7 +84,7 @@ def _author(root: Path, top: Path, known: set[str]) -> list[str]:
         if p.is_dir():
             continue
         rel = p.relative_to(top).as_posix()
-        if rel in ("voice.json", "manifest.json", "LICENSE.md"):
+        if rel in ("voice.json", "manifest.json", "LICENSE.md") or p.name in OS_JUNK:
             continue
         if not rel.startswith("units/") or not rel.endswith(".flac"):
             e.append(f"{pre}/{rel}: сторонній файл")
