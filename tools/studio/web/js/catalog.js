@@ -3,6 +3,7 @@ import { getJSON } from "./api.js";
 import { stopPlay } from "./audio.js";
 import { renderCard } from "./card.js";
 import { renderCues } from "./cues.js";
+import { charLoad } from "./character.js";
 import { eqLoad } from "./eq-panel.js";
 import { saveText } from "./phrase.js";
 import { Rec } from "./rec.js";
@@ -63,7 +64,7 @@ export async function openUnit(cid, gid) {
   await loadCatalogs();
   const g = groupOf();
   renderCues(); renderCard();
-  S.eqReady = eqLoad();
+  S.eqReady = Promise.all([eqLoad(), charLoad()]);
 }
 
 $("#unitBtn").onclick = () => toggleUnitPopover();

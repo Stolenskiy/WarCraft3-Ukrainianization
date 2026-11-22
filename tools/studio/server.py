@@ -37,6 +37,11 @@ API:
   POST /api/eq/delete {cid,gid,id}                 видалити власний профіль (пресети — ні)
   POST /api/eq/assign {cid,gid,profile_id}         профіль групи (null → типовий)
   POST /api/eq/reexport {cid,gid[,trim]}           перезаписати обрані дублі групи з поточним EQ
+  GET  /api/character?cid=&gid=              пресет персонажа юніта: {preset {enabled,pitch_st,formant_pct,drive,reverb,tail_s},
+                                             custom, suggestion, why, bible, limits, stale}; без збереженого — пропозиція з voice bible (вимкнена)
+  POST /api/character {cid,gid,preset}       зберегти пресет (data/studio/<cid>.json → characters; null — скинути до voice bible);
+                                             файли гри оновлює /api/eq/reexport; поза межами → 400
+  GET  /api/character/audio?cid=&gid=&lid=&file=  дубль (без обрізання й EQ) з голосом і ефектами персонажа — сторона «A» у A/B
   GET  /api/install/plan                     сухий прогін: {races:[{id,title,units:[{id,title,files:[{rel,name,status new|update|same,materialize}]}]}],
                                              materialize:[{rel,link,entries}], skipped:[{rel,reason}], same}
   POST /api/install   {files?:[game_rel]}    install_voices.apply лише обраних (без files — усе); невідомий шлях → 400

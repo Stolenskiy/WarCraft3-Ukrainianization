@@ -17,18 +17,21 @@ from .util import AUTO_TRIM, PREVIEW_DIR, StudioError, export_take, take_no
 class ExportMixin:
     def _base_filters(self, cid: str, gid: str, take: dict, auto_trim: bool | None = None,
                       settings: dict | None = None) -> list[str]:
-        """Ланцюжок до вирівнювання гучності: обрізання → авто-тиша → шумоговорення → темп → EQ."""
+        """Ланцюжок до вирівнювання гучності: обрізання → авто-тиша → шумоговорення → темп → голос персонажа
+        (висота, форманти) → EQ → ефекти персонажа (гроул, простір; svc/character_svc.py)."""
         cfg = settings or self.settings.get()
         tr = take.get("trim")
         manual = [f"atrim=start={tr['start']:.3f}:end={tr['end']:.3f},asetpts=PTS-STARTPTS"] if tr else []
         auto = cfg["auto_trim"] if auto_trim is None else auto_trim
+        voice, fx = self.character_filters(cid, gid)
         return (manual + ([AUTO_TRIM] if auto else []) + (proc.DENOISE if cfg["denoise"] else [])
-                + proc.tempo_filter(take.get("tempo")) + eq_mod.to_ffmpeg(self.eq.effective(cid, gid)))
+                + proc.tempo_filter(take.get("tempo")) + voice + eq_mod.to_ffmpeg(self.eq.effective(cid, gid)) + fx)
 
     def _export_filters(self, cid: str, gid: str, take: dict, auto_trim: bool | None = None,
                         ln: Line | None = None, settings: dict | None = None) -> list[str]:
         """ffmpeg-фільтри копії для гри, у порядку застосування. Точка розширення обробки:
-        ручне обрізання → авто-обрізання тиші → шумоговорення → темп → EQ → гучність як в оригіналі.
+        ручне обрізання → авто-обрізання тиші → шумоговорення → темп → персонаж (висота/форманти) → EQ
+        → персонаж (гроул/простір) → гучність як в оригіналі.
         auto_trim=None — за налаштуванням; `ln` потрібен для вирівнювання гучності (без нього його немає)."""
         cfg = settings or self.settings.get()
         base = self._base_filters(cid, gid, take, auto_trim, cfg)
