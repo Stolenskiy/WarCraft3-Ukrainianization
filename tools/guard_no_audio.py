@@ -58,10 +58,31 @@ def text_violations(root: Path, files) -> list[str]:
     return bad
 
 
+SECRET_EXTS = (".py", ".json", ".md", ".yml", ".yaml", ".txt", ".js", ".toml", ".sh", ".cfg", ".ini", ".html")
+SECRET_RE = re.compile(
+    r"\b(sk_[A-Za-z0-9]{24,}|hf_[A-Za-z0-9]{30,}|sk-[A-Za-z0-9_-]{32,}|AKIA[0-9A-Z]{16})\b"                 # ключі ElevenLabs/HF/OpenAI/AWS
+    r"|[\"']?(api[_-]?key|xi-api-key|secret|token)[\"']?\s*[:=]\s*[\"'][A-Za-z0-9_\-]{20,}[\"']", re.I)
+
+
+def secret_violations(root: Path, files) -> list[str]:
+    """Ключі API у відстежуваних текстових файлах (хмарні двигуни ШІ: ключ лише в data/local/settings.json або env)."""
+    bad = []
+    for f in sorted(set(files)):
+        p = root / f
+        if not f.lower().endswith(SECRET_EXTS) or not p.is_file() or p.stat().st_size > 2_000_000:
+            continue
+        try:
+            if SECRET_RE.search(p.read_text(encoding="utf-8", errors="ignore")):
+                bad.append(f)
+        except OSError:
+            continue
+    return bad
+
+
 def main(root: Path | None = None) -> int:
     root = Path(root or Path(__file__).resolve().parent.parent)
     files = git_files(root)
-    bad = violations(files) + text_violations(root, files)
+    bad = violations(files) + text_violations(root, files) + secret_violations(root, files)
     if bad:
         print("ЗАБОРОНЕНО комітити (аудіо, ресурси гри, секрети, data/local/, оригінальні тексти в data/transcripts-*.json):", *bad, sep="\n  ", file=sys.stderr)
         print("Дозволені лише пакети голосів: voices/<автор>/{voice.json,manifest.json,LICENSE.md,units/**.flac}.",
