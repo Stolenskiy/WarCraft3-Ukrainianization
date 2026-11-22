@@ -11,6 +11,7 @@ import { approve, clearOriginal, del, keepOriginal, restore, unapprove } from ".
 import { saveTempo, tempoBadge, tempoClick, tempoLabel, tempoOf, tempoPanel } from "./tempo.js";
 import { resetTrim, takeItem } from "./trim.js";
 import { $, esc, fmt, timeLabel } from "./util.js";
+import { enhanceSync, enhanceTakes, takeNo } from "./enhance.js";
 import { voiceBind, voiceHtml } from "./voice-card.js";
 import { loadWaves } from "./wave.js";
 
@@ -21,13 +22,15 @@ function takeRowHtml(p, t, isNew) {
     : `<button class="btn" data-ab="${esc(t.file)}" title="Спершу оригінал, потім цей дубль">Оригінал → дубль</button>
        <button class="btn quiet" data-preview="${esc(t.file)}" title="Як цей дубль прозвучить у грі: обрізання, темп, шумоговорення, EQ, гучність">▶ У грі</button>
        <button class="btn icon tempo-btn" data-tempo-toggle="${esc(t.file)}" title="Темп: прискорити голос без зміни висоти">⏩</button>
+       ${t.source === "enhanced" && t.enhanced_from ? `<button class="btn" data-ab-enh="${esc(t.file)}" data-src="${esc(t.enhanced_from)}" title="Спершу дубль до очищення, потім очищений">Було → стало</button>`
+    : t.source !== "ai" && t.source !== "enhanced" && t.exists ? `<button class="btn quiet" data-enhance="${esc(t.file)}" title="ШІ прибере луну кімнати й шум і зробить голос ближчим та гучнішим. З’явиться новий дубль «очищено», цей лишиться">✨ Очистити</button>` : ""}
        ${appr ? "" : `<button class="btn primary" data-approve="${esc(t.file)}" title="Цей дубль піде в гру">✓ Обрати</button>`}
        <button class="btn icon" data-del="${esc(t.file)}" title="У кошик (можна відновити)">🗑</button>`;
   return `<div class="take ${appr ? "approved" : ""} ${t.deleted ? "deleted" : ""} ${isNew ? "new" : ""}">
     <button class="play" data-play="${esc(id)}" ${t.exists ? "" : "disabled"}>▶</button>
     <div><div class="take-head"><b>Дубль ${t.n || "?"}</b>
       <span class="fit" data-fit="${esc(t.file)}">${t.exists ? fmt(t.dur) : "файл відсутній"}</span>
-      ${appr ? `<span class="badge-game">У ГРІ</span>` : ""}${t.source === "ai" ? `<span class="badge-ai" title="Взято з ШІ-варіантів (${esc(t.engine || "ШІ")})">ШІ</span>` : ""}<span class="trim-info" data-trim-info="${esc(t.file)}"></span>${tempoBadge(t)}
+      ${appr ? `<span class="badge-game">У ГРІ</span>` : ""}${t.source === "ai" ? `<span class="badge-ai" title="Взято з ШІ-варіантів (${esc(t.engine || "ШІ")})">ШІ</span>` : ""}${t.source === "enhanced" ? `<span class="badge-enh" title="ШІ-очищення (${esc(t.engine || "")}) дубля ${takeNo(t.enhanced_from)}: луну й шум прибрано, гучність вирівняно. Це ваш запис, не синтез">очищено ← ${takeNo(t.enhanced_from)}</span>` : ""}<span class="trim-info" data-trim-info="${esc(t.file)}"></span>${tempoBadge(t)}
       <span class="time">${t.deleted ? "видалено " + timeLabel(t.deleted) : timeLabel(t.created)}</span></div>
       <div class="wave-box"><canvas class="wave" data-wave="${esc(id)}"></canvas></div>${t.deleted ? "" : tempoPanel(t)}</div>
     <div class="take-actions">${actions}</div></div>`;
@@ -98,6 +101,7 @@ function renderCardHtml(newFile) {
           «Без EQ» вирівняно за гучністю, тож різниця — у тембрі, а не в голосності.</p>
         <p><b>Еквалайзер</b> (вкладка «Обробка») — дублі в студії звучать уже з EQ персонажа; «B · без» — порівняти.
           Новий вибір для гри отримує поточний профіль; уже обрані файли оновлює «Оновити файли гри (N)», де N — скільки файлів відстало.</p></div></details>` : ""}</div>
+    <div class="enh-line" id="enhLineProg" hidden></div>
     <div class="takes">${active.length ? active.map((t) => takeRow(p, t, t.file === newFile)).join("")
       : `<div class="empty-takes">Ще немає дублів. Послухайте оригінал і запишіть перший — <kbd>Пробіл</kbd></div>`}</div>
 
@@ -143,6 +147,8 @@ function bindCard(p) {
     if (d.preview) return playPreview(p, d.preview);
     if (d.tempoToggle || d.tempoFit || d.tempoReset) return tempoClick(p, d);
     if (d.ab) return play([{ url: urlRef(p), id: "ref" }, takeItem(p, d.ab)]);
+    if (d.abEnh) return play([takeItem(p, d.src), takeItem(p, d.abEnh)]);
+    if (d.enhance) return enhanceTakes([{ ...ids(p), file: d.enhance }]);
     if (d.trimReset) return resetTrim(p, d.trimReset);
     if (d.approve) return approve(d.approve);
     if (d.del) return del(d.del);
@@ -160,5 +166,6 @@ export function takeRow(p, t, ...a) {
 /** Картка репліки; індикатор перевантаження — у панелі запису після кожної перемальовки. */
 export function renderCard(...a) {
   renderCardHtml(...a);
+  enhanceSync();
   $("#recSub")?.insertAdjacentHTML("afterend", `<span class="clip-flag" id="clipFlag" title="${esc(CLIP_ADVICE)}" hidden>перевантаження</span>`);
 }

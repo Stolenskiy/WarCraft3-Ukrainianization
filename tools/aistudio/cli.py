@@ -69,6 +69,16 @@ def cmd_setup(a) -> int:
     return setup.setup(accept_license=a.accept_license, skip_download=a.skip_download)
 
 
+def cmd_enhance_setup(a) -> int:
+    from . import enhance
+    try:
+        enhance.setup()
+    except enhance.EnhanceError as ex:
+        print("ПОМИЛКА:", ex)
+        return 1
+    return 0
+
+
 def cmd_status(a) -> int:
     st = setup.status(deep=a.deep)
     pl = st["platform"]
@@ -122,6 +132,7 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--accept", action="store_true")
     c.add_argument("--engine")
     c.set_defaults(fn=cmd_consent)
+    sub.add_parser("enhance-setup").set_defaults(fn=cmd_enhance_setup)
     return ap
 
 
