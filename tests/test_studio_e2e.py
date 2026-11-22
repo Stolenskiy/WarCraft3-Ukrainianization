@@ -264,8 +264,11 @@ def test_game_root_field_and_inline_install_prompt(page, tmp_path, monkeypatch):
     assert all(e.startswith("400 ") for e in pg.errors), pg.errors            # лише очікувані відмови валідації
 
 
-def test_header_one_row_split_menu_and_narrow_layout(page):
+def test_header_one_row_split_menu_and_narrow_layout(page, tmp_path, monkeypatch):
     """Шапка ≤ 58 px на 1280 і 1440; меню «▾» відкриває вікна; на 820 px немає горизонтального переповнення, панель висувна (☰)."""
+    import install_voices
+    (tmp_path / "game").mkdir()
+    monkeypatch.setattr(install_voices, "GAME", tmp_path / "game")             # не залежати від справжньої гри (у CI її нема)
     pg = page
     for w in (1440, 1280):
         pg.set_viewport_size({"width": w, "height": 800})

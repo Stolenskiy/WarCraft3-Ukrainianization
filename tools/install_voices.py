@@ -113,6 +113,14 @@ def classify(game: Path, rel: str, mat: dict | None = None) -> tuple[str, str, s
     return "ok", "", ""
 
 
+def _norm_link(s: str) -> str:
+    """Рядок readlink для порівняння: на Windows може мати префікс «\\\\?\\», інший регістр і роздільники."""
+    for pre in ("\\\\?\\", "\\??\\"):
+        if s.startswith(pre):
+            s = s[len(pre):]
+    return os.path.normcase(os.path.normpath(s))
+
+
 def _link_info(game: Path, lrel: str) -> tuple[str, str, list[str]]:
     """(рядок readlink, абсолютна ціль, імена елементів цілі)."""
     link = game / lrel
@@ -264,8 +272,10 @@ def _unmaterialize(game: Path, lrel: str, info: dict, log: list[str]) -> bool:
         if not os.path.lexists(d / n):
             os.symlink(tgt, d / n, target_is_directory=os.path.isdir(tgt))
     names = set(os.listdir(d))
-    if names != set(entries) or any(not (d / n).is_symlink() or os.readlink(d / n) != entries[n] for n in names):
-        log.append(f"SKIP {lrel}: у теці є сторонні файли — лишаю матеріалізованою")
+    if names != set(entries) or any(not (d / n).is_symlink() or _norm_link(os.readlink(d / n)) != _norm_link(entries[n]) for n in names):
+        diff = sorted(set(names) ^ set(entries)) or [f"{n}: {os.readlink(d / n)!r} != {entries[n]!r}" for n in names
+                                                     if (d / n).is_symlink() and _norm_link(os.readlink(d / n)) != _norm_link(entries[n])]
+        log.append(f"SKIP {lrel}: у теці є сторонні файли — лишаю матеріалізованою ({'; '.join(map(str, diff[:3]))})")
         return False
     for n in names:
         os.unlink(d / n)
