@@ -213,6 +213,10 @@ def run(target_id: str, parts: list[str], *, apply: bool = False, full: bool = F
                     f"({hk.get('sections_changed', 0)} секцій; без |c було {hk.get('sections_without_markup', 0)} з "
                     f"{hk.get('sections_with_hotkey', 0)}); пропущено вже з розміткою {hk.get('skipped_already', 0)}, "
                     f"неприйнятна клавіша {hk.get('skipped_badkey', 0)}")
+            rp = res.stats.get("repack")
+            if rp:
+                out(f"  патч балансу репаку: додано ключів {rp['keys']}, секцій {rp['sections']}, характеристик в описах "
+                    f"{rp['stats']} (англійською лишилось {rp['english']})")
             for name, r in res.stats.get("fdf", {}).items():
                 out(f"  FDF 1.31 {name}: id {r['ids']}, перекладено {r['translated']}, лишились англійськими: "
                     f"немає в upstream {len(r['missing_in_upstream'])}, інші %-специфікатори {len(r['format_mismatch'])}")
