@@ -48,12 +48,12 @@ def test_venv_python_per_os(monkeypatch):
 def test_script_commands(calls, argv, expect):
     assert run.main(argv) == 0
     cmd = calls[-1]
-    assert cmd[1] == "-I" and cmd[2:] == expect
+    assert cmd[1:4] == ["-I", "-X", "utf8"] and cmd[4:] == expect
 
 
 def test_doctor_uses_current_python(calls):
     run.main(["doctor"])
-    assert calls[-1] == [sys.executable, "-I", "tools/doctor.py"]
+    assert calls[-1] == [sys.executable, "-I", "-X", "utf8", "tools/doctor.py"]
 
 
 def test_publish_requires_author(calls, capsys):

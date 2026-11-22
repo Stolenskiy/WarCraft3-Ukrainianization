@@ -56,9 +56,9 @@ def py() -> list[str]:
     """Інтерпретатор для скриптів проєкту: .venv, інакше поточний (з попередженням)."""
     v = venv_python()
     if v.exists():
-        return [str(v), "-I"]
+        return [str(v), "-I", "-X", "utf8"]   # -I ігнорує PYTHONUTF8 → UTF-8 явно (Windows cp1252)
     print("УВАГА: .venv немає — використовую поточний Python. Виконайте: python tools/run.py setup", file=sys.stderr)
-    return [sys.executable, "-I"]
+    return [sys.executable, "-I", "-X", "utf8"]
 
 
 def child_env() -> dict[str, str]:
@@ -147,7 +147,7 @@ def cmd_setup(a) -> int:
 
 
 def cmd_doctor(_a) -> int:
-    return _call([sys.executable, "-I", "tools/doctor.py"])     # системний python: працює й до setup
+    return _call([sys.executable, "-I", "-X", "utf8", "tools/doctor.py"])     # системний python: працює й до setup
 
 
 def cmd_studio(a) -> int:
