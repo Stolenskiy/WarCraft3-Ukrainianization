@@ -119,7 +119,9 @@ async function instRun() {
   finally { Inst.busy = false; }
 }
 
-$("#installBtn").onclick = openInstall;
+$("#installBtn").onclick = () => { Inst.mode = "install"; openInstall(); };
+
+$("#uninstallBtn").onclick = () => { Inst.mode = "uninstall"; openInstall(); };
 
 $("#installClose").onclick = closeInstall;
 

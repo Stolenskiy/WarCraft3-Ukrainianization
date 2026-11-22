@@ -1,7 +1,7 @@
 /* Шапка, кнопка юніта, прогрес раси, поповер вибору юніта. */
 /* ---------- top bar */
 .top {
-  display: flex; align-items: center; gap: 20px; padding: 10px 18px;
+  display: flex; align-items: center; gap: 14px; padding: 6px 18px; min-height: 0;
   background: var(--panel); border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--muted); white-space: nowrap; }
@@ -10,7 +10,7 @@
   background: linear-gradient(180deg, #0057b7 50%, #ffd700 50%); color: transparent; font-size: 0;
 }
 .unit-btn {
-  display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; min-width: 300px;
+  position: relative; display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; min-width: 0; width: 340px; max-width: 100%;
   background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; text-align: left;
 }
 .unit-btn:hover { border-color: #3a414e; }
@@ -22,12 +22,14 @@
   background: radial-gradient(circle at 30% 25%, #a8432a, #4a1d12); color: #ffd9c7;
   font: 700 14px/1 var(--display); letter-spacing: .5px;
 }
-.overall { width: 220px; }
-.overall-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
-.overall-label b { color: var(--text); font-weight: 600; }
+.unit-btn-text > b, .unit-btn-text > small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.unit-prog { position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; border-radius: 0; }
+.unit-prog-t b { color: var(--text); font-weight: 600; }
 .bar { height: 6px; border-radius: 99px; background: var(--raise); overflow: hidden; }
 .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--gold)); border-radius: 99px; transition: width .3s; }
-.top-actions { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.top-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.top button, .top .seg span { white-space: nowrap; }
+.side-toggle { display: none; padding: 4px 10px; font-size: 18px; line-height: 1; }
 .ghost {
   background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; color: var(--muted);
 }
@@ -63,3 +65,15 @@
 .unit-card.complete .bar i { background: var(--ok); }
 
 .cat-tabs { margin: 0 0 14px; } .cat-tabs small { color: var(--faint); margin-left: 4px; }
+
+/* Розділена кнопка «Встановити в гру ▾» і меню решти дій */
+.split { position: relative; display: flex; }
+.split > .btn { padding: 7px 14px; }
+.split > #installBtn { border-radius: 8px 0 0 8px; }
+.split-caret { padding: 7px 9px !important; border-radius: 0 8px 8px 0 !important; border-left: 1px solid rgba(0,0,0,.35) !important; }
+.menu { position: absolute; z-index: 30; right: 0; top: calc(100% + 6px); min-width: 260px; padding: 6px; display: grid; gap: 2px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 16px 50px rgba(0,0,0,.55); }
+.menu button { text-align: left; background: transparent; border: 0; border-radius: 7px; padding: 8px 10px; color: var(--text); white-space: nowrap; }
+.menu button:hover, .menu button:focus-visible { background: var(--raise); }
+.menu small { color: var(--muted); margin-left: 6px; }
+.scrim { position: fixed; inset: 0; z-index: 14; background: rgba(5, 6, 8, .55); }

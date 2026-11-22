@@ -190,6 +190,39 @@ def test_eq_node_drag_wheel_and_macro(page):
     assert not pg.errors, pg.errors
 
 
+def test_header_one_row_split_menu_and_narrow_layout(page):
+    """Шапка ≤ 58 px на 1280 і 1440; меню «▾» відкриває вікна; на 820 px немає горизонтального переповнення, панель висувна (☰)."""
+    pg = page
+    for w in (1440, 1280):
+        pg.set_viewport_size({"width": w, "height": 800})
+        assert pg.locator("header.top").bounding_box()["height"] <= 58, w
+    assert pg.is_hidden("#installMenu")
+    pg.click("#installMenuBtn")
+    assert pg.get_attribute("#installMenuBtn", "aria-expanded") == "true"
+    assert pg.locator("#installMenu [role=menuitem]").count() == 3
+    pg.wait_for_function("() => document.querySelector('#voicesCount').textContent.includes('автор')")
+    pg.click("#uninstallBtn")                                                  # «Прибрати з гри…» → вікно в режимі відкату
+    pg.wait_for_selector("#installModal:not([hidden])")
+    assert "on" in pg.get_attribute("#installMode [data-mode='uninstall']", "class")
+    pg.keyboard.press("Escape")
+    pg.click("#installMenuBtn")
+    pg.click("#voicesBtn")
+    pg.wait_for_selector("#voicesModal:not([hidden])")
+    pg.click("#voicesClose")
+    pg.click("#installMenuBtn")
+    pg.keyboard.press("Escape")
+    assert pg.is_hidden("#installMenu")
+    pg.set_viewport_size({"width": 820, "height": 760})
+    assert pg.evaluate("document.documentElement.scrollWidth <= innerWidth && document.body.scrollWidth <= innerWidth")
+    assert pg.locator("header.top").bounding_box()["height"] <= 58
+    pg.wait_for_function("() => document.querySelector('#side').getBoundingClientRect().right <= 0")   # панель сховано
+    pg.click("#sideToggle")
+    pg.wait_for_function("() => document.querySelector('#side').getBoundingClientRect().left >= 0")
+    pg.click("#side .cue >> nth=1")                                            # вибір репліки закриває панель
+    pg.wait_for_function("() => document.querySelector('#side').getBoundingClientRect().right <= 0")
+    assert pg.is_visible("#keepOrig") and not pg.errors, pg.errors            # «Залишити оригінал» досяжний
+
+
 def test_voice_card_replaces_character_block(page):
     """Голосова картка: рядок над реплікою з чипами, поповер з повним текстом; у .side немає #character; тембр — «Чому так» в «Обробці»."""
     pg = page
@@ -424,6 +457,7 @@ def test_community_voices_flow(page, tmp_path, monkeypatch):
     mine = {r: pcm(TMP_ROOT / "game-files" / r) for r in rels}
     pg = page
 
+    pg.click("#installMenuBtn")
     pg.click("#voicesBtn")
     pg.wait_for_selector(".v-row")
     assert pg.locator(".v-row").count() == 2 and "bob" in pg.inner_text("#voicesBody")

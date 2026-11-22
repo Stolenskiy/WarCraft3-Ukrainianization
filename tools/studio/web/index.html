@@ -22,23 +22,29 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="brand-mark">UA</span><span>Студія озвучки</span></div>
+  <button class="ghost side-toggle" id="sideToggle" aria-label="Репліки й обробка" aria-expanded="false" aria-controls="side" title="Репліки й обробка">☰</button>
+  <div class="brand"><span class="brand-mark" role="img" aria-label="UA"></span><span class="brand-name">Студія озвучки</span></div>
   <button id="unitBtn" class="unit-btn" title="Обрати юніт">
     <span class="avatar" id="unitAvatar"></span>
-    <span class="unit-btn-text"><b id="unitTitle">…</b><small id="unitSub"></small></span>
+    <span class="unit-btn-text"><b id="unitTitle">…</b>
+      <small><span id="unitSub"></span><span class="unit-prog-t" title="Затверджено по всій расі"> · <span id="overallName"></span> <b id="overallNum"></b></span></small></span>
+    <span class="bar unit-prog" aria-hidden="true"><i id="overallBar"></i></span>
     <span class="chev">▾</span>
   </button>
-  <div class="overall" title="Затверджено по всій расі">
-    <div class="overall-label"><span id="overallName"></span><b id="overallNum"></b></div>
-    <div class="bar"><i id="overallBar"></i></div>
-  </div>
   <div class="top-actions">
     <div class="seg mini" id="optLang" title="Якою мовою звучить оригінал"><span>Оригінал</span><button data-lang="ru">RU</button><button data-lang="en">EN</button></div>
-    <button class="ghost" id="installBtn" title="Скопіювати обрані дублі в теку гри (з бекапом і відкатом)">Встановити в гру</button>
-    <button class="ghost" id="voicesBtn" title="Голоси інших авторів, порядок пріоритету, публікація власного голосу">Голоси спільноти</button>
-    <button class="ghost" id="openGameDir" title="Відкрити теку з файлами для гри">Файли для гри</button>
+    <div class="split" id="installSplit">
+      <button class="btn primary" id="installBtn" title="Скопіювати обрані дублі в теку гри (з бекапом і відкатом)">Встановити в гру</button>
+      <button class="btn primary split-caret" id="installMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="installMenu" aria-label="Інші дії з грою" title="Інші дії з грою">▾</button>
+      <div class="menu" id="installMenu" role="menu" aria-label="Дії з грою" hidden>
+        <button role="menuitem" id="uninstallBtn" title="Повернути оригінали з бекапу">Прибрати з гри…</button>
+        <button role="menuitem" id="voicesBtn" title="Голоси інших авторів, порядок пріоритету, публікація власного голосу">Голоси спільноти… <small id="voicesCount"></small></button>
+        <button role="menuitem" id="openGameDir" title="Відкрити теку з файлами для гри">Відкрити теку файлів гри</button>
+      </div>
+    </div>
   </div>
 </header>
+<div class="scrim" id="sideScrim" hidden></div>
 
 <div id="unitPopover" class="popover" hidden>
   <div class="popover-inner" id="unitGrid"></div>
