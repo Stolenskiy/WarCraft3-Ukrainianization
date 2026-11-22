@@ -6,15 +6,15 @@
 _Оновлено: 2026-11-22_
 ## Готово
 - Текстова українізація гри (меню 1.31, тексти, 203 карти) — встановлена (`docs/install-local.md`).
-- Інвентар 2401 голосового файлу, рос. референси, транскрипти (локально): орки, нежить, нічні ельфи (+ селянин).
-- ADR 0005 прийнято: тексти оригіналів Blizzard — `data/local/` (gitignored), у git лише тривалості; `make transcripts-local`.
-- Voice bible для 4 рас (`docs/voice-bible/`). Тексти Орчатника (peon) звірені з оригіналом.
+- ADR 0005: тексти оригіналів — лише `data/local/` (`make transcripts-local`). Voice bible для 4 рас (`docs/voice-bible/`), тексти peon звірені.
 - Студія запису v3 (`tools/studio/`): усі раси, дублі/кошик/undo, вибір для гри, оригінал RU/EN.
 - Оригінали (`make refs`): EN 2384 з CASC гри (без пари 17, нежить); RU 2401 — з рос. мовного пакета репаку.
 - CI на GitHub (`.github/workflows/ci.yml`) = `make check`: ruff, guard, check-voices, тести з Chrome, покриття ≥ 94% (храповик).
 - Голоси спільноти: `voices/<нік>/` (FLAC, CC BY 4.0), `make publish-voice`, `make check-voices`, вибір автора у вікні встановлення.
 - Агентна готовність (feat/agentic): `AGENTS.md`, `make verify|doctor|hooks|guard`, скіли й `docs/runbooks/`, ADR, глосарій, LICENSE (MIT).
 ## Зараз
+- Кросплатформа (feat/windows-docker): `tools/gameconf.py` (шлях гри: env > `data/local/settings.json` > автопошук), `tools/run.py` (CLI без make), Windows-джоб у CI,
+  `docker compose up` (Dockerfile перевірено на macOS; Windows НЕ перевірено на реальній машині). Поле «Тека гри» в UI — `docs/plans/game-path-ui.md`.
 - Встановлення в гру: кнопка «Встановити в гру» в студії або `make install-voices` (симлінки юнітів матеріалізуються з відкатом, `tools/install_voices.py`). Попередження про перевантаження мікрофона (бейдж у дублі).
 - «Залишити оригінал» (O): у гру — необроблений оригінал; `game-files/.originals.json` (`publish`/`check-voices` пропускають).
 - Користувач сам озвучує Орду в студії (`make studio`). Прогрес — у самій студії.

@@ -52,14 +52,13 @@ from __future__ import annotations
 
 import json
 import mimetypes
-import subprocess
-import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 import install_voices
+import opener
 
 from . import core
 from .catalog import UNIT_RACES
@@ -224,7 +223,7 @@ def make_handler(svc: core.Service):
                     rel = Path(svc.lines(data["cid"], data["gid"])[0].game_rel).parent
                     d = GAME_FILES / rel
                     d.mkdir(parents=True, exist_ok=True)
-                    subprocess.run(["open" if sys.platform == "darwin" else "xdg-open", str(d)], check=False)
+                    opener.open_dir(d)
                     return self._json({"ok": True})
             except (core.StudioError, install_voices.InstallError) as ex:
                 return self._json({"error": str(ex)}, 400)
@@ -237,9 +236,10 @@ def make_handler(svc: core.Service):
     return Handler
 
 
-def serve(port: int = 8765, open_browser: bool = True, svc: core.Service | None = None) -> ThreadingHTTPServer:
+def serve(port: int = 8765, open_browser: bool = True, svc: core.Service | None = None,
+          host: str = "127.0.0.1") -> ThreadingHTTPServer:   # host != 127.0.0.1 лише в Docker (STUDIO_BIND); Host-перевірка та сама
     svc = svc or core.Service()
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(svc))
+    httpd = ThreadingHTTPServer((host, port), make_handler(svc))
     httpd.svc = svc
     if open_browser:
         webbrowser.open(f"http://127.0.0.1:{httpd.server_address[1]}/")

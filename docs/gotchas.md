@@ -16,3 +16,8 @@
 - CASC: `.venv/bin/python tools/casc_read.py list "UNITS\\ORC\\"` (фільтр позиційний; `extract --filter … --out …`).
 - PyCASC тягне `requests 2.21` → лише Python 3.11 (тому `make setup-refs` окремо від `setup-dev`).
 - Python у цьому репо — завжди `.venv/bin/python -I` (`-I` не додає теку скрипта в `sys.path`: див. `sys.path.insert` у tools/).
+- Windows/Docker (НЕ перевірено на реальній Windows; тести — з мок-платформою): реєстр `HKCU\Software\Blizzard Entertainment\Warcraft III` → `Allow Local Files`
+  DWORD 1 (джерела — `docs/install-local.md`); `os.symlink` потребує режиму розробника/адміна (інсталятор дає зрозумілу помилку, а теки без симлінків
+  працюють); консоль cp1251/cp1252 → `run.py` ставить `PYTHONUTF8=1`, файли відкривати з `encoding="utf-8"`; ключі маніфесту — завжди `/` (`as_posix`).
+- Docker: студія слухає `STUDIO_BIND=0.0.0.0` лише в контейнері, порт назовні — тільки `127.0.0.1:8765:8765`; Host-перевірка вимагає, щоб порт хоста
+  дорівнював порту сервера (8765), інший порт дасть 403. Симлінки гри через bind-монти Docker Desktop ненадійні → `install-voices` запускати на хості.

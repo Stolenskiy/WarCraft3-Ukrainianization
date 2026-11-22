@@ -15,7 +15,10 @@ import sys
 from PyCASC.utils.blizzutils import hexkey_to_bytes, var_int
 from PyCASC.utils.CASCUtils import parse_blte, parse_encoding_file
 
-GAME_ROOT = os.environ.get("WC3_GAME_ROOT", "/Applications/Warcraft III Classic")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gameconf  # noqa: E402
+
+GAME_ROOT = str(gameconf.get_game_root())
 DATA_DIR = os.path.join(GAME_ROOT, "Data")
 def _active_build_key(default: str = "9a75938c4606d6393fe0960c4ad5d9d5") -> str:
     """Build Key активної збірки з <гра>/.build.info (інші збірки гри теж працюють)."""

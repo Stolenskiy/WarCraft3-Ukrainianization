@@ -2,9 +2,11 @@ PY := .venv/bin/python -I
 PYTHON311 ?= python3.11
 CORE_TESTS_A := tests/test_studio_core.py tests/test_eq.py tests/test_install_voices.py tests/test_guard_no_audio.py tests/test_docs_sync.py tests/test_doctor.py
 CORE_TESTS_B := tests/test_studio_proc.py tests/test_voices.py
+CORE_TESTS_C := tests/test_gameconf.py tests/test_windows.py tests/test_run.py
+RUN := $(PY) tools/run.py
 
 .PHONY: studio test test-core lint guard check check-voices verify doctor hooks publish-voice refs \
-        setup setup-dev setup-refs install-voices transcripts-local transcribe uninstall-voices ai-voice
+        setup setup-dev setup-refs install-voices transcripts-local transcribe uninstall-voices ai-voice docker game-root
 
 verify:      ## «перевір мою зміну» (≤ 20 с, без Chrome): lint + guard + check-voices + test-core
 	$(MAKE) --no-print-directory lint guard check-voices test-core
@@ -12,14 +14,14 @@ verify:      ## «перевір мою зміну» (≤ 20 с, без Chrome):
 check: lint guard check-voices test   ## те саме, що CI на GitHub (+ e2e у Chrome, покриття) — запускати перед пушем
 
 studio:      ## веб-студія запису озвучки (http://127.0.0.1:8765)
-	$(PY) tools/record_studio.py
+	$(RUN) studio
 
 test:        ## усі тести (ядро, API, UI у Chrome з фейковим мікрофоном) + покриття з порогом
 	$(PY) -m pytest -q -s --cov
 
 test-core:   ## швидко, без браузера: ядро, API, обробка, голоси, guard, дрейф доків (дві групи паралельно)
-	@$(PY) -m pytest -q $(CORE_TESTS_A) & a=$$!; $(PY) -m pytest -q $(CORE_TESTS_B) & b=$$!; \
-	  r=0; wait $$a || r=1; wait $$b || r=1; exit $$r
+	@$(PY) -m pytest -q $(CORE_TESTS_A) & a=$$!; $(PY) -m pytest -q $(CORE_TESTS_B) & b=$$!; $(PY) -m pytest -q $(CORE_TESTS_C) & c=$$!; \
+	  r=0; wait $$a || r=1; wait $$b || r=1; wait $$c || r=1; exit $$r
 
 lint:        ## ruff (усі tools/*.py, tests) + синтаксис JS
 	.venv/bin/ruff check . && node --check tools/studio/web/app.js && node --check tools/studio/web/ai.js
@@ -28,19 +30,19 @@ guard:       ## у git немає аудіо / ресурсів гри / сек�
 	$(PY) tools/guard_no_audio.py
 
 check-voices: ## пакети голосів спільноти (voices/): формат, маніфест, ліцензія, зайві файли
-	$(PY) tools/check_voices.py
+	$(RUN) check-voices
 
 doctor:      ## чого бракує в середовищі (python 3.11/uv, ffmpeg, node, Chrome/playwright) + підказки
-	python3 tools/doctor.py
+	python3 tools/run.py doctor
 
 hooks:       ## увімкнути git-хуки репозиторію (.githooks/pre-commit: guard + ruff)
 	git config core.hooksPath .githooks
 
 refs:        ## оригінали: EN з CASC гри → reference-en/; RU з мовного пакета (RU_PACK=…/ruru.w3mod) → reference/
-	$(PY) tools/build_refs.py
+	$(RUN) refs
 
 transcripts-local: ## тексти оригіналів → data/local/ (gitignored), у git лишаються тривалості (ADR 0005)
-	$(PY) tools/split_transcripts.py
+	$(RUN) transcripts-local
 
 transcribe:  ## Whisper-розшифровка reference/units/** → data/local/ (потрібні `make refs` і mlx-whisper)
 	$(PY) tools/transcribe.py --all
@@ -59,13 +61,19 @@ setup-refs:  ## PyCASC і решта requirements.txt (для make refs; PyCASC 
 	  || .venv/bin/python -m pip install -q -r requirements.txt
 
 install-voices:   ## обрані дублі → гра (без APPLY=1 лише план); бекап і журнал у <гра>/Backups/ua-voices/
-	$(PY) tools/install_voices.py $(if $(APPLY),--apply,)
+	$(RUN) install-voices $(if $(APPLY),--apply,)
 
 publish-voice: ## власні обрані дублі (game-files/) → voices/<AUTHOR>/ (FLAC); потрібні AUTHOR=<нік> CONSENT=1 (це мій голос, CC BY 4.0)
-	$(PY) tools/voices.py publish --author "$(AUTHOR)" $(if $(CONSENT),--consent,)
+	$(RUN) publish-voice --author "$(AUTHOR)" $(if $(CONSENT),--consent,)
 
 uninstall-voices: ## прибрати встановлені нами голоси, повернути оригінали
-	$(PY) tools/install_voices.py --uninstall
+	$(RUN) uninstall-voices
 
 ai-voice:     ## ШІ-варіанти реплік юніта власним голосом (Fish S2-Pro, локально): make ai-voice UNIT=peon [VARIANTS=3]
 	$(PY) tools/ai_voice.py --unit $(or $(UNIT),peon) --variants $(or $(VARIANTS),3)
+
+docker:      ## студія в Docker одною командою (http://127.0.0.1:8765); потрібен запущений Docker Desktop
+	python3 tools/run.py docker
+
+game-root:   ## показати/задати теку гри: make game-root [GAME=/шлях]
+	$(RUN) game-root $(GAME)

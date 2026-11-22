@@ -1,0 +1,25 @@
+# Одна команда: `docker compose up --build` (або `python tools/run.py docker`) → http://127.0.0.1:8765
+# Порт публікується ЛИШЕ на 127.0.0.1 хоста: студія без автентифікації не має світити в мережу.
+# Мікрофон працює, бо браузер запущено на хості (http://127.0.0.1 — безпечний контекст), а не в контейнері.
+# Змінні (необов'язково): GAME_DIR — тека гри (/Applications/Warcraft III Classic, C:\Games\Warcraft III…),
+#   GAME_MODE=rw — лише на час встановлення голосів (типово ro), HOST_UID/HOST_GID — власник файлів (Linux/macOS).
+services:
+  studio:
+    build: .
+    image: wc3-ua-studio:local
+    container_name: wc3-ua-studio
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    ports:
+      - "127.0.0.1:8765:8765"
+    environment:
+      STUDIO_BIND: "0.0.0.0"
+      WC3_GAME_ROOT: /game
+    volumes:
+      - ./audio:/app/audio
+      - ./data:/app/data
+      - ./game-files:/app/game-files
+      - ./voices:/app/voices
+      - ./reference:/app/reference
+      - ./reference-en:/app/reference-en
+      - ${GAME_DIR:-./.docker-nogame}:/game:${GAME_MODE:-ro}
+    restart: unless-stopped
