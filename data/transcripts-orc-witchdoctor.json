@@ -1,82 +1,62 @@
 {
   "witchdoctordeath.wav": {
-    "text": "Иоги!",
     "duration": 0.84
   },
   "witchdoctorpissed1.wav": {
-    "text": "Коли доктор сыт и больному легче.",
     "duration": 3.48
   },
   "witchdoctorpissed2.wav": {
-    "text": "Как вы себя чувствуете?",
     "duration": 1.74
   },
   "witchdoctorpissed3.wav": {
-    "text": "У меня для вас кое-что есть.",
     "duration": 2.16
   },
   "witchdoctorpissed4.wav": {
-    "text": "Шизофрения, как и было сказано.",
     "duration": 2.32
   },
   "witchdoctorpissed5.wav": {
-    "text": "Добавляем картошки, солим и ставим аквариум на огонь.",
     "duration": 6.08
   },
   "witchdoctorpissed6.wav": {
-    "text": "Человеческий организм на 80% состоит из жидкости, у некоторых из тормозной.",
     "duration": 7.76
   },
   "witchdoctorpissed7.wav": {
-    "text": "Чрезмерное употребление витамина С приводит к разжижению мозгов.",
     "duration": 4.26
   },
   "witchdoctorready1.wav": {
-    "text": "Знахаря вызывали?",
     "duration": 1.48
   },
   "witchdoctorwarcry1.wav": {
-    "text": "Ха-ха!",
     "duration": 2.0
   },
   "witchdoctorwhat1.wav": {
-    "text": "Я слышал зов.",
     "duration": 1.28
   },
   "witchdoctorwhat2.wav": {
-    "text": "Чем могу служить?",
     "duration": 1.18
   },
   "witchdoctorwhat3.wav": {
-    "text": "Вам нужна моя помощь.",
     "duration": 1.92
   },
   "witchdoctorwhat4.wav": {
-    "text": "Чего желаете?",
     "duration": 1.04
   },
   "witchdoctoryes1.wav": {
-    "text": "Тестим го!",
     "duration": 0.66
   },
   "witchdoctoryes2.wav": {
-    "text": "Немедленно.",
     "duration": 0.72
   },
   "witchdoctoryes3.wav": {
-    "text": "Правильное решение.",
     "duration": 1.42
   },
   "witchdoctoryesattack1.wav": {
-    "text": "Бай!",
     "duration": 0.54
   },
   "witchdoctoryesattack2.wav": {
-    "text": "Получай!",
     "duration": 0.72
   },
   "witchdoctoryesattack3.wav": {
-    "text": "ДА!",
     "duration": 0.4
   }
 }

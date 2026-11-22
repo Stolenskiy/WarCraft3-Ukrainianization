@@ -43,6 +43,9 @@ def checks() -> list[tuple[str, str, bool, str]]:
     out.append(("PyCASC", "make refs (оригінали з гри)", False,
                 "" if venv_py.exists() and _run(str(venv_py), "-c", "import PyCASC;print(1)") == "1"
                 else "make setup-refs"))
+    local = list((ROOT / "data/local").glob("transcripts-*.json"))
+    out.append(("тексти оригіналів (data/local/)", "текст реплік у студії (інакше плейсхолдер)", False,
+                "" if local else "make transcripts-local (є старі тексти в data/) або make refs && make transcribe"))
     hooks = _run("git", "-C", str(ROOT), "config", "core.hooksPath")
     out.append(("git-хуки", "pre-commit: guard + ruff", False, "" if hooks == ".githooks" else "make hooks"))
     return out

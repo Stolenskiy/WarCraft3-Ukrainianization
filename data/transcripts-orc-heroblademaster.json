@@ -1,82 +1,62 @@
 {
   "criticalstrike.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "heroblademasterattack1.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "heroblademasterdeath.wav": {
-    "text": "РАРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРРР",
     "duration": 2.34
   },
   "heroblademasterpissed1.wav": {
-    "text": "Гоблин — птица гордая. Пока не пнешь, не полетит.",
     "duration": 5.76
   },
   "heroblademasterpissed2.wav": {
-    "text": "Особая заточка этого меча позволяет без труда резать даже тяжелый доспех. Продолжение следует...",
     "duration": 38.62
   },
   "heroblademasterpissed3.wav": {
-    "text": "Два клинка. Один рубит чисто, другой еще чище.",
     "duration": 5.74
   },
   "heroblademasterpissed4.wav": {
-    "text": "Урле гиримона!",
     "duration": 1.14
   },
   "heroblademasterready1.wav": {
-    "text": "Мой клинок жаждет крови!",
     "duration": 2.38
   },
   "heroblademasterwarcry1.wav": {
-    "text": "Во славу пылающего клинка!",
     "duration": 2.42
   },
   "heroblademasterwhat1.wav": {
-    "text": "Да, повелитель.",
     "duration": 1.14
   },
   "heroblademasterwhat2.wav": {
-    "text": "Что прикажете?",
     "duration": 1.16
   },
   "heroblademasterwhat3.wav": {
-    "text": "Что прикажете?",
     "duration": 1.16
   },
   "heroblademasterwhat4.wav": {
-    "text": "ДААААА!",
     "duration": 0.5
   },
   "heroblademasteryes1.wav": {
-    "text": "Слушаюсь и повинуюсь.",
     "duration": 2.22
   },
   "heroblademasteryes2.wav": {
-    "text": "Шоу диска!",
     "duration": 1.0
   },
   "heroblademasteryes3.wav": {
-    "text": "Да!",
     "duration": 0.36
   },
   "heroblademasteryes4.wav": {
-    "text": "Хороший выбор!",
     "duration": 1.36
   },
   "heroblademasteryesattack1.wav": {
-    "text": "БАНЗАЙ!",
     "duration": 1.5
   },
   "heroblademasteryesattack2.wav": {
-    "text": "Ассу!",
     "duration": 1.2
   },
   "heroblademasteryesattack3.wav": {
-    "text": "КАРЭДА!",
     "duration": 1.24
   }
 }

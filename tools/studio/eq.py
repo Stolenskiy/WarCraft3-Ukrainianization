@@ -16,10 +16,12 @@ import uuid
 from pathlib import Path
 
 PRESETS_FILE = Path(__file__).resolve().parent / "eq_presets.json"
+SHELVES = ("lowshelf", "highshelf")
 BAND_TYPES = ("highpass", "lowshelf", "peaking", "highshelf", "lowpass")
 NEUTRAL_ID = "neutral"
 MAX_BANDS = 8
 MAX_GAIN = 12.0
+SHELF_Q = 0.71  # у полиць Q не керується: Web Audio його ігнорує, тож і ffmpeg отримує фіксоване значення
 
 
 class EqError(Exception):
@@ -50,7 +52,7 @@ def validate(p) -> dict:
             raise EqError(f"смуга {i}: тип має бути одним із {', '.join(BAND_TYPES)}")
         out.append({"type": b["type"], "freq_hz": _num(b.get("freq_hz"), f"смуга {i}: частота", 20, 20000),
                     "gain_db": _num(b.get("gain_db", 0), f"смуга {i}: підсилення", -MAX_GAIN, MAX_GAIN),
-                    "q": _num(b.get("q", 0.71), f"смуга {i}: Q", 0.1, 18)})
+                    "q": _num(b.get("q", SHELF_Q), f"смуга {i}: Q", 0.1, 18) if b["type"] not in SHELVES else SHELF_Q})
     return {"name": name.strip(), "enabled": bool(p.get("enabled", True)),
             "gain_db": _num(p.get("gain_db", 0), "загальне підсилення", -MAX_GAIN, MAX_GAIN), "bands": out}
 
@@ -65,8 +67,8 @@ def to_ffmpeg(profile: dict) -> list[str]:
         return []
     fl = []
     for b in profile.get("bands", []):
-        f, g, q = _g(b["freq_hz"]), _g(b["gain_db"]), _g(b["q"])
         t = b["type"]
+        f, g, q = _g(b["freq_hz"]), _g(b["gain_db"]), _g(SHELF_Q if t in SHELVES else b["q"])
         if t in ("highpass", "lowpass"):
             fl.append(f"{t}=f={f}:t=q:w={q}")
         elif t == "peaking":

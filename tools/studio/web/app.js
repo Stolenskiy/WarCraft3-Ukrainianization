@@ -118,21 +118,83 @@ function eqApply(node, b) {
   const s = eqNodeSpec(b);
   node.type = s.type; node.frequency.value = s.frequency; node.gain.value = s.gain; node.Q.value = s.Q;
 }
-// Підключити джерело до виходу через EQ (лише для дублів; оригінал і файл гри вже «як є»)
-function eqConnect(src, id) {
+// Граф дубля завжди: src → dry → вихід, та src → [EQ-ланцюг] → wet → вихід. A/B і зміна профілю лише
+// перемикають гучність dry/wet (setTargetAtTime), тож працюють і на дублі, що вже звучить (eqRewire).
+const eqActive = () => !!EQ.prof && EQ.prof.enabled && !EQ.bypass;
+const EQ_RAMP = 0.015;   // стала часу перемикання, с
+function eqConnect(src, id, buf, url) {
   EQ.live = null;
-  if (!EQ.prof || !EQ.prof.enabled || EQ.bypass || !String(id).startsWith("take:")) { src.connect(AC.destination); return; }
-  const nodes = EQ.prof.bands.map((b) => { const n = AC.createBiquadFilter(); eqApply(n, b); return n; });
-  const vol = AC.createGain(); vol.gain.value = Math.pow(10, EQ.prof.gain_db / 20);
-  [src, ...nodes, vol].reduce((a, n) => (a.connect(n), n));
-  vol.connect(AC.destination);
-  EQ.live = { nodes, vol };
+  if (!EQ.prof || !String(id).startsWith("take:")) { src.connect(AC.destination); return; }
+  const dry = AC.createGain(), wet = AC.createGain();
+  dry.gain.value = wet.gain.value = 0;
+  src.connect(dry); dry.connect(AC.destination); wet.connect(AC.destination);
+  EQ.live = { src, dry, wet, nodes: [], vol: null, head: null, n: undefined, buf, url };
+  eqRewire();
+}
+function eqRewire() {  // стан EQ (увімкнено / A-B / профіль) → живий граф і чип
+  const l = EQ.live;
+  if (!l || !EQ.prof) return eqChip();
+  const on = eqActive(), P = EQ.prof;
+  if (on ? l.n !== P.bands.length : l.n === undefined) {   // змінилась кількість смуг або перша збірка
+    if (l.head) { try { l.src.disconnect(l.head); } catch {} }
+    [...l.nodes, l.vol].forEach((n) => { try { n && n.disconnect(); } catch {} });
+    if (on) {
+      l.nodes = P.bands.map((b) => { const n = AC.createBiquadFilter(); eqApply(n, b); return n; });
+      l.vol = AC.createGain();
+      const chain = [l.src, ...l.nodes, l.vol, l.wet];
+      chain.reduce((x, n) => (x.connect(n), n));
+      l.head = chain[1]; l.n = P.bands.length;
+    } else { l.nodes = []; l.vol = null; l.src.connect(l.wet); l.head = l.wet; l.n = -1; }
+  }
+  if (on) eqLiveUpdate();
+  const t = AC.currentTime;
+  l.wet.gain.setTargetAtTime(on ? 1 : 0, t, EQ_RAMP);
+  l.dry.gain.setTargetAtTime(on ? 0 : eqMatched(l), t, EQ_RAMP);   // B (без EQ) вирівняно за гучністю з A
+  if (!on && l.buf && !eqMatchVal.has(eqMatchKey(l.url))) eqMatch(l.buf, l.url).then(() => { if (EQ.live === l) eqRewire(); });
+  eqChip();
 }
 function eqLiveUpdate() {  // слайдери під час прослуховування
   const l = EQ.live;
-  if (!l || l.nodes.length !== EQ.prof.bands.length) return;
+  if (!l || !l.vol || l.nodes.length !== EQ.prof.bands.length) return;
   EQ.prof.bands.forEach((b, i) => eqApply(l.nodes[i], b));
   l.vol.gain.value = Math.pow(10, EQ.prof.gain_db / 20);
+}
+// Вирівнювання A/B за гучністю: RMS(дубль через EQ) / RMS(дубль), раз на (дубль, профіль) через OfflineAudioContext
+const eqMatchVal = new Map(), eqMatchJobs = new Map();
+const eqMatchKey = (url) => url + "|" + JSON.stringify(eqPlain(EQ.prof));
+const eqMatched = (l) => (l.url && eqMatchVal.get(eqMatchKey(l.url))) || 1;
+function eqMatch(buf, url) {
+  const key = eqMatchKey(url);
+  if (!eqMatchJobs.has(key)) {
+    const P = eqClone(EQ.prof);
+    eqMatchJobs.set(key, (async () => {
+      let g = 1;
+      try {
+        const oc = new OfflineAudioContext(buf.numberOfChannels, buf.length, buf.sampleRate);
+        const s = oc.createBufferSource(); s.buffer = buf;
+        const nodes = P.bands.map((b) => { const n = oc.createBiquadFilter(); eqApply(n, b); return n; });
+        const vol = oc.createGain(); vol.gain.value = Math.pow(10, P.gain_db / 20);
+        [s, ...nodes, vol, oc.destination].reduce((x, n) => (x.connect(n), n));
+        s.start();
+        const out = await oc.startRendering();
+        const rms = (b) => { let sum = 0, n = 0; for (let c = 0; c < b.numberOfChannels; c++) for (const v of b.getChannelData(c)) { sum += v * v; n++; } return Math.sqrt(sum / (n || 1)); };
+        const d = rms(buf), w = rms(out);
+        if (d > 1e-6 && w > 1e-6) g = Math.min(4, Math.max(0.25, w / d));
+      } catch (e) { console.warn("eq match", e); }
+      eqMatchVal.set(key, g);
+    })());
+  }
+  return eqMatchJobs.get(key);
+}
+function eqToggleAB() { EQ.bypass = !EQ.bypass; eqRender(); eqRewire(); }
+function eqChip() {  // чип «EQ · профіль» на дублі, що звучить: золотий — з EQ, сірий — без (B); клік / A — перемкнути
+  document.querySelectorAll("[data-eq-chip]").forEach((c) => c.remove());
+  if (!playing || !EQ.live || !EQ.prof) return;
+  const head = document.querySelector(`[data-play="${CSS.escape(playing.id)}"]`)?.closest(".take")?.querySelector(".wave-box");  // накладка: розмітку не зсуває
+  if (!head) return;
+  const on = eqActive();
+  head.insertAdjacentHTML("beforeend", `<button class="eq-chip ${on ? "on" : ""}" data-eq-chip aria-pressed="${on}"
+    title="${on ? "Звучить з EQ" : "Звучить без EQ (B)"} — клік або A: порівняти">EQ · ${esc(EQ.prof.name)}</button>`);
 }
 function eqCurve() {
   const c = $("#eqCurve");
@@ -175,17 +237,17 @@ function eqRenderInner() {
     <canvas id="eqCurve" width="248" height="72"></canvas>
     <div class="eq-row">
       <label class="switch"><input type="checkbox" id="eqOn" ${EQ.prof.enabled ? "checked" : ""}><span></span>Увімкнено</label>
-      <button class="ghost ${EQ.bypass ? "on" : ""}" id="eqBypass" title="Порівняти: прослуховування без EQ (A/B)">${EQ.bypass ? "Слухаю без EQ" : "Слухаю з EQ"}</button>
+      <button class="ghost ${EQ.bypass ? "on" : ""}" id="eqBypass" aria-pressed="${EQ.bypass}" title="Порівняти: прослуховування без EQ (A/B)">${EQ.bypass ? "Слухаю без EQ" : "Слухаю з EQ"}</button>
     </div>
     <label class="eq-sl">Гучність <output>${EQ.prof.gain_db} дБ</output>
-      <input type="range" data-eq="gain" min="-12" max="12" step="0.5" value="${EQ.prof.gain_db}"></label>
+      <input type="range" data-eq="gain" aria-label="Загальна гучність профілю" min="-12" max="12" step="0.5" value="${EQ.prof.gain_db}"></label>
     ${EQ.prof.bands.map((b, i) => `<div class="eq-band"><b>${esc(EQ_TYPES[b.type])}</b>
       <label class="eq-sl">Частота <output>${b.freq_hz} Гц</output>
-        <input type="range" data-eq="freq" data-i="${i}" min="0" max="1000" value="${eqLog(b.freq_hz)}"></label>
+        <input type="range" data-eq="freq" data-i="${i}" aria-label="${esc(EQ_TYPES[b.type])}: частота" min="0" max="1000" value="${eqLog(b.freq_hz)}"></label>
       ${b.type === "highpass" || b.type === "lowpass" ? "" : `<label class="eq-sl">Підсилення <output>${b.gain_db} дБ</output>
-        <input type="range" data-eq="gain" data-i="${i}" min="-12" max="12" step="0.5" value="${b.gain_db}"></label>`}
-      <label class="eq-sl">Q <output>${b.q}</output>
-        <input type="range" data-eq="q" data-i="${i}" min="0.1" max="10" step="0.05" value="${b.q}"></label></div>`).join("")}
+        <input type="range" data-eq="gain" data-i="${i}" aria-label="${esc(EQ_TYPES[b.type])}: підсилення" min="-12" max="12" step="0.5" value="${b.gain_db}"></label>`}
+      ${b.type === "lowshelf" || b.type === "highshelf" ? "" : `<label class="eq-sl">Q <output>${b.q}</output>
+        <input type="range" data-eq="q" data-i="${i}" aria-label="${esc(EQ_TYPES[b.type])}: Q" min="0.1" max="10" step="0.05" value="${b.q}"></label>`}</div>`).join("")}
     <div class="eq-row">
       ${EQ.naming ? `<input type="text" id="eqName" maxlength="60" placeholder="Назва профілю" value="${esc(own ? "" : EQ.prof.name + " (копія)")}">
         <button class="ghost" id="eqSaveNew">Зберегти</button>` : `<button class="ghost" id="eqNew">Зберегти як новий профіль</button>`}
@@ -196,18 +258,22 @@ function eqRenderInner() {
     <p class="eq-hint">${EQ.data.selected === EQ.id ? "" : "Профіль для гри — «" + esc((P.find((p) => p.id === EQ.data.selected) || {}).name) + "». "}${P.find((p) => p.id === EQ.id).builtin ? "Пресет лише для читання: правки зберігайте як новий профіль. " : ""}Зміни чути одразу; у файли для гри потрапляють після застосування.</p>`;
   eqCurve();
 }
+let eqLoadSeq = 0;
 async function eqLoad() {
+  const my = ++eqLoadSeq;
+  EQ.prof = null;   // поки профіль не прийшов, play() чекає S.eqReady, а не грає з профілем попереднього юніта
   try { EQ.data = await getJSON(`/api/eq?cid=${encodeURIComponent(S.cat)}&gid=${encodeURIComponent(S.unit)}`); } catch (e) { EQ.data = null; eqRender(); toast(`Еквалайзер не завантажився: ${e.message || e}`, true); return; }
+  if (my !== eqLoadSeq) return;
   EQ.id = EQ.data.selected; EQ.naming = false; EQ.bypass = false;
   EQ.prof = eqClone(eqPlain(EQ.data.profiles.find((p) => p.id === EQ.id)));
-  eqRender();
+  eqRender(); eqRewire();
 }
 async function eqCommit(path, body, msg) {  // відповідь — новий стан /api/eq
   try {
     EQ.data = await post(path, { cid: S.cat, gid: S.unit, ...body });
     EQ.id = EQ.data.saved_id || EQ.data.selected; EQ.naming = false;
     EQ.prof = eqClone(eqPlain(EQ.data.profiles.find((p) => p.id === EQ.id)));
-    eqRender(); if (msg) toast(msg);
+    eqRender(); eqRewire(); if (msg) toast(msg);
     return true;
   } catch (e) { toast(String(e.message || e), true); return false; }
 }
@@ -230,12 +296,12 @@ function eqSetup() {
       const prev = EQ.id;
       eqCommit("/api/eq/assign", { profile_id: ev.target.value }).then((ok) => { if (!ok) { ev.target.value = prev; } });
     } else if (ev.target.id === "eqOn") {
-      EQ.prof.enabled = ev.target.checked; eqRender();
+      EQ.prof.enabled = ev.target.checked; eqRender(); eqRewire();
     } else if (ev.target.dataset.eq) eqRender();   // оновити кнопки (напр. «Оновити профіль»)
   });
   box.addEventListener("click", (ev) => {
     const id = ev.target.id;
-    if (id === "eqBypass") { EQ.bypass = !EQ.bypass; eqRender(); }
+    if (id === "eqBypass") eqToggleAB();
     else if (id === "eqNew") { EQ.naming = true; eqRender(); $("#eqName").focus(); }
     else if (id === "eqSaveNew") {
       const name = $("#eqName").value.trim();
@@ -245,7 +311,11 @@ function eqSetup() {
     else if (id === "eqDel") { if (confirm(`Видалити профіль «${EQ.prof.name}»?`)) eqCommit("/api/eq/delete", { id: EQ.id }, "Профіль видалено"); }
     else if (id === "eqReexport") eqReexport();
   });
-  box.addEventListener("keydown", (ev) => { ev.stopPropagation(); if (ev.key === "Enter" && ev.target.id === "eqName") $("#eqSaveNew").click(); });
+  // Усередині #eq глобальні клавіші не діють, крім L, B, A і Пробілу на повзунках (стрілки/Home/End/PageUp/PageDown лишаються повзунку)
+  box.addEventListener("keydown", (ev) => {
+    if (!(ev.target.matches("input[type=range]") && ["KeyL", "KeyB", "KeyA", "Space"].includes(ev.code))) ev.stopPropagation();
+    if (ev.key === "Enter" && ev.target.id === "eqName") $("#eqSaveNew").click();
+  });
 }
 async function eqReexport() {
   if (eqDirty() || !EQ.data.profiles.find((p) => p.id === EQ.id)) return toast("Спершу збережіть профіль", true);
@@ -271,9 +341,14 @@ async function play(items) {
     try { buf = await loadBuf(it.url); } catch { toast("Не вдалося відкрити аудіо", true); return; }
     if (it.nocache) bufCache.delete(it.url);           // «Як у грі»: той самий url не тримаємо, налаштування могли змінитись
     if (playToken !== token) return;
+    if (String(it.id).startsWith("take:")) {         // EQ має встигнути завантажитись (інакше дубль зазвучить без нього)
+      await S.eqReady;
+      if (EQ.prof && EQ.prof.enabled) await eqMatch(buf, it.url);
+      if (playToken !== token) return;
+    }
     await new Promise((res) => {
       const src = AC.createBufferSource();
-      src.buffer = buf; eqConnect(src, it.id); src.onended = res;
+      src.buffer = buf; eqConnect(src, it.id, buf, it.url); src.onended = res;
       const off = it.start || 0, len = (it.end ?? buf.duration) - off; // ручне обрізання дубля
       playing = { id: it.id, src, t0: AC.currentTime, dur: len, off, full: buf.duration };
       src.start(0, off, len);
@@ -291,10 +366,12 @@ function stopPlay() {
   markPlaying();
 }
 function markPlaying() {
+  if (!playing) EQ.live = null;
   document.querySelectorAll("[data-play]").forEach((b) => {
     const on = playing && b.dataset.play === playing.id;
     b.classList.toggle("playing", !!on); b.textContent = on ? "■" : "▶";
   });
+  eqChip();
 }
 (function anim() {
   if (playing) drawWave(playing.id, ((playing.off || 0) + AC.currentTime - playing.t0) / (playing.full || playing.dur));
@@ -504,7 +581,7 @@ async function openUnit(cid, gid) {
     ? g.traits.map((t) => { const [k, ...v] = t.split(": "); return `<p><b>${esc(k)}:</b> ${esc(v.join(": "))}</p>`; }).join("")
     : "<p>Аркуша персонажа у voice bible ще немає.</p>";
   renderCues(); renderCard();
-  eqLoad();
+  S.eqReady = eqLoad();
 }
 
 // ------------------------------------------------------------------ список реплік
@@ -521,7 +598,7 @@ function renderCues() {
     return `<li class="cue ${i === S.idx ? "on" : ""} ${p.no_speech ? "mute" : ""}" data-i="${i}">
       <span class="st ${st}"></span>
       <span><div class="ru">${esc(p.ru)}</div><div class="ua">${esc(p.ua)}</div></span>
-      <span class="tag">${esc(p.kind_ua)}${p.original ? `<br><b class="orig-chip" title="У грі лишається оригінал">ориг. ${p.original.lang.toUpperCase()}</b>` : n ? `<br>${n} дубл.` : ""}</span></li>`;
+      <span class="tag">${esc(p.kind_ua)}${p.original ? `<br><b class="orig-chip" title="У грі лишається оригінал">ориг. ${p.original.lang.toUpperCase()}</b>` : n ? `<br>${n} дубл.` : ""}${AI.cueMark(p)}</span></li>`;
   }).join("") || `<li class="empty">Тут порожньо</li>`;
   $("#cues .cue.on")?.scrollIntoView({ block: "nearest" });
 }
@@ -571,7 +648,7 @@ function takeRow(p, t, isNew) {
     <button class="play" data-play="${esc(id)}" ${t.exists ? "" : "disabled"}>▶</button>
     <div><div class="take-head"><b>Дубль ${t.n || "?"}</b>
       <span class="fit" data-fit="${esc(t.file)}">${t.exists ? fmt(t.dur) : "файл відсутній"}</span>
-      ${appr ? `<span class="badge-game">У ГРІ</span>` : ""}<span class="trim-info" data-trim-info="${esc(t.file)}"></span>${tempoBadge(t)}
+      ${appr ? `<span class="badge-game">У ГРІ</span>` : ""}${t.source === "ai" ? `<span class="badge-ai" title="Взято з ШІ-варіантів (${esc(t.engine || "ШІ")})">ШІ</span>` : ""}<span class="trim-info" data-trim-info="${esc(t.file)}"></span>${tempoBadge(t)}
       <span class="time">${t.deleted ? "видалено " + timeLabel(t.deleted) : timeLabel(t.created)}</span></div>
       <div class="wave-box"><canvas class="wave" data-wave="${esc(id)}"></canvas></div>${t.deleted ? "" : tempoPanel(t)}</div>
     <div class="take-actions">${actions}</div></div>`;
@@ -633,6 +710,8 @@ function renderCard(newFile) {
           тож ▶ і «Оригінал → дубль» звучать уже обрізаними. Тягніть, щоб обрізати сильніше (затемнене відкидається)
           або розсунути — тоді видно штриховану тишу. ←/→ на ручці — крок 10 мс, подвійний клік — повернути ручку,
           «Скинути» — обидві. Файл дубля не змінюється.</p>
+        <p><kbd>A</kbd> — порівняти звучання з EQ і без нього (A/B) просто під час прослуховування; те саме — клік по чипу «EQ · профіль» на дублі.
+          «Без EQ» вирівняно за гучністю, тож різниця — у тембрі, а не в голосності.</p>
         <p><b>Еквалайзер</b> (ліва панель) — дублі в студії звучать уже з EQ персонажа; «Слухаю без EQ» — порівняти.
           Новий вибір для гри отримує поточний профіль; уже обрані файли оновлює «Застосувати до обраних дублів».</p></div></details>` : ""}</div>
     <div class="takes">${active.length ? active.map((t) => takeRow(p, t, t.file === newFile)).join("")
@@ -647,6 +726,7 @@ function renderCard(newFile) {
   $("#micSel").onchange = (e) => { e.target.blur(); switchMic(e.target.value); };  // Пробіл знову = запис
   bindCard(p);
   loadWaves(p);
+  AI.mount(p);
 }
 
 async function loadWaves(p) {
@@ -717,6 +797,7 @@ function bindCard(p) {
     const b = e.target.closest("button, canvas");
     if (!b) return;
     const d = b.dataset;
+    if (d.eqChip !== undefined) return eqToggleAB();
     if (d.play || d.wave) {
       const id = d.play || d.wave;
       if (playing && playing.id === id) return stopPlay();
@@ -1000,7 +1081,7 @@ async function runUndo() {
 
 // ------------------------------------------------------------------ клавіатура
 document.addEventListener("keydown", (e) => {
-  if (e.target.closest("input, textarea, select, summary, .trim-h, #eq")) return;  // елементи керування мають свої клавіші
+  if (!e.target.matches("#eq input[type=range]") && e.target.closest("input, textarea, select, summary, .trim-h, #eq")) return;  // елементи керування мають свої клавіші (повзунки EQ — див. eqSetup)
   if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") { e.preventDefault(); return runUndo(); }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === "Escape") return toggleUnitPopover(false);
@@ -1012,6 +1093,7 @@ document.addEventListener("keydown", (e) => {
     case "KeyR": play([{ url: urlRef(p), id: "ref" }]); break;
     case "KeyL": if (last) play([takeItem(p, last.file)]); break;
     case "KeyB": if (last) play([{ url: urlRef(p), id: "ref" }, takeItem(p, last.file)]); break;
+    case "KeyA": eqToggleAB(); break;
     case "KeyN": nextTodo(); break;
     case "KeyO": keepOriginal(p); break;
     case "ArrowDown": e.preventDefault(); step(1); break;

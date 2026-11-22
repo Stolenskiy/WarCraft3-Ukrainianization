@@ -1,90 +1,68 @@
 {
   "herokeeperofthegrovedeath1.wav": {
-    "text": "Ах!",
     "duration": 0.7
   },
   "keeperofthegrovepissed1.wav": {
-    "text": "Голова моего папы висит над чьим-то камином.",
     "duration": 3.26
   },
   "keeperofthegrovepissed2.wav": {
-    "text": "Следуй зову природы.",
     "duration": 1.92
   },
   "keeperofthegrovepissed3.wav": {
-    "text": "Что естественно, то не безобразно.",
     "duration": 3.06
   },
   "keeperofthegrovepissed4.wav": {
-    "text": "Чем больше я узнаю людей, тем больше мне хочется быть животным.",
     "duration": 5.18
   },
   "keeperofthegrovepissed5.wav": {
-    "text": "Мои рога, мое богатство.",
     "duration": 3.0
   },
   "keeperofthegrovepissed6.wav": {
-    "text": "Стадо, стройся!",
     "duration": 2.08
   },
   "keeperofthegroveready1.wav": {
-    "text": "Я буду охранять эти земли.",
     "duration": 2.3
   },
   "keeperofthegrovewarcry1.wav": {
-    "text": "Смерть осквернителем этих земель!",
     "duration": 2.74
   },
   "keeperofthegrovewhat1.wav": {
-    "text": "Где опасность?",
     "duration": 1.4
   },
   "keeperofthegrovewhat2.wav": {
-    "text": "Приказывай!",
     "duration": 0.96
   },
   "keeperofthegrovewhat3.wav": {
-    "text": "Кто нарушил наш покой?",
     "duration": 1.94
   },
   "keeperofthegrovewhat4.wav": {
-    "text": "Природа не знает усталости.",
     "duration": 2.2
   },
   "keeperofthegrovewhat5.wav": {
-    "text": "Нет покоя в наших лесах.",
     "duration": 1.98
   },
   "keeperofthegroveyes1.wav": {
-    "text": "Во имя духов!",
     "duration": 1.2
   },
   "keeperofthegroveyes2.wav": {
-    "text": "За Калимдор!",
     "duration": 1.08
   },
   "keeperofthegroveyes3.wav": {
-    "text": "Пожалуй, ты прав.",
     "duration": 1.4
   },
   "keeperofthegroveyes4.wav": {
-    "text": "Да будет так!",
     "duration": 1.3
   },
   "keeperofthegroveyes5.wav": {
-    "text": "Естественно.",
     "duration": 1.32
   },
   "keeperofthegroveyesattack1.wav": {
-    "text": "Почувствуйте гнев природы.",
     "duration": 2.08
   },
   "keeperofthegroveyesattack2.wav": {
-    "text": "Очистим лес от врагов.",
     "duration": 2.06
   },
   "keeperofthegroveyesattack3.wav": {
-    "text": "Они раскаются в этом.",
     "duration": 1.92
   }
 }

@@ -1,194 +1,146 @@
 {
   "demonhuntermorphedpissed1.wav": {
-    "text": "Огонь против огня!",
     "duration": 2.36
   },
   "demonhuntermorphedpissed2.wav": {
-    "text": "Такой уж я. Зла не помню. Приходится записывать.",
     "duration": 5.2
   },
   "demonhuntermorphedpissed3.wav": {
-    "text": "Замуровали! Замуровали, демоны!",
     "duration": 3.98
   },
   "demonhuntermorphedpissed4.wav": {
-    "text": "Потусторонним вход воспрещен.",
     "duration": 3.08
   },
   "demonhuntermorphedpissed5.wav": {
-    "text": "Кровь кипит в моих жилах.",
     "duration": 2.16
   },
   "demonhuntermorphedpissed6.wav": {
-    "text": "Чтоб вы все сгорели! Простите.",
     "duration": 4.06
   },
   "demonhuntermorphedpissed7.wav": {
-    "text": "Однажды тьма призвала меня, но я был очень занят. Тогда я призвал тьму, но там был автоответчик. Так мы до сих пор и не встретились.",
     "duration": 11.8
   },
   "demonhuntermorphedready1.wav": {
-    "text": "Настал час возмездия!",
     "duration": 2.2
   },
   "demonhuntermorphedwarcry1.wav": {
-    "text": "За Калимдор!",
     "duration": 1.02
   },
   "demonhuntermorphedwhat1.wav": {
-    "text": "Час настал!",
     "duration": 1.2
   },
   "demonhuntermorphedwhat2.wav": {
-    "text": "Мы должны действовать!",
     "duration": 2.04
   },
   "demonhuntermorphedwhat3.wav": {
-    "text": "Мой клинок жаждет крови.",
     "duration": 3.5
   },
   "demonhuntermorphedwhat4.wav": {
-    "text": "Быстрее!",
     "duration": 0.72
   },
   "demonhuntermorphedwhat5.wav": {
-    "text": "Приказывай!",
     "duration": 0.84
   },
   "demonhuntermorphedyes1.wav": {
-    "text": "Ээморные!",
     "duration": 1.0
   },
   "demonhuntermorphedyes2.wav": {
-    "text": "Будь я проклят!",
     "duration": 1.58
   },
   "demonhuntermorphedyes3.wav": {
-    "text": "Тула Хакана!",
     "duration": 0.88
   },
   "demonhuntermorphedyes4.wav": {
-    "text": "Наконец-то!",
     "duration": 1.16
   },
   "demonhuntermorphedyes5.wav": {
-    "text": "Уху!",
     "duration": 0.98
   },
   "demonhuntermorphedyesattack1.wav": {
-    "text": "Никто не уйдет живым.",
     "duration": 2.04
   },
   "demonhuntermorphedyesattack2.wav": {
-    "text": "Напьемся крови!",
     "duration": 1.76
   },
   "demonhuntermorphedyesattack3.wav": {
-    "text": "Беги или срагайся!",
     "duration": 2.18
   },
   "demonhuntermorphedyesattack4.wav": {
-    "text": "НЕСТ!",
     "duration": 1.0
   },
   "herodemonhunterattack1.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "herodemonhunterdeath1.wav": {
-    "text": "aland",
     "duration": 11.62
   },
   "herodemonhunterpissed1.wav": {
-    "text": "Огонь против огня!",
     "duration": 2.34
   },
   "herodemonhunterpissed2.wav": {
-    "text": "Такой уж я, зла не помню, приходится записывать. Субтитры создавал DimaTorzok",
     "duration": 35.18
   },
   "herodemonhunterpissed3.wav": {
-    "text": "Замуровали, замуровали демоны!",
     "duration": 4.08
   },
   "herodemonhunterpissed4.wav": {
-    "text": "Потусторонним вход воспрещен.",
     "duration": 3.08
   },
   "herodemonhunterpissed5.wav": {
-    "text": "Кровь кипит в моих жилах.",
     "duration": 2.16
   },
   "herodemonhunterpissed6.wav": {
-    "text": "Чтоб вы все сгорели! Простите.",
     "duration": 4.04
   },
   "herodemonhunterpissed7.wav": {
-    "text": "Однажды тьма призвала меня, но я был очень занят. Тогда я призвал тьму, но там был автоответчик. Так мы до сих пор и не встретились. Продолжение следует...",
     "duration": 41.76
   },
   "herodemonhunterready1.wav": {
-    "text": "Настал час возмездия!",
     "duration": 2.18
   },
   "herodemonhunterwarcry1.wav": {
-    "text": "За Калимдор!",
     "duration": 1.02
   },
   "herodemonhunterwhat1.wav": {
-    "text": "Час настал!",
     "duration": 1.3
   },
   "herodemonhunterwhat2.wav": {
-    "text": "Мы должны действовать!",
     "duration": 2.02
   },
   "herodemonhunterwhat3.wav": {
-    "text": "Мой клинок жаждет крови.",
     "duration": 3.46
   },
   "herodemonhunterwhat4.wav": {
-    "text": "Быстрее!",
     "duration": 0.72
   },
   "herodemonhunterwhat5.wav": {
-    "text": "Приказывай!",
     "duration": 0.82
   },
   "herodemonhunteryes1.wav": {
-    "text": "Эа морные!",
     "duration": 1.0
   },
   "herodemonhunteryes2.wav": {
-    "text": "Будь я проклят!",
     "duration": 1.56
   },
   "herodemonhunteryes3.wav": {
-    "text": "Тула Хакана!",
     "duration": 0.92
   },
   "herodemonhunteryes4.wav": {
-    "text": "Наконец-то!",
     "duration": 1.12
   },
   "herodemonhunteryes5.wav": {
-    "text": "Уху!",
     "duration": 0.96
   },
   "herodemonhunteryesattack1.wav": {
-    "text": "Никто не уйдет живым.",
     "duration": 2.02
   },
   "herodemonhunteryesattack2.wav": {
-    "text": "Напьемся крови!",
     "duration": 1.68
   },
   "herodemonhunteryesattack3.wav": {
-    "text": "Беги или сражайся!",
     "duration": 2.16
   },
   "herodemonhunteryesattack4.wav": {
-    "text": "Мист!",
     "duration": 2.0
   }
 }

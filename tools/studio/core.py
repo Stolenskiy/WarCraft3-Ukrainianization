@@ -9,7 +9,8 @@
         "takes": [{"file", "created", "deleted": iso | None,    # deleted → лежить у _deleted/
                    "trim": {"start": sec, "end": sec},           # trim — необов'язкове ручне обрізання
                    "tempo": 1.15,                                # tempo — необов'язкове прискорення 0.8–1.3
-                   "peak_db": dBFS, "clipped": bool}],           # необов'язкові (старі дублі без них)
+                   "peak_db": dBFS, "clipped": bool,             # необов'язкові (старі дублі без них)
+                   "source": "ai", "engine", "ai_file"}],        # лише дублі, взяті з ШІ-варіантів (ai.py)
         "original": {"lang": "ru"|"en", "ts": iso} | None,   # «Залишити оригінал» (взаємовиключно з approved)
         "history": [{"ts", "action"}]}}}}
 
@@ -54,6 +55,7 @@ from pathlib import Path
 
 import voices
 
+from . import ai as ai_mod
 from . import catalog as cat_mod
 from . import eq as eq_mod
 from . import proc
@@ -287,6 +289,7 @@ class Service:
             takes.append({"file": t["file"], "n": take_no(t["file"]), "created": t.get("created"),
                           "deleted": t.get("deleted"), "exists": p.exists(), "trim": t.get("trim"), "tempo": t.get("tempo") or 1.0,
                           "peak_db": t.get("peak_db"), "clipped": bool(t.get("clipped", False)),
+                          "source": t.get("source"), "engine": t.get("engine"),
                           "dur": round(duration(p), 3) if p.exists() else 0})
         return {"id": ln.id, "kind": ln.kind, "kind_ua": ln.kind_ua, "ru": ln.ru, "ru_dur": round(ln.ru_dur, 3),
                 "has_en": ln.ref_en is not None, "has_ru": ln.has_ru,
@@ -296,7 +299,7 @@ class Service:
                 "approved": e["approved"], "original": e["original"], "orig_hint": cat_mod.looks_nonverbal(
                     ln.no_speech, e["ua_text"] if e["ua_text"] is not None else ln.ua_hint, ln.ru),
                 "game_exists": self.game_path(ln).exists(),
-                "takes": takes, "history": e["history"][-50:]}
+                "takes": takes, "ai": ai_mod.list_ai(cid, gid, ln.stem), "history": e["history"][-50:]}
 
     def group_json(self, cid: str, gid: str) -> dict:
         with self.lock:
@@ -583,6 +586,10 @@ class Service:
                 return en
             if kind == "game":
                 return self.game_path(self.line(cid, gid, name))
+            if kind == "ai":                      # ШІ-варіанти: лише файли зі списку репліки (audio/ai/…)
+                for ln in self.lines(cid, gid):
+                    if (p := ai_mod.ai_path(cid, gid, ln.stem, name)) is not None:
+                        return p
             if kind == "take":
                 self.lines(cid, gid)
                 for e in self.store(cid).data["groups"].get(gid, {}).values():
@@ -590,6 +597,47 @@ class Service:
                         if t["file"] == name:
                             return self.take_path(cid, gid, t)
             raise StudioError("невідомий файл")
+
+    # ---------- ШІ-варіанти (генерація — tools/ai_voice.py; тут лише «Взяти в дублі» й приховування)
+    def _ai_variant(self, cid: str, gid: str, ln: Line, file: str) -> Path:
+        p = ai_mod.ai_path(cid, gid, ln.stem, file)
+        if p is None or not p.is_file():
+            raise StudioError(f"невідомий ШІ-варіант {file}")
+        return p
+
+    def adopt_ai(self, cid: str, gid: str, lid: str, file: str) -> dict:
+        """КОПІЮЄ ШІ-варіант у дублі як новий дубль (`source: "ai"`, `engine`), далі — як будь-який дубль
+        (обрізання, темп, EQ, «Обрати для гри»). Нумерація власних дублів не порушується (max + 1)."""
+        with self.lock:
+            ln, st = self.line(cid, gid, lid), self.store(cid)
+            src = self._ai_variant(cid, gid, ln, file)
+            meta = ai_mod.read_sidecar(src) or {}
+            e = st.entry(gid, lid)
+            if any(t["file"] == meta.get("adopted") and not t.get("deleted") for t in e["takes"]):
+                raise StudioError(f"цей ШІ-варіант уже взято як дубль {take_no(meta['adopted'])}")
+            target = self.next_take_file(cid, gid, ln)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, target)
+            peak_db, n_clip = wav_peak(target)
+            e["takes"].append({"file": target.name, "created": now(), "deleted": None, "peak_db": peak_db,
+                               "clipped": n_clip >= CLIP_MIN_SAMPLES, "source": "ai",
+                               "engine": meta.get("engine"), "ai_file": file})
+            meta["adopted"] = target.name
+            ai_mod.write_sidecar(src, meta)
+            st.log(gid, lid, f"ШІ-варіант {file} ({meta.get('engine')}) взято в дублі як дубль {take_no(target.name)}")
+            return self._done(cid, gid, ln)
+
+    def discard_ai(self, cid: str, gid: str, lid: str, file: str) -> dict:
+        """Сховати ШІ-варіант (файл лишається на диску, у списку його більше немає)."""
+        with self.lock:
+            ln = self.line(cid, gid, lid)
+            src = self._ai_variant(cid, gid, ln, file)
+            meta = ai_mod.read_sidecar(src) or {}
+            if not meta.get("discarded"):
+                meta["discarded"] = True
+                ai_mod.write_sidecar(src, meta)
+                self.store(cid).log(gid, lid, f"ШІ-варіант {file} приховано")
+            return self._done(cid, gid, ln)
 
     # ---------- еквалайзер (профілі — eq.py; змінений профіль НЕ перезаписує файли мовчки)
     def eq_json(self, cid: str, gid: str) -> dict:

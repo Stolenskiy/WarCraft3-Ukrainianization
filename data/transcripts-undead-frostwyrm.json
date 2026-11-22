@@ -1,42 +1,32 @@
 {
   "frostwyrmattack1.wav": {
-    "text": "Субтитры создавал DimaTorzok",
     "duration": 29.98
   },
   "frostwyrmpissed1.wav": {
-    "text": "Продолжение следует...",
     "duration": 4.0
   },
   "frostwyrmpissed2.wav": {
-    "text": "ДИНАМИЧНАЯ МУЗЫКА",
     "duration": 1.24
   },
   "frostwyrmpissed3.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "frostwyrmready1.wav": {
-    "text": "Субтитры создавал DimaTorzok",
     "duration": 29.98
   },
   "frostwyrmwarcry1.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "frostwyrmwhat1.wav": {
-    "text": "ДИНАМИЧНАЯ МУЗЫКА",
     "duration": 29.98
   },
   "frostwyrmwhat2.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   },
   "frostwyrmyes1.wav": {
-    "text": "Субтитры создавал DimaTorzok",
     "duration": 29.98
   },
   "frostwyrmyesattack1.wav": {
-    "text": "Продолжение следует...",
     "duration": 29.98
   }
 }

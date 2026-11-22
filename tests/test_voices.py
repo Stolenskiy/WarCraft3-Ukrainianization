@@ -378,3 +378,17 @@ def test_ai_takes_marked_in_manifest(tmp_path):
     man["Units/orc/peon/peonwhat1.wav"]["ai"] = "yes"
     (root / "voices/alice/manifest.json").write_text(json.dumps(man))
     assert any("ai у manifest" in e for e in check_voices.check(root))
+
+
+def test_publish_normalizes_case_of_game_dirs(tmp_path):
+    """Студія може писати game-files/Units/Orc/… — пакет і маніфест мусять мати канонічний «Units/orc/…» і пройти перевірку."""
+    root = mkroot(tmp_path)
+    for x in LINES:
+        race, rest = x.split("/", 1)
+        synth(root / f"game-files/Units/{race.capitalize()}/{rest}.wav", freq=440)
+    voices.publish("alice", "alice", root, consent=True)
+    keys = set(voices.manifest(root, "alice"))
+    assert keys == {f"Units/{x}.wav" for x in LINES}
+    assert all(p.relative_to(root / "voices/alice").as_posix() == p.relative_to(root / "voices/alice").as_posix().lower()
+               for p in (root / "voices/alice/units").rglob("*.flac"))
+    assert check_voices.check(root) == []
