@@ -12,18 +12,15 @@ PATH_RE = re.compile(r"`((?:docs|tools|tests|\.github|\.claude|\.githooks)/[^`\s
 
 
 def server_routes() -> set[str]:
-    """Усі маршрути з коду server.py (рядки "/api/…", порівняння parts == ["api", …], parts[:2] == ["audio", …])."""
-    tree = ast.parse(SERVER.read_text(encoding="utf-8"))
-    doc = ast.get_docstring(tree, clean=False)
+    """Усі маршрути з реєстру: `@route("GET", "/api/…")` у tools/studio/routes/*.py (шаблон обрізається до першого «<»)."""
     routes: set[str] = set()
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Constant) and isinstance(n.value, str) and n.value != doc:
-            if re.fullmatch(r"/(api|audio)/[\w/-]+", n.value):
-                routes.add(n.value.rstrip("/"))
-        if isinstance(n, ast.Compare) and isinstance(n.comparators[0], ast.List):
-            parts = [e.value for e in n.comparators[0].elts if isinstance(e, ast.Constant)]
-            if parts and parts[0] in ("api", "audio") and len(parts) > 1:
-                routes.add("/" + "/".join(parts))
+    for f in sorted((REPO / "tools/studio/routes").glob("*.py")):
+        for n in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+            if (isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "route" and len(n.args) == 2
+                    and isinstance(n.args[1], ast.Constant) and isinstance(n.args[1].value, str)):
+                path = n.args[1].value.split("<")[0].rstrip("/")
+                if re.fullmatch(r"/(api|audio)/[\w/-]+|/audio", path):
+                    routes.add(path)
     return routes
 
 
@@ -80,3 +77,24 @@ def test_adrs_are_short():
     assert len(adrs) >= 5
     for a in adrs:
         assert len(a.read_text(encoding="utf-8").splitlines()) <= 25, a.name
+
+
+def test_studio_files_stay_small():
+    """Агентна готовність: жоден файл студії (py/js/css) не більший за 300 рядків — типова зміна читає ≲ 200."""
+    studio = REPO / "tools/studio"
+    files = [*studio.rglob("*.py"), *(studio / "web").rglob("*.js"), *(studio / "web").rglob("*.css")]
+    big = sorted(f"{f.relative_to(REPO)}: {len(f.read_text(encoding='utf-8').splitlines())}" for f in files
+                 if len(f.read_text(encoding="utf-8").splitlines()) > 300)
+    assert len(files) > 25 and not big, f"файли > 300 рядків: {big}"
+
+
+def test_every_web_module_is_loaded():
+    """Кожен web/js/*.js досяжний із main.js (ланцюжком імпортів) — інакше мертвий код."""
+    js = REPO / "tools/studio/web/js"
+    seen, todo = set(), ["main"]
+    while todo:
+        m = todo.pop()
+        if m not in seen:
+            seen.add(m)
+            todo += re.findall(r'(?:from|import) "\./([\w-]+)\.js"', (js / f"{m}.js").read_text(encoding="utf-8"))
+    assert {p.stem for p in js.glob("*.js")} <= seen

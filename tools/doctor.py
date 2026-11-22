@@ -76,7 +76,7 @@ def checks() -> list[tuple[str, str, bool, str]]:
     ff = ("winget install Gyan.FFmpeg   (або choco install ffmpeg; потім перезапустіть термінал)" if win
           else "brew install ffmpeg" if mac else "apt install ffmpeg")
     out.append(("ffmpeg", "тести обробки, студія", True, "" if shutil.which("ffmpeg") else ff))
-    out.append(("node", "lint (node --check app.js)", True,
+    out.append(("node", "lint (node --check web/js/*.js)", True,
                 "" if shutil.which("node") else ("winget install OpenJS.NodeJS.LTS" if win else "brew install node   (Linux: apt install nodejs)")))
     if win:
         chrome = any(p.exists() for p in browser_paths())

@@ -1,0 +1,17 @@
+/* Голоси спільноти. */
+/* голоси спільноти */
+.auth-sel { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; font-size: 12px; max-width: 170px; margin-left: auto; }
+.inst-list li { display: flex; align-items: center; gap: 8px; }
+.inst-list li label { flex: 1; min-width: 0; }
+.inst-list .auth-sel { margin-left: 0; }
+.tag.who { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.play-v { padding: 0 7px; font-size: 11px; line-height: 20px; }
+.v-list { list-style: none; margin: 0 0 6px; padding: 0; }
+.v-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); margin-bottom: 6px; }
+.v-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.v-name small { color: var(--muted); font-size: 12px; }
+.v-pub { display: flex; gap: 8px; margin: 6px 0; }
+.v-pub input { flex: 1; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.v-consent { display: flex; gap: 8px; align-items: flex-start; color: var(--muted); font-size: 13px; }
+.v-result { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.v-result pre { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-x: auto; font-size: 12px; user-select: all; }

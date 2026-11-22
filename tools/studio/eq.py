@@ -1,7 +1,8 @@
 """Еквалайзер персонажа: пресети (eq_presets.json, у git), профілі користувача (data/studio/eq.json),
 перетворення профілю на ffmpeg-фільтри.
 
-Профіль: {name, enabled, gain_db, bands: [{type, freq_hz, gain_db, q}]}; type —
+Профіль: {name, enabled, gain_db, amount, bands: [{type, freq_hz, gain_db, q}]}; amount — «Сила» 0…2 (множник підсилення смуг,
+0 = EQ вимкнено, типово 1); type —
 highpass | lowshelf | peaking | highshelf | lowpass. Користувацький файл:
 {"profiles": {id: profile}, "assign": {cid: {gid: profile_id}}}. Пресети лише для читання.
 Типовий профіль групи: пресет `<раса>-<gid>` (раса — з cid `units-<раса>`), інакше «Нейтральний».
@@ -21,6 +22,7 @@ BAND_TYPES = ("highpass", "lowshelf", "peaking", "highshelf", "lowpass")
 NEUTRAL_ID = "neutral"
 MAX_BANDS = 8
 MAX_GAIN = 12.0
+MAX_AMOUNT = 2.0   # «Сила» профілю: 0…200 %
 SHELF_Q = 0.71  # у полиць Q не керується: Web Audio його ігнорує, тож і ffmpeg отримує фіксоване значення
 
 
@@ -54,7 +56,8 @@ def validate(p) -> dict:
                     "gain_db": _num(b.get("gain_db", 0), f"смуга {i}: підсилення", -MAX_GAIN, MAX_GAIN),
                     "q": _num(b.get("q", SHELF_Q), f"смуга {i}: Q", 0.1, 18) if b["type"] not in SHELVES else SHELF_Q})
     return {"name": name.strip(), "enabled": bool(p.get("enabled", True)),
-            "gain_db": _num(p.get("gain_db", 0), "загальне підсилення", -MAX_GAIN, MAX_GAIN), "bands": out}
+            "gain_db": _num(p.get("gain_db", 0), "загальне підсилення", -MAX_GAIN, MAX_GAIN),
+            "amount": _num(p.get("amount", 1), "сила", 0, MAX_AMOUNT), "bands": out}
 
 
 def _g(x: float) -> str:
@@ -62,19 +65,22 @@ def _g(x: float) -> str:
 
 
 def to_ffmpeg(profile: dict) -> list[str]:
-    """Профіль → список ffmpeg-фільтрів (порядок: смуги, потім volume). Вимкнений/порожній → []."""
-    if not profile.get("enabled", True):
+    """Профіль → список ffmpeg-фільтрів (порядок: смуги, потім volume). Вимкнений / «Сила» 0 / порожній → [].
+    «Сила» множить підсилення смуг (зрізи низів і верхів не змінюються)."""
+    amount = profile.get("amount", 1)
+    if not profile.get("enabled", True) or amount == 0:
         return []
     fl = []
     for b in profile.get("bands", []):
         t = b["type"]
-        f, g, q = _g(b["freq_hz"]), _g(b["gain_db"]), _g(SHELF_Q if t in SHELVES else b["q"])
+        gain = max(-MAX_GAIN, min(MAX_GAIN, b["gain_db"] * amount))
+        f, g, q = _g(b["freq_hz"]), _g(round(gain, 2)), _g(SHELF_Q if t in SHELVES else b["q"])
         if t in ("highpass", "lowpass"):
             fl.append(f"{t}=f={f}:t=q:w={q}")
         elif t == "peaking":
-            if b["gain_db"]:
+            if gain:
                 fl.append(f"equalizer=f={f}:t=q:w={q}:g={g}")
-        elif b["gain_db"]:
+        elif gain:
             fl.append(f"{'bass' if t == 'lowshelf' else 'treble'}=g={g}:f={f}:t=q:w={q}")
     if profile.get("gain_db"):
         fl.append(f"volume={_g(profile['gain_db'])}dB")

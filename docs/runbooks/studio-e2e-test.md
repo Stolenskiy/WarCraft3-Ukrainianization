@@ -4,9 +4,9 @@
 (не входить у `make verify`). Потрібно: Google Chrome і playwright (`make setup-dev`; `make doctor`).
 
 1. Фікстура `page` піднімає сервер студії на вільному порту над тимчасовим `WC3UA_ROOT` із синтетичними даними (`tests/conftest.py`).
-2. Новий сценарій — функція `test_*(page)`: клікати за селекторами з `index.html`/`app.js`; помилки консолі, `pageerror` і HTTP ≥ 400
+2. Новий сценарій — функція `test_*(page)`: клікати за селекторами з `index.html` і `web/js/*.js`; стан JS — лише через `window.__studio` (`web/js/main.js`: `S`, `EQ`, `Rec`, `waves`, `cur()`, `playing`, `takeRow`, `clipCheck`…); помилки консолі, `pageerror` і HTTP ≥ 400
    збираються у `page.errors` — перевіряти, що порожньо.
-3. Один тест: `.venv/bin/python -I -m pytest -q -s tests/test_studio_e2e.py -k <імʼя>`. З `-s` друкується покриття `app.js` і шлях скріншота;
+3. Один тест: `.venv/bin/python -I -m pytest -q -s tests/test_studio_e2e.py -k <імʼя>`. З `-s` друкується покриття JS (сума по `/static/js/*`) і шлях скріншота;
    `STUDIO_SCREENSHOT=/шлях/studio.png` — куди зберегти. Агент не може робити `screencapture` — дивитись скріншот через цей тест.
 4. Без Chrome локально тести пропускаються (skip); у CI (`CI=1`) — падають.
 5. Жодного аудіо гри: запис дає фейковий мікрофон, оригінали — синусоїди.

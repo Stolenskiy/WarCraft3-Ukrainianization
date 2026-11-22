@@ -1,6 +1,6 @@
 PY := .venv/bin/python -I
 PYTHON311 ?= python3.11
-CORE_TESTS_A := tests/test_studio_core.py tests/test_eq.py tests/test_install_voices.py tests/test_guard_no_audio.py tests/test_docs_sync.py tests/test_doctor.py
+CORE_TESTS_A := tests/test_studio_core.py tests/test_eq.py tests/test_install_voices.py tests/test_guard_no_audio.py tests/test_docs_sync.py tests/test_doctor.py tests/test_game_root_api.py
 CORE_TESTS_B := tests/test_studio_proc.py tests/test_voices.py
 CORE_TESTS_C := tests/test_gameconf.py tests/test_windows.py tests/test_run.py tests/test_textpack.py tests/test_install_pack.py tests/test_aistudio.py
 RUN := $(PY) tools/run.py
@@ -23,8 +23,8 @@ test-core:   ## швидко, без браузера: ядро, API, оброб
 	@$(PY) -m pytest -q $(CORE_TESTS_A) & a=$$!; $(PY) -m pytest -q $(CORE_TESTS_B) & b=$$!; $(PY) -m pytest -q $(CORE_TESTS_C) & c=$$!; \
 	  r=0; wait $$a || r=1; wait $$b || r=1; wait $$c || r=1; exit $$r
 
-lint:        ## ruff (усі tools/*.py, tests) + синтаксис JS
-	.venv/bin/ruff check . && node --check tools/studio/web/app.js && node --check tools/studio/web/ai.js
+lint:        ## ruff (усі tools/*.py, tests) + синтаксис JS-модулів студії (node --check)
+	.venv/bin/ruff check . && for f in tools/studio/web/js/*.js; do node --input-type=module --check < $$f || exit 1; done
 
 guard:       ## у git немає аудіо / ресурсів гри / секретів (дозволені лише FLAC пакетів voices/)
 	$(PY) tools/guard_no_audio.py

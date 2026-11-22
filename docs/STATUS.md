@@ -10,19 +10,19 @@ _Оновлено: 2026-11-22_
 - ADR 0005: тексти оригіналів — лише `data/local/` (`make transcripts-local`). Voice bible для 4 рас (`docs/voice-bible/`), тексти peon звірені.
 - Студія запису v3 (`tools/studio/`): усі раси, дублі/кошик/undo, вибір для гри, оригінал RU/EN.
 - Оригінали (`make refs`): EN 2384 з CASC (без пари 17), RU 2401 — з рос. пакета репаку.
-- CI на GitHub (`.github/workflows/ci.yml`) = `make check`: ruff, guard, check-voices, тести з Chrome, покриття ≥ 94% (храповик).
+- CI на GitHub (`.github/workflows/ci.yml`) = `make check`: ruff, guard, check-voices, тести з Chrome, покриття ≥ 95% (храповик).
 - Голоси спільноти: `voices/<нік>/` (FLAC, CC BY 4.0), `make publish-voice`, `make check-voices`, вибір автора у вікні встановлення.
 - Агентна готовність (feat/agentic): `AGENTS.md`, `make verify|doctor|hooks|guard`, скіли й `docs/runbooks/`, ADR, глосарій, LICENSE (MIT).
 ## Зараз
 - Кросплатформа (feat/windows-docker): `tools/gameconf.py` (шлях гри: env > `data/local/settings.json` > автопошук), `tools/run.py` (CLI без make), Windows-джоб у CI,
-  `docker compose up` (Dockerfile перевірено на macOS; Windows НЕ перевірено на реальній машині). Поле «Тека гри» в UI — `docs/plans/game-path-ui.md`.
+  `docker compose up` (Dockerfile перевірено на macOS; Windows НЕ перевірено на реальній машині). Поле «Тека гри» в UI зроблено (вкладка «Обробка» + вікно встановлення, feat/modular-redesign).
 - Встановлення в гру: кнопка «Встановити в гру» в студії або `make install-voices` (симлінки юнітів матеріалізуються з відкатом, `tools/install_voices.py`). Попередження про перевантаження мікрофона (бейдж у дублі).
 - Користувач сам озвучує Орду в студії (`make studio`; «Залишити оригінал» — `game-files/.originals.json`).
 - ШІ-варіанти власним голосом: `make ai-voice UNIT=peon` (Fish S2-Pro, референс — власні дублі) → розділ «ШІ-варіанти»
   на картці (A/B, «Взяти в дублі» → дубль «ШІ»). Пілот Орчатник: 54 варіанти, 16 «чистих»; вигуки слабкі. Деталі — README студії.
 
 ## Далі
-Беклог з пріоритетами — `docs/ROADMAP.md` (у роботі: редизайн студії, текстовий пакет, ШІ-бекенд; далі — UI ШІ та вибір моделей, зокрема ElevenLabs).
+Беклог з пріоритетами — `docs/ROADMAP.md` (далі: UI ШІ-генерації та вибір моделей, зокрема ElevenLabs; чекбокс «Текст» у вікні встановлення).
 
 ## Відомі обмеження
 - Python 3.11 (PyCASC тягне requests 2.21). Формат дублів зашитий (`paths.py`: WAV 22050 mono) —

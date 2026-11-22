@@ -1,0 +1,56 @@
+/* Картка репліки: заголовок, оригінал, український текст, «Залишити оригінал». */
+/* ---------- cue card */
+.card { max-width: 980px; margin: 0 auto; }
+.eyebrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+.chip { padding: 3px 9px; border-radius: 99px; background: var(--raise); border: 1px solid var(--line); color: var(--text); font-size: 12px; }
+.chip.type { background: var(--accent-soft); border-color: rgba(228,87,46,.4); color: #ffb39b; }
+.chip.warn { background: rgba(240,164,65,.12); border-color: rgba(240,164,65,.4); color: var(--gold); }
+.dot-sep::before { content: "·"; margin-right: 8px; color: var(--faint); }
+
+.lang { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: start; }
+.lang-tag { margin-top: 10px; font: 700 12px/1 var(--font); letter-spacing: .08em; color: var(--faint); }
+.ru-text { font: 600 34px/1.2 var(--display); letter-spacing: -.01em; margin: 0 0 12px; }
+.wave-row { display: flex; align-items: center; gap: 12px; }
+.play {
+  flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--raise); display: grid; place-items: center; font-size: 14px;
+}
+.play { transition: background-color .18s ease-out, color .18s ease-out, border-color .18s ease-out, transform .12s ease-out; }
+.play:hover { border-color: var(--text); }
+.play:active { transform: scale(.92); }
+.play.big { width: 46px; height: 46px; }
+.play.playing { background: var(--text); color: var(--bg); }
+canvas.wave { opacity: 0; transition: opacity .3s ease-out; }
+canvas.wave.ready { opacity: 1; }
+canvas.wave { flex: 1; height: 54px; width: 100%; cursor: pointer; display: block; }
+.dur { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; min-width: 52px; text-align: right; }
+
+.ua-block { margin-top: 26px; }
+.ua-input {
+  width: 100%; font: 600 30px/1.25 var(--display); color: var(--text); background: transparent;
+  border: 0; border-bottom: 2px solid var(--line); padding: 4px 0 8px; outline: none;
+}
+.ua-input:focus { border-color: var(--accent); }
+.ua-meta { display: flex; gap: 10px; align-items: center; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.linkish { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline dotted; font-size: 12px; }
+.linkish:hover { color: var(--text); }
+.direction {
+  margin-top: 16px; padding: 12px 14px; border-left: 3px solid var(--gold); background: rgba(240,164,65,.06);
+  border-radius: 0 8px 8px 0; color: #e2d2b8; font-size: 14px;
+}
+.direction b { color: var(--gold); font-weight: 600; margin-right: 6px; }
+.orig-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.chip.hint { background: transparent; color: var(--muted); border-style: dashed; font-size: 11px; }
+.approved-banner.orig { border-color: var(--line); background: var(--raise); color: var(--muted); }
+
+/* Голосова картка: один рядок над реплікою (чипи з voice bible, ▶ еталон, поповер) */
+.voice { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; min-height: 36px; font-size: 13px; }
+.voice-k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.voice-none { color: var(--muted); }
+.vchip { padding: 3px 10px; border-radius: 99px; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.vchip small { color: var(--muted); font-size: 11px; margin-right: 2px; }
+.vref { padding: 3px 10px; font-size: 12px; }
+.voice .linkish { font-size: 12px; color: var(--gold); }
+.voice-full { position: absolute; z-index: 5; top: 100%; left: 0; width: min(560px, 100%); margin-top: 6px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+.voice-full p { margin: 0 0 8px; color: #c3c8d0; } .voice-full p:last-child { margin: 0; }
+.voice-full b { color: var(--gold); font-weight: 600; }

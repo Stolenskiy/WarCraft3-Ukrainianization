@@ -285,7 +285,7 @@ RoC і TFT, від «Chapters» до сінематиків. Це великий
 3. Заборонено в PR: аудіо й ресурси гри, `reference*/`, `game-files/`, `.env*`; зміни в теці гри; `.claude/settings.json`;
    корпоративна пошта; рядки атрибуції («Co-Authored-By», «Generated with»). `make guard` і CI це ловлять.
 4. У PR вкажіть: що змінено, які команди запускали, що перевірено вручну, а що ні. Не змінюйте чужі `voices/<нік>/`.
-5. Змінили API/поведінку — оновіть docstring `server.py`, `tools/studio/README.md`, тест і (за потреби) `docs/GLOSSARY.md`;
+5. Змінили API/поведінку — оновіть docstring `server.py` (маршрути — `routes/*.py`), `tools/studio/README.md`, тест і (за потреби) `docs/GLOSSARY.md`;
    тест `tests/test_docs_sync.py` падає при розбіжності. Зміни стану — у `docs/status/<гілка>.md`, не в `STATUS.md`.
 6. Повторювані процедури — `docs/runbooks/`. Нетривіальне рішення — ADR у `docs/decisions/` (≤ 25 рядків).
 7. Ліцензії: код MIT, живі записи в пакетах CC BY 4.0, ШІ-репліки CC BY-NC 4.0 (`voices/LICENSE.md`, ADR 0007). Клонувати можна лише власний голос; референси — лише власні дублі, ніколи `reference*/`; нові двигуни ШІ — `docs/runbooks/add-ai-engine.md`.

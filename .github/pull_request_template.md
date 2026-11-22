@@ -8,6 +8,6 @@
 - [ ] Тека гри не чіпалась (або це зміна `install_voices` і оновлено скіл `game-change`)
 - [ ] У комітах немає корпоративної пошти й рядків атрибуції
 - [ ] `docs/STATUS.md` / `docs/status/<гілка>.md` оновлено, якщо змінився стан
-- [ ] API змінено → docstring `server.py` і `tools/studio/README.md` синхронні
+- [ ] API змінено → docstring `server.py` (маршрути — `routes/*.py`) і `tools/studio/README.md` синхронні
 - [ ] Пакет голосів: тільки мій голос, `voices/<нік>/` пройшов `make check-voices`, ШІ-репліки позначені
 - [ ] PR створено агентом → зазначено, яким і що перевірено вручну

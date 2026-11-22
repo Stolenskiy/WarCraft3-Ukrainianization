@@ -46,7 +46,7 @@ def test_blocks_env_and_secrets(repo):
 
 def test_allows_voices_flac_and_json(repo):
     for rel in ("voices/alice/units/orc/peon/peonyes1.flac", "voices/alice/voice.json", "voices/alice/manifest.json",
-                "voices/alice/LICENSE.md", "voices/LICENSE.md", "tools/studio/web/app.js", ".env.example"):
+                "voices/alice/LICENSE.md", "voices/LICENSE.md", "tools/studio/web/js/main.js", ".env.example"):
         put(repo, rel)
         git(repo, "add", "-f", rel)
     assert guard.main(repo) == 0

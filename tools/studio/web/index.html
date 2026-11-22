@@ -5,56 +5,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Студія озвучки</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 2 2%22%3E%3Crect width=%222%22 height=%221%22 fill=%22%230057b7%22/%3E%3Crect y=%221%22 width=%222%22 height=%221%22 fill=%22%23ffd700%22/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/static/app.css">
-<link rel="stylesheet" href="/static/ai.css">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/topbar.css">
+<link rel="stylesheet" href="/static/css/layout.css">
+<link rel="stylesheet" href="/static/css/side.css">
+<link rel="stylesheet" href="/static/css/card.css">
+<link rel="stylesheet" href="/static/css/record.css">
+<link rel="stylesheet" href="/static/css/takes.css">
+<link rel="stylesheet" href="/static/css/legend.css">
+<link rel="stylesheet" href="/static/css/eq.css">
+<link rel="stylesheet" href="/static/css/process.css">
+<link rel="stylesheet" href="/static/css/toast.css">
+<link rel="stylesheet" href="/static/css/install.css">
+<link rel="stylesheet" href="/static/css/voices.css">
+<link rel="stylesheet" href="/static/css/ai.css">
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="brand-mark">UA</span><span>Студія озвучки</span></div>
+  <button class="ghost side-toggle" id="sideToggle" aria-label="Репліки й обробка" aria-expanded="false" aria-controls="side" title="Репліки й обробка">☰</button>
+  <div class="brand"><span class="brand-mark" role="img" aria-label="UA"></span><span class="brand-name">Студія озвучки</span></div>
   <button id="unitBtn" class="unit-btn" title="Обрати юніт">
     <span class="avatar" id="unitAvatar"></span>
-    <span class="unit-btn-text"><b id="unitTitle">…</b><small id="unitSub"></small></span>
+    <span class="unit-btn-text"><b id="unitTitle">…</b>
+      <small><span id="unitSub"></span><span class="unit-prog-t" title="Затверджено по всій расі"> · <span id="overallName"></span> <b id="overallNum"></b></span></small></span>
+    <span class="bar unit-prog" aria-hidden="true"><i id="overallBar"></i></span>
     <span class="chev">▾</span>
   </button>
-  <div class="overall" title="Затверджено по всій расі">
-    <div class="overall-label"><span id="overallName"></span><b id="overallNum"></b></div>
-    <div class="bar"><i id="overallBar"></i></div>
-  </div>
   <div class="top-actions">
     <div class="seg mini" id="optLang" title="Якою мовою звучить оригінал"><span>Оригінал</span><button data-lang="ru">RU</button><button data-lang="en">EN</button></div>
-    <details class="opts" id="optsMenu"><summary title="Як готується файл для гри">⚙ Обробка</summary><div class="opts-pop">
-      <label class="switch" title="Копія для гри без тиші на початку й у кінці"><input type="checkbox" id="optTrim" checked><span></span>Обрізати тишу</label>
-      <label class="switch" title="У файлі для гри: шумоговорення (помірне) і прибирання клацань"><input type="checkbox" id="optDenoise"><span></span>Прибрати шум</label>
-      <label class="switch" title="Гучність файлу для гри — як в оригіналі цієї репліки (із лімітером, без кліпів)"><input type="checkbox" id="optLoudness" checked><span></span>Гучність як в оригіналі</label>
-      <label class="switch" title="Програти дубль одразу після запису"><input type="checkbox" id="optAutoplay" checked><span></span>Слухати після запису</label>
-      <p class="opts-note">Діє на нові «Обрати для гри». Уже обрані файли оновлює «Застосувати до обраних дублів» в еквалайзері.</p>
-    </div></details>
-    <button class="ghost" id="installBtn" title="Скопіювати обрані дублі в теку гри (з бекапом і відкатом)">Встановити в гру</button>
-    <button class="ghost" id="voicesBtn" title="Голоси інших авторів, порядок пріоритету, публікація власного голосу">Голоси спільноти</button>
-    <button class="ghost" id="openGameDir" title="Відкрити теку з файлами для гри">Файли для гри</button>
+    <div class="split" id="installSplit">
+      <button class="btn primary" id="installBtn" title="Скопіювати обрані дублі в теку гри (з бекапом і відкатом)">Встановити в гру</button>
+      <button class="btn primary split-caret" id="installMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="installMenu" aria-label="Інші дії з грою" title="Інші дії з грою">▾</button>
+      <div class="menu" id="installMenu" role="menu" aria-label="Дії з грою" hidden>
+        <button role="menuitem" id="uninstallBtn" title="Повернути оригінали з бекапу">Прибрати з гри…</button>
+        <button role="menuitem" id="voicesBtn" title="Голоси інших авторів, порядок пріоритету, публікація власного голосу">Голоси спільноти… <small id="voicesCount"></small></button>
+        <button role="menuitem" id="openGameDir" title="Відкрити теку з файлами для гри">Відкрити теку файлів гри</button>
+      </div>
+    </div>
   </div>
 </header>
+<div class="scrim" id="sideScrim" hidden></div>
 
 <div id="unitPopover" class="popover" hidden>
   <div class="popover-inner" id="unitGrid"></div>
 </div>
 
 <div class="layout">
-  <aside class="side">
-    <details class="character" id="character">
-      <summary>Характер і тембр</summary>
-      <div id="traits"></div>
-    </details>
-    <details class="character eq" id="eqPanel">
-      <summary>Еквалайзер</summary>
-      <div id="eq"></div>
-    </details>
-    <div class="seg" id="filter">
-      <button data-f="all" class="on">Усі</button>
-      <button data-f="todo">Залишилось</button>
-      <button data-f="done">Готові</button>
+  <aside class="side" id="side">
+    <div class="side-tabs seg" role="tablist" aria-label="Бічна панель">
+      <button role="tab" id="tabCues" class="on" aria-selected="true" aria-controls="paneCues">Репліки <small id="cuesCount"></small></button>
+      <button role="tab" id="tabProc" aria-selected="false" aria-controls="paneProc" tabindex="-1">Обробка <small id="procTag"></small></button>
     </div>
-    <ol class="cues" id="cues"></ol>
+    <section class="pane on" id="paneCues" role="tabpanel" aria-labelledby="tabCues">
+      <div class="seg" id="filter">
+        <button data-f="all" class="on">Усі</button>
+        <button data-f="todo">Залишилось</button>
+        <button data-f="done">Готові</button>
+      </div>
+      <ol class="cues" id="cues"></ol>
+    </section>
+    <section class="pane" id="paneProc" role="tabpanel" aria-labelledby="tabProc" inert>
+      <section class="eq" id="eqPanel" aria-label="Еквалайзер"><div id="eq"></div></section>
+      <section class="proc-file" aria-label="Файл для гри">
+        <h3>Файл для гри</h3>
+        <label class="switch" title="Копія для гри без тиші на початку й у кінці"><input type="checkbox" id="optTrim" checked><span></span>Обрізати тишу</label>
+        <label class="switch" title="У файлі для гри: шумоговорення (помірне) і прибирання клацань"><input type="checkbox" id="optDenoise"><span></span>Прибрати шум</label>
+        <label class="switch" title="Гучність файлу для гри — як в оригіналі цієї репліки (із лімітером, без кліпів)"><input type="checkbox" id="optLoudness" checked><span></span>Гучність як в оригіналі</label>
+        <p class="opts-note">Діє на нові «Обрати для гри». Уже обрані файли оновлює «Оновити файли гри» в еквалайзері.</p>
+        <h3>Прослуховування</h3>
+        <label class="switch" title="Програти дубль одразу після запису"><input type="checkbox" id="optAutoplay" checked><span></span>Слухати після запису</label>
+      </section>
+      <section class="proc-file game-root" id="gameRootBox" aria-label="Тека гри">
+        <h3>Тека гри</h3>
+        <div id="gameRoot"></div>
+      </section>
+      <div class="ab-bar" id="abBar" role="group" aria-label="Порівняння A/B">
+        <div class="seg mini"><button id="eqA" class="on" aria-pressed="true" title="Слухати з EQ (клавіша A перемикає)">A · з EQ</button><button id="eqB" aria-pressed="false" title="Слухати без EQ">B · без</button></div>
+        <button class="ghost" id="eqRepeat" title="Повторити останній дубль з початку, щоб порівняти той самий фрагмент">⟲</button>
+        <span class="ab-note" id="abNote"></span>
+      </div>
+    </section>
   </aside>
 
   <main class="main" id="main">
@@ -93,7 +123,6 @@
 </div>
 
 <div id="toast" class="toast" hidden></div>
-<script src="/static/app.js"></script>
-<script src="/static/ai.js"></script>
+<script type="module" src="/static/js/main.js"></script>
 </body>
 </html>

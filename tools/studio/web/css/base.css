@@ -1,0 +1,47 @@
+/* Змінні, скидання, службові стани [hidden] і перехідні ефекти поповера/тосту, a11y. */
+:root {
+  --bg: #0e1013;
+  --panel: #15181d;
+  --panel-2: #1b1f26;
+  --raise: #222731;
+  --line: #2a303b;
+  --text: #ece8e1;
+  --muted: #8d95a3;
+  --faint: #858d9c;      /* текст ≥ 4,5:1 на --panel-2 */
+  --accent: #e4572e;      /* жар Орди */
+  --accent-soft: rgba(228, 87, 46, .14);
+  --gold: #f0a441;
+  --ok: #46c46a;
+  --ok-soft: rgba(70, 196, 106, .12);
+  --warn: #f0a441;
+  --danger: #f2554b;
+  --radius: 12px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--text); font: 14px/1.45 var(--font);
+  display: grid; grid-template-rows: auto 1fr auto; overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; opacity: .4; }
+kbd {
+  font: 11px/1 var(--font); padding: 3px 6px; border-radius: 5px; margin-right: 3px;
+  background: var(--raise); border: 1px solid var(--line); border-bottom-width: 2px; color: var(--text);
+}
+
+[hidden] { display: none !important; }
+/* toast і popover лишаються в потоці, щоб анімувати вихід (opacity/transform) */
+.toast[hidden], .popover[hidden] { display: flex !important; opacity: 0; visibility: hidden; pointer-events: none; transition-delay: 0s, 0s, .2s; }
+.popover[hidden] { display: block !important; transition-delay: 0s, .2s; }
+.toast[hidden] { transform: translateX(-50%) translateY(14px); }
+.popover-inner { transition: transform .2s ease-out; }
+.popover[hidden] .popover-inner { transform: translateY(-8px); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; }
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

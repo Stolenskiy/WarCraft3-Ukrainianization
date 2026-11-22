@@ -37,7 +37,7 @@ def page(svc):
         pg.on("console", lambda m: m.type == "error" and "Failed to load resource" not in m.text
               and errors.append(m.text))
         pg.on("response", lambda r: r.status >= 400 and errors.append(f"{r.status} {r.url}"))
-        cdp = ctx.new_cdp_session(pg)                    # покриття app.js (інформативно, друкується з -s)
+        cdp = ctx.new_cdp_session(pg)                    # покриття JS-модулів (інформативно, друкується з -s)
         cdp.send("Profiler.enable")
         cdp.send("Profiler.startPreciseCoverage", {"callCount": False, "detailed": True})
         pg.goto(f"http://127.0.0.1:{httpd.server_address[1]}/")
@@ -50,16 +50,19 @@ def page(svc):
 
 
 def _print_js_coverage(cdp) -> None:
-    """Частка байтів app.js, що виконались (блоки з count=0 віднімаються від охоплюючих)."""
+    """Частка байтів JS студії (сума по /static/js/*), що виконались (блоки з count=0 віднімаються від охоплюючих)."""
+    total = used = 0
     for script in cdp.send("Profiler.takePreciseCoverage")["result"]:
-        if not script["url"].endswith("/static/app.js"):
+        if "/static/js/" not in script["url"]:
             continue
         size = max(r["endOffset"] for f in script["functions"] for r in f["ranges"])
         hit = bytearray(size)
         for f in script["functions"]:
             for r in f["ranges"]:
                 hit[r["startOffset"]:r["endOffset"]] = (b"\1" if r["count"] else b"\0") * (r["endOffset"] - r["startOffset"])
-        print(f"\napp.js coverage: {100 * sum(hit) / size:.0f}%")
+        total, used = total + size, used + sum(hit)
+    if total:
+        print(f"\napp.js coverage: {100 * used / total:.0f}%  (усі модулі /static/js/*)")
 
 
 def record(pg, sec=1.2):
@@ -138,12 +141,18 @@ def test_full_flow(page):
 
 def test_equalizer_panel(page):
     pg = page
-    pg.click("#eqPanel summary")
+    pg.click("#tabProc")
     assert pg.input_value("#eqSel") == "orc-peon"
-    pg.wait_for_function("() => document.querySelector('#eqCurve').getContext('2d').getImageData(0,0,248,72).data.some(v => v)")
-    pg.locator("input[data-eq='gain'][data-i='1']").fill("-4")                 # рух слайдера → профіль змінено
-    pg.click("#eqBypass")
-    pg.click("#eqBypass")
+    pg.wait_for_function("() => document.querySelector('#eqLine').getAttribute('d').length > 100")      # крива намальована
+    pg.click("#eqMode [data-mode='bands']")
+    assert pg.get_attribute("#eqA", "aria-pressed") == "true"
+    pg.locator("input[data-eq='gain'][data-i='1']").fill("-4")                 # зміна смуги → профіль змінено
+    pg.locator("input[data-eq='gain'][data-i='1']").blur()
+    pg.wait_for_selector("[data-saveas]")
+    assert "змінено · Зберегти як" in pg.inner_text(".eq-head")
+    assert pg.evaluate("(() => { const c = (h) => [1,3,5].map(i => parseInt(h.slice(i,i+2),16)/255).map(x => x <= .03928 ? x/12.92 : ((x+.055)/1.055)**2.4); const L = (h) => { const [r,g,b] = c(h); return .2126*r+.7152*g+.0722*b; }; const f = getComputedStyle(document.documentElement).getPropertyValue('--faint').trim(), p = '#1b1f26'; const [a, b] = [L(f), L(p)].sort((x, y) => y - x); return (a+.05)/(b+.05) >= 4.5; })()")      # токен --faint ≥ 4,5:1
+    pg.click("#eqB")
+    pg.click("#eqA")
     pg.click("#eqNew")
     pg.fill("#eqName", "Мій peon")
     pg.click("#eqSaveNew")
@@ -151,10 +160,159 @@ def test_equalizer_panel(page):
     assert pg.eval_on_selector("#eqSel", "s => s.selectedOptions[0].text") == "Мій peon"
     pg.reload()
     pg.wait_for_selector(".cue.on")
-    pg.click("#eqPanel summary")
+    pg.click("#tabProc")
     assert pg.eval_on_selector("#eqSel", "s => s.selectedOptions[0].text") == "Мій peon"
+    pg.click("#eqMode [data-mode='bands']")
     assert pg.input_value("input[data-eq='gain'][data-i='1']") == "-4"
-    pg.click("#eqDel")                                                         # confirm → діалог
+    pg.click("#eqDel")                                                         # без confirm(): тост «Скасувати» (⌘Z)
+    pg.wait_for_selector("#toast >> text=видалено")
+    assert pg.locator("#eqDel").count() == 0
+    pg.click("#undoBtn")
+    pg.wait_for_selector("#eqDel")
+    assert pg.eval_on_selector("#eqSel", "s => s.selectedOptions[0].text") == "Мій peon"
+    assert not pg.errors, pg.errors
+
+
+def test_eq_node_drag_wheel_and_macro(page):
+    """Вузол кривої: колесо — Q, перетягування змінює freq/gain (Pointer Events); макрос додає зміну, «Сила» — повзунок."""
+    pg = page
+    pg.click("#tabProc")
+    pg.wait_for_function("() => document.querySelector('#eqLine').getAttribute('d').length > 100")
+    i = pg.evaluate("__studio.EQ.prof.bands.findIndex(b => b.type === 'peaking')")
+    node = pg.locator(f".eq-node[data-node='{i}'] .dot")
+    b0 = pg.evaluate(f"({{...__studio.EQ.prof.bands[{i}]}})")
+    box = node.bounding_box()
+    x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+    pg.mouse.move(x, y)
+    pg.mouse.wheel(0, -100)                                                    # колесо вгору — Q більший
+    assert pg.evaluate(f"__studio.EQ.prof.bands[{i}].q") > b0["q"]
+    pg.mouse.down()
+    pg.mouse.move(x + 40, y - 20, steps=5)
+    pg.mouse.up()
+    b1 = pg.evaluate(f"__studio.EQ.prof.bands[{i}]")
+    assert b1["freq_hz"] > b0["freq_hz"] and b1["gain_db"] > b0["gain_db"], (b0, b1)
+    assert "змінено" in pg.inner_text(".eq-head")
+    n = pg.evaluate("__studio.EQ.prof.bands.length")
+    pg.click("[data-macro='bright']")
+    assert pg.evaluate("__studio.EQ.prof.bands.length") >= n
+    pg.locator("input[data-eq='amount']").fill("50")
+    assert pg.evaluate("__studio.EQ.prof.amount") == 0.5
+    assert not pg.errors, pg.errors
+
+
+def test_tabs_keep_scroll_and_stale_counter_clears(page):
+    """Вкладки зберігають власний скрол; лічильник «Оновити файли гри (N)» з'являється після зміни EQ і зникає після оновлення."""
+    pg = page
+    pg.set_viewport_size({"width": 1280, "height": 520})
+    pg.click("#tabProc")
+    pg.evaluate("document.querySelector('#paneProc').scrollTop = 120")
+    y = pg.evaluate("document.querySelector('#paneProc').scrollTop")
+    assert y > 0
+    pg.click("#tabCues")
+    pg.click("#tabProc")
+    assert pg.evaluate("document.querySelector('#paneProc').scrollTop") == y
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.evaluate("document.activeElement.blur()")                              # Пробіл на кнопці вкладки не має бути «кліком»
+    record(pg, 1.6)
+    pg.locator("[data-approve]").first.click()
+    pg.wait_for_selector(".badge-game")
+    pg.select_option("#eqSel", "orc-grunt")                                    # інший профіль → файл у грі відстав
+    pg.wait_for_function("() => document.querySelector('#eqReexport').textContent.includes('(1)')")
+    pg.click("#eqReexport")
+    pg.wait_for_function("() => !document.querySelector('#eqReexport').textContent.includes('(')")
+    assert pg.locator(".stale-chip").count() == 0 and not pg.errors, pg.errors
+
+
+def test_game_root_field_and_inline_install_prompt(page, tmp_path, monkeypatch):
+    """Поле «Тека гри» (Обробка): шлях, джерело, бейдж, валідація; вікно встановлення без теки гри питає шлях, а не падає."""
+    import gameconf
+    import install_voices as iv
+    game = tmp_path / "wc3"
+    (game / "Data").mkdir(parents=True)
+    monkeypatch.delenv("WC3_GAME_ROOT", raising=False)
+    monkeypatch.setenv("WC3UA_ROOT", str(tmp_path / "repo"))                 # settings.json — у тимчасовий корінь
+    monkeypatch.setattr(gameconf, "candidates", lambda: [str(game)])
+    monkeypatch.setattr(iv, "GAME", tmp_path / "nope")                        # справжню теку гри не чіпаємо
+    monkeypatch.setattr(iv, "ROOT", tmp_path / "repo")
+    pg = page
+    pg.reload()
+    pg.wait_for_selector(".cue.on")
+    pg.click("#tabProc")
+    pg.wait_for_selector("#gameRoot .gr-badge")
+    assert "автопошук" in pg.inner_text("#gameRoot") and "✓ гру знайдено" in pg.inner_text("#gameRoot .gr-badge")
+    (tmp_path / "plain").mkdir()
+    pg.fill("#gameRoot .gr-path", str(tmp_path / "plain"))
+    pg.click("#gameRoot .gr-save")                                             # не тека WC3 → бейдж і пояснення
+    pg.wait_for_selector("#gameRoot .gr-err")
+    assert "✗ це не тека WC3" in pg.inner_text("#gameRoot .gr-badge") and "не схоже на теку Warcraft III" in pg.inner_text("#gameRoot .gr-err")
+    assert not (tmp_path / "repo/data/local/settings.json").exists()
+    pg.fill("#gameRoot .gr-path", str(game))
+    pg.click("#gameRoot .gr-save")
+    pg.wait_for_function("() => document.querySelector('#gameRoot .gr-src').textContent.includes('налаштування')")
+    assert "✓ гру знайдено" in pg.inner_text("#gameRoot .gr-badge")
+    pg.click("#gameRoot .gr-clear")                                            # скинути → автопошук
+    pg.wait_for_function("() => document.querySelector('#gameRoot .gr-src').textContent.includes('автопошук')")
+    # вікно встановлення: плану немає (тека гри не існує), але шлях валідний → просто помилка; з невалідним — поле
+    monkeypatch.setattr(gameconf, "candidates", lambda: [])
+    pg.click("#installBtn")
+    pg.wait_for_selector("#instRoot .gr-path")
+    assert "Вкажіть її" in pg.inner_text("#installBody")
+    pg.fill("#instRoot .gr-path", str(game))
+    pg.click("#instRoot .gr-save")
+    pg.wait_for_selector("#installBody .inst-err")                             # теку знайдено; тепер лише «немає що встановлювати»
+    assert "немає що встановлювати" in pg.inner_text("#installBody") and pg.locator("#instRoot").count() == 0
+    assert all(e.startswith("400 ") for e in pg.errors), pg.errors            # лише очікувані відмови валідації
+
+
+def test_header_one_row_split_menu_and_narrow_layout(page):
+    """Шапка ≤ 58 px на 1280 і 1440; меню «▾» відкриває вікна; на 820 px немає горизонтального переповнення, панель висувна (☰)."""
+    pg = page
+    for w in (1440, 1280):
+        pg.set_viewport_size({"width": w, "height": 800})
+        assert pg.locator("header.top").bounding_box()["height"] <= 58, w
+    assert pg.is_hidden("#installMenu")
+    pg.click("#installMenuBtn")
+    assert pg.get_attribute("#installMenuBtn", "aria-expanded") == "true"
+    assert pg.locator("#installMenu [role=menuitem]").count() == 3
+    pg.wait_for_function("() => document.querySelector('#voicesCount').textContent.includes('автор')")
+    pg.click("#uninstallBtn")                                                  # «Прибрати з гри…» → вікно в режимі відкату
+    pg.wait_for_selector("#installModal:not([hidden])")
+    assert "on" in pg.get_attribute("#installMode [data-mode='uninstall']", "class")
+    pg.keyboard.press("Escape")
+    pg.click("#installMenuBtn")
+    pg.click("#voicesBtn")
+    pg.wait_for_selector("#voicesModal:not([hidden])")
+    pg.click("#voicesClose")
+    pg.click("#installMenuBtn")
+    pg.keyboard.press("Escape")
+    assert pg.is_hidden("#installMenu")
+    pg.set_viewport_size({"width": 820, "height": 760})
+    assert pg.evaluate("document.documentElement.scrollWidth <= innerWidth && document.body.scrollWidth <= innerWidth")
+    assert pg.locator("header.top").bounding_box()["height"] <= 58
+    pg.wait_for_function("() => document.querySelector('#side').getBoundingClientRect().right <= 0")   # панель сховано
+    pg.click("#sideToggle")
+    pg.wait_for_function("() => document.querySelector('#side').getBoundingClientRect().left >= 0")
+    pg.click("#side .cue >> nth=1")                                            # вибір репліки закриває панель
+    pg.wait_for_function("() => document.querySelector('#side').getBoundingClientRect().right <= 0")
+    assert pg.is_visible("#keepOrig") and not pg.errors, pg.errors            # «Залишити оригінал» досяжний
+
+
+def test_voice_card_replaces_character_block(page):
+    """Голосова картка: рядок над реплікою з чипами, поповер з повним текстом; у .side немає #character; тембр — «Чому так» в «Обробці»."""
+    pg = page
+    pg.wait_for_selector("#voice .vchip")
+    assert pg.locator("#character").count() == 0 and pg.locator(".side #traits").count() == 0
+    assert pg.locator("#voice").bounding_box()["height"] <= 60
+    assert "низький" in pg.inner_text("#voice")
+    assert pg.is_hidden("#voiceFull")
+    pg.click("#voiceMore")
+    assert pg.is_visible("#voiceFull") and "простодушний" in pg.inner_text("#voiceFull")
+    pg.keyboard.press("Escape")
+    assert pg.is_hidden("#voiceFull")
+    pg.click("#voiceRef")                                                      # еталон звучить
+    pg.wait_for_function("() => __studio.playing && __studio.playing.id === 'voice-ref'", timeout=8000)
+    pg.click("#tabProc")
+    assert "низький" in pg.inner_text("#eqWhy")
     assert not pg.errors, pg.errors
 
 
@@ -169,17 +327,27 @@ def test_screenshot_for_review(page):
     page.wait_for_timeout(600)
     page.screenshot(path=str(out))
     print(f"\nscreenshot: {out}")
+    shots = os.environ.get("STUDIO_SCREENSHOT_DIR")                           # набір для рев'ю: обидва розміри, вкладки «Репліки» й «Обробка»
+    if shots:
+        for w, h in ((1440, 900), (1280, 800)):
+            page.set_viewport_size({"width": w, "height": h})
+            for tab in ("Cues", "Proc"):
+                page.click(f"#tab{tab}")
+                page.wait_for_timeout(300)
+                page.screenshot(path=os.path.join(shots, f"studio-{w}x{h}-{tab.lower()}.png"))
 
 
 def _trim_of(pg):
-    return pg.evaluate("""async () => { const g = await (await fetch(`/api/group/${S.cat}/${S.unit}`)).json();
-        return g.lines.find((l) => l.id === S.phrases[S.idx].id).takes.map((t) => t.trim); }""")
+    return pg.evaluate("""async () => { const g = await (await fetch(`/api/group/${__studio.S.cat}/${__studio.S.unit}`)).json();
+        return g.lines.find((l) => l.id === __studio.S.phrases[__studio.S.idx].id).takes.map((t) => t.trim); }""")
 
 
 def test_trim_handles(page):
     pg = page
     record(pg, 1.5)
     pg.wait_for_selector(".take .trim-h.start")
+    pg.locator(".take .wave-box").first.scroll_into_view_if_needed()      # голосова картка зсунула дублі вниз
+    pg.evaluate("document.querySelector('#toast').hidden = true")           # тост про перевантаження не перекриває ручки
     box = pg.locator(".take .wave-box").first.bounding_box()
     h = pg.locator(".take .trim-h.start").first.bounding_box()
     y = h["y"] + h["height"] / 2
@@ -212,12 +380,14 @@ def test_trim_moves_marker_and_fit(page):
     pg = page
     record(pg, 1.6)
     pg.wait_for_selector(".take .trim-h.start")
+    pg.locator(".take .wave-box").first.scroll_into_view_if_needed()      # голосова картка зсунула дублі вниз
+    pg.evaluate("document.querySelector('#toast').hidden = true")           # тост про перевантаження не перекриває ручки
     cv = pg.locator(".take canvas.wave")
     pg.wait_for_function("() => document.querySelector('.take canvas.wave').dataset.markerSec")
     marker = lambda: float(cv.get_attribute("data-marker-sec"))  # noqa: E731
     fit0 = pg.inner_text(".take .fit")
     box = pg.locator(".take .wave-box").first.bounding_box()
-    scale = pg.evaluate("() => waves.get(document.querySelector('.take canvas.wave').dataset.wave).opts.scale")
+    scale = pg.evaluate("() => __studio.waves.get(document.querySelector('.take canvas.wave').dataset.wave).opts.scale")
     h = pg.locator(".take .trim-h.start").first.bounding_box()
     y = h["y"] + h["height"] / 2
     pg.mouse.move(h["x"] + h["width"] / 2, y)
@@ -237,6 +407,8 @@ def test_trim_moves_marker_and_fit(page):
     m1, fit1 = marker(), pg.inner_text(".take .fit")
     pg.reload()
     pg.wait_for_selector(".take .trim-h.start")
+    pg.locator(".take .wave-box").first.scroll_into_view_if_needed()      # голосова картка зсунула дублі вниз
+    pg.evaluate("document.querySelector('#toast').hidden = true")           # тост про перевантаження не перекриває ручки
     pg.wait_for_function("() => document.querySelector('.take canvas.wave').dataset.markerSec")
     assert abs(float(pg.locator(".take canvas.wave").get_attribute("data-marker-sec")) - m1) < 0.01
     assert pg.inner_text(".take .fit") == fit1
@@ -262,14 +434,14 @@ def test_game_preview_button_and_processing_toggles(page):
     record(pg, 1.2)
     with pg.expect_response(lambda r: "/api/preview" in r.url and r.status == 200):
         pg.locator("[data-preview]").first.click()
-    pg.wait_for_function("() => typeof playing !== 'undefined' && (playing === null || playing.id.startsWith('preview:'))")
-    pg.click("#optsMenu summary")
+    pg.wait_for_function("() => typeof __studio.playing !== 'undefined' && (__studio.playing === null || __studio.playing.id.startsWith('preview:'))")
+    pg.click("#tabProc")
     pg.click("label:has(#optDenoise)")                            # налаштування — на сервері, а не лише в localStorage
     pg.wait_for_function("async () => (await (await fetch('/api/settings')).json()).denoise === true")
     pg.reload()
     pg.wait_for_selector(".cue.on")
     assert pg.is_checked("#optDenoise")
-    pg.click("#optsMenu summary")                                 # після перезавантаження меню згорнуте
+    pg.click("#tabProc")                                          # після перезавантаження відкрита вкладка «Репліки»
     pg.click("label:has(#optLoudness)")
     pg.wait_for_function("async () => (await (await fetch('/api/settings')).json()).loudness === false")
     assert not pg.errors, pg.errors
@@ -278,17 +450,17 @@ def test_game_preview_button_and_processing_toggles(page):
 def test_clipping_indicator_and_badge(page):
     pg = page
     assert pg.locator("#clipFlag").count() == 1 and pg.locator("#clipFlag").is_hidden()
-    pg.evaluate("Rec.t0 = 123.5; clipCheck(new Float32Array([0.2, -0.5]))")          # без перевантаження
+    pg.evaluate("__studio.Rec.t0 = 123.5; __studio.clipCheck(new Float32Array([0.2, -0.5]))")          # без перевантаження
     assert pg.locator("#clipFlag").is_hidden() and "clip" not in pg.get_attribute("#meter", "class")
-    pg.evaluate("clipCheck(new Float32Array([0.2, -0.99]))")
+    pg.evaluate("__studio.clipCheck(new Float32Array([0.2, -0.99]))")
     assert pg.locator("#clipFlag").is_visible() and "clip" in pg.get_attribute("#meter", "class")
     pg.wait_for_function("() => !document.querySelector('#meter').classList.contains('clip')", timeout=3000)   # спалах згасає
     assert pg.locator("#clipFlag").is_visible()                                       # індикатор лишається до кінця дубля
-    pg.evaluate("Rec.t0 = 999; clipCheck(new Float32Array([0.1]))")                  # новий дубль → скинуто
+    pg.evaluate("__studio.Rec.t0 = 999; __studio.clipCheck(new Float32Array([0.1]))")                  # новий дубль → скинуто
     assert pg.locator("#clipFlag").is_hidden()
-    row = pg.evaluate("takeRow(cur(), {file: 'x.take1.wav', n: 1, clipped: true, exists: true, dur: 1}, false)")
+    row = pg.evaluate("__studio.takeRow(__studio.cur(), {file: 'x.take1.wav', n: 1, clipped: true, exists: true, dur: 1}, false)")
     assert 'class="badge-clip"' in row and "10–15 см" in row
-    assert "badge-clip" not in pg.evaluate("takeRow(cur(), {file: 'y.take1.wav', n: 2, clipped: false, exists: true, dur: 1}, false)")
+    assert "badge-clip" not in pg.evaluate("__studio.takeRow(__studio.cur(), {file: 'y.take1.wav', n: 2, clipped: false, exists: true, dur: 1}, false)")
 
 
 def test_install_modal(page, tmp_path, monkeypatch):
@@ -367,6 +539,7 @@ def test_community_voices_flow(page, tmp_path, monkeypatch):
     mine = {r: pcm(TMP_ROOT / "game-files" / r) for r in rels}
     pg = page
 
+    pg.click("#installMenuBtn")
     pg.click("#voicesBtn")
     pg.wait_for_selector(".v-row")
     assert pg.locator(".v-row").count() == 2 and "bob" in pg.inner_text("#voicesBody")
@@ -465,12 +638,12 @@ def test_ai_variants_section(page):
 
     # ▶ грає саме цей варіант
     pg.locator("#aiSection [data-ai-row='peonyes1.ai2.wav'] .play").click()
-    pg.wait_for_function("() => playing && playing.id === 'ai:peonyes1.ai2.wav'", timeout=5000)
+    pg.wait_for_function("() => __studio.playing && __studio.playing.id === 'ai:peonyes1.ai2.wav'", timeout=5000)
     pg.keyboard.press("1")                               # клавіша = варіант 1
-    pg.wait_for_function("() => playing && playing.id === 'ai:peonyes1.ai1.wav'", timeout=5000)
+    pg.wait_for_function("() => __studio.playing && __studio.playing.id === 'ai:peonyes1.ai1.wav'", timeout=5000)
 
     # «Оригінал → ШІ»: спершу оригінал, потім варіант
-    pg.evaluate_handle("() => { const s = []; const t = setInterval(() => { if (playing && s[s.length-1] !== playing.id) s.push(playing.id); }, 20); window.__seen = s; window.__t = t; return s; }")
+    pg.evaluate_handle("() => { const s = []; const t = setInterval(() => { if (__studio.playing && s[s.length-1] !== __studio.playing.id) s.push(__studio.playing.id); }, 20); window.__seen = s; window.__t = t; return s; }")
     pg.locator("#aiSection [data-ai-ab-ref='peonyes1.ai3.wav']").click()
     pg.wait_for_function("() => window.__seen.includes('ai:peonyes1.ai3.wav')", timeout=8000)
     assert pg.evaluate("() => window.__seen.slice(window.__seen.indexOf('ref'))") == ["ref", "ai:peonyes1.ai3.wav"]

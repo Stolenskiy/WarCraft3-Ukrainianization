@@ -80,13 +80,13 @@ def noise_wav(sec: float = 3.0) -> bytes:
 def eqpage(page, svc):  # noqa: F811 (фікстура з test_studio_e2e)
     """Студія з інструментованим Web Audio, шумовим дублем у поточній репліці й профілем +12 дБ @1 кГц."""
     pg = page
-    lid = pg.evaluate("cur().id")
+    lid = pg.evaluate("__studio.cur().id")
     svc.add_take(CID, GID, lid, noise_wav())
     svc.eq_save(CID, GID, BOOST)                       # призначається групі
     pg.context.add_init_script(TAP)
     pg.reload()
     pg.wait_for_selector(".take [data-play^='take:']")
-    pg.wait_for_function("() => EQ.prof && EQ.prof.name.startsWith('Тест')")
+    pg.wait_for_function("() => __studio.EQ.prof && __studio.EQ.prof.name.startsWith('Тест')")
     pg.lid = lid
     return pg
 
@@ -97,9 +97,9 @@ def tilt(m) -> float:
 
 def measure(pg, action, prefix="take:", ms=700):
     """Запустити прослуховування `action()`, дочекатись джерела з id `prefix…`, виміряти вихід і граф."""
-    pg.evaluate("stopPlay()")
+    pg.evaluate("__studio.stopPlay()")
     action()
-    pg.wait_for_function(f"() => playing && playing.id.startsWith('{prefix}')", timeout=8000)
+    pg.wait_for_function(f"() => __studio.playing && __studio.playing.id.startsWith('{prefix}')", timeout=8000)
     pg.wait_for_timeout(260)                           # вікно аналізатора (2048 відл.) — без хвоста попереднього звуку
     chain = pg.evaluate("__chain()")
     m = pg.evaluate(f"__measure({ms})")
@@ -109,12 +109,12 @@ def measure(pg, action, prefix="take:", ms=700):
 
 def baseline(pg):
     """«Нахил» дубля без EQ: та сама кнопка A/B у режимі «без EQ»."""
-    pg.click("#eqPanel summary")
-    pg.click("#eqBypass")
+    pg.click("#tabProc")
+    pg.click("#eqB")
     m, chain = measure(pg, lambda: pg.click(".take [data-play^='take:']"))
     assert not [n for n in chain if n["kind"] == "biquad"], chain        # bypass справді обходить EQ
-    pg.click("#eqBypass")
-    pg.evaluate("stopPlay()")
+    pg.click("#eqA")
+    pg.evaluate("__studio.stopPlay()")
     return tilt(m)
 
 
@@ -148,21 +148,23 @@ def test_eq_follows_profile_switch_and_live_slider(eqpage, svc):
     pg = eqpage
     t0 = baseline(pg)
     lp_id = svc.eq_save(CID, GID, LOWPASS, assign=False)["saved_id"]   # у списку, не призначений
-    pg.evaluate("eqLoad()")
-    pg.wait_for_function("() => EQ.data.profiles.some((p) => p.name === 'Тест зріз 500 Гц')")
-    lp = pg.evaluate("EQ.data.profiles.find((p) => p.name === 'Тест зріз 500 Гц').id")
+    pg.evaluate("__studio.eqLoad()")
+    pg.wait_for_function("() => __studio.EQ.data.profiles.some((p) => p.name === 'Тест зріз 500 Гц')")
+    lp = pg.evaluate("__studio.EQ.data.profiles.find((p) => p.name === 'Тест зріз 500 Гц').id")
     assert lp_id
     pg.select_option("#eqSel", lp)                                     # перемкнути профіль → наступне ▶ з ним
-    pg.wait_for_function(f"() => EQ.id === '{lp}'")
+    pg.wait_for_function(f"() => __studio.EQ.id === '{lp}'")
     m, chain = measure(pg, lambda: pg.click(".take [data-play^='take:']"))
     assert [n["type"] for n in chain if n["kind"] == "biquad"] == ["lowpass"], chain
     assert tilt(m) - t0 > 15, tilt(m) - t0                             # 3–6 кГц придушено
 
-    boost = pg.evaluate("EQ.data.profiles.find((p) => p.name === 'Тест +12 дБ @1 кГц').id")
+    boost = pg.evaluate("__studio.EQ.data.profiles.find((p) => p.name === 'Тест +12 дБ @1 кГц').id")
     pg.select_option("#eqSel", boost)
-    pg.wait_for_function(f"() => EQ.id === '{boost}'")
+    pg.wait_for_function(f"() => __studio.EQ.id === '{boost}'")
     measure(pg, lambda: pg.click(".take [data-play^='take:']"), ms=200)
-    sl = pg.locator("input[data-eq='gain'][data-i='0']")              # слайдер під час звучання → живе оновлення
+    pg.click("#tabProc")
+    pg.click("#eqMode [data-mode='bands']")
+    sl = pg.locator("input[data-eq='gain'][data-i='0']")              # поле смуги під час звучання → живе оновлення
     sl.evaluate("(e) => { e.value = -12; e.dispatchEvent(new Event('input', { bubbles: true })); }")
     pg.wait_for_timeout(260)
     chain = pg.evaluate("__chain()")
@@ -177,7 +179,7 @@ def test_eq_on_autoplay_after_recording(eqpage):
     assert pg.is_checked("#optAutoplay")
     pg.evaluate("document.activeElement.blur()")
     record(pg, 1.0)
-    pg.wait_for_function("() => playing && playing.id.startsWith('take:')", timeout=8000)
+    pg.wait_for_function("() => __studio.playing && __studio.playing.id.startsWith('take:')", timeout=8000)
     assert has_boost(pg.evaluate("__chain()")), pg.evaluate("__chain()")
 
 
@@ -190,7 +192,7 @@ def test_game_preview_not_double_eq_and_export_has_profile(eqpage, svc):
     d = tilt(m) - t0
     assert 8 < d < 15, f"«У грі»: {d:.1f} дБ (≈24 — подвійний EQ, ≈0 — EQ немає)"
 
-    file = pg.evaluate("cur().takes[0].file")
+    file = pg.evaluate("__studio.cur().takes[0].file")
     pg.click(".take [data-approve]")
     pg.wait_for_selector(".badge-game")
     game = TMP_ROOT / f"game-files/Units/orc/peon/{pg.lid}"
@@ -220,7 +222,7 @@ def test_bypass_toggle_is_audible_while_playing(eqpage):
     pg = eqpage
     t0 = baseline(pg)
     m1, _ = measure(pg, lambda: pg.click(".take [data-play^='take:']"), ms=400)
-    pg.click("#eqBypass")                                              # під час звучання
+    pg.click("#eqB")                                                    # під час звучання
     pg.wait_for_timeout(260)
     m2 = pg.evaluate("__measure(400)")
     assert tilt(m1) - t0 > 8
@@ -230,13 +232,13 @@ def test_bypass_toggle_is_audible_while_playing(eqpage):
 def test_profile_switch_is_audible_while_playing(eqpage, svc):
     pg = eqpage
     svc.eq_save(CID, GID, LOWPASS, assign=False)
-    pg.evaluate("eqLoad()")
-    pg.wait_for_function("() => EQ.data.profiles.some((p) => p.name === 'Тест зріз 500 Гц')")
-    lp = pg.evaluate("EQ.data.profiles.find((p) => p.name === 'Тест зріз 500 Гц').id")
-    pg.click("#eqPanel summary")
+    pg.evaluate("__studio.eqLoad()")
+    pg.wait_for_function("() => __studio.EQ.data.profiles.some((p) => p.name === 'Тест зріз 500 Гц')")
+    lp = pg.evaluate("__studio.EQ.data.profiles.find((p) => p.name === 'Тест зріз 500 Гц').id")
+    pg.click("#tabProc")
     measure(pg, lambda: pg.click(".take [data-play^='take:']"), ms=200)
     pg.select_option("#eqSel", lp)
-    pg.wait_for_function(f"() => EQ.id === '{lp}'")
+    pg.wait_for_function(f"() => __studio.EQ.id === '{lp}'")
     assert [n["type"] for n in pg.evaluate("__chain()") if n["kind"] == "biquad"] == ["lowpass"]
 
 
@@ -247,7 +249,7 @@ def test_eq_applied_before_eq_api_answers(eqpage):
     pg.wait_for_selector(".take [data-play^='take:']")
     pg.evaluate("document.activeElement.blur()")
     pg.keyboard.press("KeyL")
-    pg.wait_for_function("() => playing && playing.id.startsWith('take:')", timeout=5000)
+    pg.wait_for_function("() => __studio.playing && __studio.playing.id.startsWith('take:')", timeout=5000)
     assert has_boost(pg.evaluate("__chain()")), pg.evaluate("__chain()")
 
 
@@ -259,23 +261,22 @@ def test_playing_take_shows_eq_chip(eqpage):
 
 
 def test_shortcuts_work_with_focus_on_eq_slider(eqpage):
-    """L/A/B проходять із повзунка EQ; стрілки лишаються повзунку (значення змінюється, репліка — ні)."""
+    """L/A/B проходять із вузла кривої EQ; стрілки лишаються вузлу (значення змінюється, репліка — ні)."""
     pg = eqpage
-    pg.click("#eqPanel summary")
-    sl = pg.locator("input[data-eq='gain'][data-i='0']")
-    sl.focus()
-    idx, v0 = pg.evaluate("S.idx"), sl.input_value()
-    pg.keyboard.press("ArrowLeft")
-    assert sl.input_value() != v0 and pg.evaluate("S.idx") == idx
+    pg.click("#tabProc")
+    pg.locator(".eq-node[data-node='0']").focus()
+    idx, v0 = pg.evaluate("__studio.S.idx"), pg.evaluate("__studio.EQ.prof.bands[0].gain_db")
+    pg.keyboard.press("ArrowDown")
+    assert pg.evaluate("__studio.EQ.prof.bands[0].gain_db") == v0 - 0.5 and pg.evaluate("__studio.S.idx") == idx
     pg.keyboard.press("KeyL")
-    pg.wait_for_function("() => playing && playing.id.startsWith('take:')", timeout=8000)
+    pg.wait_for_function("() => __studio.playing && __studio.playing.id.startsWith('take:')", timeout=8000)
     pg.keyboard.press("KeyA")                                          # A/B без зупинки
-    pg.wait_for_function("() => EQ.bypass")
-    assert pg.evaluate("!!playing")
+    pg.wait_for_function("() => __studio.EQ.bypass")
+    assert pg.evaluate("!!__studio.playing")
     assert "on" not in (pg.locator("[data-eq-chip]").get_attribute("class") or "").split()
     pg.locator("[data-eq-chip]").click()                               # клік по чипу — назад
-    pg.wait_for_function("() => !EQ.bypass")
-    assert pg.get_attribute("#eqBypass", "aria-pressed") == "false"
+    pg.wait_for_function("() => !__studio.EQ.bypass")
+    assert pg.get_attribute("#eqB", "aria-pressed") == "false" and pg.get_attribute("#eqA", "aria-pressed") == "true"
     assert not pg.errors, pg.errors
 
 
@@ -289,7 +290,7 @@ def test_ab_loudness_matched(eqpage):
     measure(pg, lambda: pg.click(".take [data-play^='take:']"), ms=600)
     a = pg.evaluate("__rms(500)")
     pg.keyboard.press("KeyA")
-    pg.wait_for_function("() => EQ.bypass")
+    pg.wait_for_function("() => __studio.EQ.bypass")
     pg.wait_for_timeout(300)
     b = pg.evaluate("__rms(500)")
     assert abs(a - b) < 1.0, (a, b)
@@ -301,8 +302,9 @@ def test_shelf_has_no_q_control(eqpage, svc):
     shelf = {"name": "Полиця", "enabled": True, "gain_db": 0,
              "bands": [{"type": "lowshelf", "freq_hz": 150, "gain_db": 3, "q": 0.71}]}
     svc.eq_save(CID, GID, shelf)
-    pg.evaluate("eqLoad()")
-    pg.click("#eqPanel summary")
+    pg.evaluate("__studio.eqLoad()")
+    pg.click("#tabProc")
+    pg.click("#eqMode [data-mode='bands']")
     pg.wait_for_selector("input[data-eq='freq']")
     assert pg.locator("input[data-eq='q']").count() == 0
 
@@ -311,10 +313,8 @@ def test_shelf_has_no_q_control(eqpage, svc):
 
 def _open_side_panels(pg, w, h):
     pg.set_viewport_size({"width": w, "height": h})
-    for sel in ("#character", "#eqPanel"):
-        if not pg.evaluate(f"document.querySelector('{sel}').open"):
-            pg.click(f"{sel} > summary")
-    pg.wait_for_selector("#eqCurve")
+    pg.click("#tabProc")                                                 # відкрита вкладка «Обробка» не забирає висоту в списку реплік
+    pg.click("#tabCues")
 
 
 SIDE = """() => { const c = document.querySelector('#cues'), f = document.querySelector('#filter'),

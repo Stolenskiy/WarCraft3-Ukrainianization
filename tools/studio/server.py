@@ -27,8 +27,12 @@ API:
                                              оновлює /api/eq/reexport
   GET  /api/preview?cid=&gid=&lid=&file=     «Як у грі» для будь-якого дубля: wav, зібраний тим самим
                                              ланцюжком і налаштуваннями, що й копія для гри (кеш preview-cache/)
-  POST /api/open-dir  {cid,gid}                    відкрити теку game-files у Finder
-  GET  /api/eq?cid=&gid=                     {selected, default, profiles:[{id,builtin,name,enabled,gain_db,bands}]}
+  POST /api/open-dir  {cid,gid}                    відкрити теку game-files у файловому менеджері ОС (opener.open_dir)
+  GET  /api/game-root                        {path, source env|settings|auto|default, valid, env_overrides, candidates:[шлях]} (tools/gameconf.py)
+  POST /api/game-root {path} | {autodetect:true} | {clear:true}   зберегти теку гри (data/local/settings.json) / взяти першу знайдену /
+                                             повернутись до автопошуку; невалідна тека чи WC3_GAME_ROOT → 400; плани install бачать її одразу
+  GET  /api/eq?cid=&gid=                     {selected, default, stale, profiles:[{id,builtin,name,enabled,gain_db,bands}]}
+                                             stale = скільки обраних файлів гри зроблено з іншим EQ/обробкою
   POST /api/eq/profile {cid,gid,profile,id?,assign?}  створити (без id) / оновити власний профіль
   POST /api/eq/delete {cid,gid,id}                 видалити власний профіль (пресети — ні)
   POST /api/eq/assign {cid,gid,profile_id}         профіль групи (null → типовий)
@@ -55,68 +59,18 @@ import mimetypes
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import unquote, urlparse
 
-import install_voices
-import opener
+import install_voices  # noqa: F401  (тести підміняють його константи через studio.server.install_voices)
 
-from . import core
-from .catalog import UNIT_RACES
-from .paths import GAME_FILES
+from . import core, routes  # noqa: F401  (імпорт routes реєструє маршрути)
+from .routes.registry import Ctx, File, match
+from .routes.static import WEB  # noqa: F401
 
-WEB = Path(__file__).resolve().parent / "web"
 MAX_UPLOAD = 40 * 1024 * 1024
 
 
-def _opt(d: dict, key: str) -> bool | None:
-    """Застарілий явний параметр запиту (trim/auto_trim); немає → береться з налаштувань."""
-    return None if d.get(key) is None else bool(d[key])
-
-
-def install_tree(plan: dict, svc: core.Service) -> dict:
-    """Плани install_voices → дерево Раса → Юніт → файли з реальними назвами (запасний варіант — назва теки)."""
-    races = {r: t for r, t in UNIT_RACES}
-    tree: dict[str, dict] = {}
-    for f in plan["files"]:
-        parts = f["rel"].split("/")
-        race, unit = (parts[1], parts[2]) if len(parts) >= 4 and parts[0].lower() == "units" else ("", "")
-        rid = race.lower()
-        r = tree.setdefault(rid, {"id": rid, "title": races.get(rid, race or "Інше"), "units": {}})
-        if unit not in r["units"]:
-            title = unit or "—"
-            try:
-                title = next((g.title for g in svc.groups(f"units-{rid}") if g.id == unit), title)
-            except core.StudioError:
-                pass
-            r["units"][unit] = {"id": unit, "title": title, "files": []}
-        r["units"][unit]["files"].append({**f, "name": parts[-1]})
-    order = [r for r, _ in UNIT_RACES]
-    out = sorted(tree.values(), key=lambda r: order.index(r["id"]) if r["id"] in order else 99)
-    return {**{k: v for k, v in plan.items() if k != "files"},
-            "races": [{**r, "units": list(r["units"].values())} for r in out]}
-
-
 def make_handler(svc: core.Service):
-    actions = {
-        "/api/approve": lambda d: svc.approve(d["cid"], d["gid"], d["lid"], d["file"], _opt(d, "trim")),
-        "/api/unapprove": lambda d: svc.unapprove(d["cid"], d["gid"], d["lid"]),
-        "/api/original": lambda d: svc.keep_original(d["cid"], d["gid"], d["lid"], d["lang"]),
-        "/api/original/clear": lambda d: svc.clear_original(d["cid"], d["gid"], d["lid"]),
-        "/api/delete": lambda d: svc.delete(d["cid"], d["gid"], d["lid"], d["file"]),
-        "/api/restore": lambda d: svc.restore(d["cid"], d["gid"], d["lid"], d["file"]),
-        "/api/trim": lambda d: svc.set_trim(d["cid"], d["gid"], d["lid"], d["file"], d.get("start"), d.get("end"),
-                                            _opt(d, "auto_trim")),
-        "/api/tempo": lambda d: svc.set_tempo(d["cid"], d["gid"], d["lid"], d["file"], d.get("tempo")),
-        "/api/settings": lambda d: svc.set_settings(d),
-        "/api/eq/profile": lambda d: svc.eq_save(d["cid"], d["gid"], d["profile"], d.get("id"), d.get("assign", True)),
-        "/api/eq/delete": lambda d: svc.eq_delete(d["cid"], d["gid"], d["id"]),
-        "/api/eq/assign": lambda d: svc.eq_assign(d["cid"], d["gid"], d.get("profile_id")),
-        "/api/eq/reexport": lambda d: svc.reexport_group(d["cid"], d["gid"], _opt(d, "trim")),
-        "/api/ai/adopt": lambda d: svc.adopt_ai(d["cid"], d["gid"], d["lid"], d["file"]),
-        "/api/ai/discard": lambda d: svc.discard_ai(d["cid"], d["gid"], d["lid"], d["file"]),
-        "/api/text": lambda d: svc.set_text(d["cid"], d["gid"], d["lid"], d.get("text", "")),
-    }
-
     class Handler(BaseHTTPRequestHandler):
         server_version = "WC3UAStudio/3"
 
@@ -146,47 +100,31 @@ def make_handler(svc: core.Service):
             port = self.server.server_address[1]
             return self.headers.get("Host", "") in (f"127.0.0.1:{port}", f"localhost:{port}")
 
+        def _dispatch(self, method: str, body: bytes = b"") -> None:
+            """Маршрут із реєстру → JSON чи файл; помилки домену — 4xx, файлової системи — 500."""
+            parts = [unquote(p) for p in urlparse(self.path).path.strip("/").split("/") if p]
+            found = match(method, parts)
+            if found is None:
+                return self._json({"error": "not found"}, 404)
+            fn, params = found
+            post = method == "POST"
+            try:
+                res = fn(Ctx(svc, self.path, params, body))
+            except (core.StudioError, install_voices.InstallError) as ex:
+                bad = post or isinstance(ex, install_voices.InstallError)
+                return self._json({"error": str(ex)}, 400 if bad else 404)
+            except OSError as ex:
+                return self._json({"error": f"помилка файлової системи: {ex}"}, 500)
+            except (KeyError, ValueError, TypeError, AttributeError) as ex:
+                if post or isinstance(ex, KeyError):
+                    return self._json({"error": f"bad request: {ex}"}, 400)
+                raise
+            self._file(res.path, res.ctype) if isinstance(res, File) else self._json(res)
+
         def do_GET(self) -> None:
             if not self._host_ok():
                 return self._json({"error": "forbidden host"}, 403)
-            parts = [unquote(p) for p in urlparse(self.path).path.strip("/").split("/") if p]
-            try:
-                if not parts:
-                    return self._file(WEB / "index.html")
-                if parts[0] == "static" and len(parts) == 2:
-                    return self._file(WEB / Path(parts[1]).name)
-                if parts == ["api", "catalogs"]:
-                    return self._json(svc.catalogs_json())
-                if parts == ["api", "install", "plan"]:
-                    v = svc.voices_json()
-                    return self._json({**install_tree(install_voices.plan(), svc),
-                                       "authors": [{"id": a["id"], "name": a["name"]} for a in v["authors"]],
-                                       "choice": v["choice"]})
-                if parts == ["api", "voices"]:
-                    return self._json(svc.voices_json())
-                if parts[:2] == ["audio", "voice"] and len(parts) >= 4:
-                    return self._file(svc.voice_audio(parts[2], "/".join(parts[3:])), "audio/wav")
-                if parts == ["api", "uninstall", "plan"]:
-                    return self._json(install_tree(install_voices.uninstall_plan(), svc))
-                if parts == ["api", "eq"]:
-                    q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
-                    return self._json(svc.eq_json(q["cid"], q["gid"]))
-                if parts == ["api", "settings"]:
-                    return self._json(svc.get_settings())
-                if parts == ["api", "preview"]:
-                    q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
-                    return self._file(svc.preview(q["cid"], q["gid"], q["lid"], q["file"]), "audio/wav")
-                if parts[:2] == ["api", "group"] and len(parts) == 4:
-                    return self._json(svc.group_json(parts[2], parts[3]))
-                if parts[0] == "audio" and len(parts) == 5:
-                    return self._file(svc.audio_path(*parts[1:]), "audio/wav")
-            except (core.StudioError, install_voices.InstallError) as ex:
-                return self._json({"error": str(ex)}, 400 if isinstance(ex, install_voices.InstallError) else 404)
-            except OSError as ex:
-                return self._json({"error": f"помилка файлової системи: {ex}"}, 500)
-            except KeyError as ex:
-                return self._json({"error": f"bad request: {ex}"}, 400)
-            self._json({"error": "not found"}, 404)
+            self._dispatch("GET")
 
         def do_POST(self) -> None:
             origin = self.headers.get("Origin")
@@ -199,39 +137,7 @@ def make_handler(svc: core.Service):
                 return self._json({"error": "bad length"}, 400)
             if not 0 <= n <= MAX_UPLOAD:
                 return self._json({"error": "too large"}, 413)
-            body = self.rfile.read(n)
-            url = urlparse(self.path)
-            try:
-                if url.path == "/api/take":
-                    q = {k: v[0] for k, v in parse_qs(url.query).items()}
-                    return self._json(svc.add_take(q["cid"], q["gid"], q["lid"], body))
-                data = json.loads(body or b"{}")
-                if url.path in ("/api/install", "/api/uninstall"):
-                    chosen = data.get("files")
-                    if chosen is not None and not (isinstance(chosen, list) and all(isinstance(x, str) for x in chosen)):
-                        raise ValueError("files має бути списком рядків")
-                    fn = install_voices.apply if url.path == "/api/install" else install_voices.uninstall
-                    return self._json(fn(files=chosen))
-                if url.path == "/api/voices/choice":
-                    return self._json(svc.set_voice_choice(data))
-                if url.path == "/api/voices/publish":
-                    return self._json(svc.publish_voice(data.get("nickname"), data.get("consent") is True))
-                if url.path in actions:
-                    return self._json(actions[url.path](data))
-                if url.path == "/api/open-dir":
-                    svc.lines(data["cid"], data["gid"])  # валідація
-                    rel = Path(svc.lines(data["cid"], data["gid"])[0].game_rel).parent
-                    d = GAME_FILES / rel
-                    d.mkdir(parents=True, exist_ok=True)
-                    opener.open_dir(d)
-                    return self._json({"ok": True})
-            except (core.StudioError, install_voices.InstallError) as ex:
-                return self._json({"error": str(ex)}, 400)
-            except OSError as ex:
-                return self._json({"error": f"помилка файлової системи: {ex}"}, 500)
-            except (KeyError, ValueError, TypeError, AttributeError) as ex:
-                return self._json({"error": f"bad request: {ex}"}, 400)
-            self._json({"error": "not found"}, 404)
+            self._dispatch("POST", self.rfile.read(n))
 
     return Handler
 

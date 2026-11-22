@@ -1,9 +1,17 @@
-"use strict";
-/* ШІ-варіанти реплік (голос ШІ, клонований із ВЛАСНИХ дублів користувача). Підключається після app.js.
-   Хуки в app.js: AI.mount(p) в кінці renderCard, AI.cueMark(p) у renderCues. Усе інше — тут.
+/* ШІ-варіанти реплік (голос ШІ, клонований із ВЛАСНИХ дублів користувача).
+   Хуки: AI.mount(p) в кінці renderCard (card.js), AI.cueMark(p) у renderCues (cues.js). Усе інше — тут.
    Дані: p.ai = [{file, n, engine, cer, similarity, dur, style, adopted}], аудіо — /audio/ai/<cid>/<gid>/<file>. */
 
-const AI = (() => {
+import { loadBuf, play, playing, stopPlay } from "./audio.js";
+import { act, putPhrase } from "./phrase.js";
+import { Rec } from "./rec.js";
+import { aurl, cur, ids, urlRef } from "./state.js";
+import { toast } from "./toast.js";
+import { takeItem } from "./trim.js";
+import { esc, fmt } from "./util.js";
+import { drawWave, waves } from "./wave.js";
+
+export const AI = (() => {
   const urlAi = (f) => aurl("ai", f);
   const aiItem = (f) => ({ url: urlAi(f), id: "ai:" + f });
   const ownTakes = (p) => p.takes.filter((t) => !t.deleted && t.exists && t.source !== "ai");
@@ -70,7 +78,7 @@ const AI = (() => {
     sec.onclick = (e) => {
       const b = e.target.closest("button, canvas");
       if (!b) return;
-      e.stopPropagation();                                   // не дійти до обробника дублів у app.js
+      e.stopPropagation();                                   // не дійти до обробника дублів у card.js
       const d = b.dataset, own = ownTake(p);
       if (d.play || d.wave) {
         const id = d.play || d.wave;

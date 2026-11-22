@@ -1,0 +1,26 @@
+/* Сітка сторінки, головна зона, рядок гарячих клавіш, адаптив. */
+.layout { display: grid; grid-template-columns: 380px 1fr; min-height: 0; }
+.side { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; overflow: hidden; border-right: 1px solid var(--line); background: var(--panel); }
+.main { overflow: auto; padding: 26px 34px 40px; }
+.empty { color: var(--muted); padding: 40px; }
+.keys { display: flex; flex-wrap: wrap; gap: 18px; padding: 8px 18px; border-top: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: 12px; }
+@media (max-width: 1279px) { .brand-name { display: none; } }
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 310px 1fr; }
+  .main { padding: 20px; }
+  .ru-text { font-size: 28px; } .ua-input { font-size: 25px; }
+}
+/* < 1000 px: бічна панель висувна (☰), сторінка не ширша за вікно */
+@media (max-width: 999px) {
+  .layout { grid-template-columns: 1fr; }
+  .side-toggle { display: inline-block; }
+  .side { position: fixed; z-index: 15; top: 52px; bottom: 0; left: 0; width: min(380px, 92vw); transform: translateX(-102%); transition: transform .2s ease-out; box-shadow: 0 0 40px rgba(0,0,0,.5); }
+  body.side-open .side { transform: none; }
+  .top { padding: 6px 12px; gap: 10px; }
+  .seg.mini > span { display: none; }
+  .unit-btn { width: auto; flex: 1; min-width: 0; }
+  .main { padding: 16px 14px 32px; }
+  .ru-text { font-size: 24px; } .ua-input { font-size: 22px; }
+  .lang { grid-template-columns: 1fr; gap: 4px; }
+  .keys { gap: 8px 14px; }
+}

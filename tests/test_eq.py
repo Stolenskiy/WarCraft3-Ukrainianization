@@ -34,6 +34,10 @@ def test_presets_valid_and_cover_orcs():
         hp = [b for b in p["bands"] if b["type"] == "highpass"]
         assert hp and 70 <= hp[0]["freq_hz"] <= 90, pid
         assert all(abs(b["gain_db"]) <= 6 for b in p["bands"]) and abs(p["gain_db"]) <= 6, pid
+        # характер, а не «ефект»: смуги ±4–6 дБ; «повітря» (піднята верхня полиця) не вище 6,5–7 кГц (файл гри — 22 кГц)
+        assert max(abs(b["gain_db"]) for b in p["bands"]) <= 5, pid
+        assert all(b["freq_hz"] <= 7000 for b in p["bands"] if b["type"] == "highshelf" and b["gain_db"] > 0), pid
+        assert all(b["freq_hz"] <= 11000 for b in p["bands"]), pid
         assert ffmpeg_ok(eq.to_ffmpeg(p))[0], pid
 
 
@@ -50,6 +54,24 @@ def test_to_ffmpeg():
     assert ffmpeg_ok(fl)[0]
     assert eq.to_ffmpeg({**PROFILE, "enabled": False}) == []
     assert eq.to_ffmpeg({"name": "x", "bands": [{"type": "peaking", "freq_hz": 1000, "gain_db": 0, "q": 1}]}) == []
+
+
+def test_amount_scales_band_gains():
+    base = {"name": "x", "bands": [{"type": "highpass", "freq_hz": 80, "gain_db": 0, "q": 0.71},
+                                   {"type": "peaking", "freq_hz": 1000, "gain_db": 4, "q": 1.0},
+                                   {"type": "highshelf", "freq_hz": 6000, "gain_db": -2, "q": 0.71}]}
+    assert eq.validate(base)["amount"] == 1                                   # типово 100 %
+    full = eq.to_ffmpeg(eq.validate(base))
+    assert eq.to_ffmpeg(eq.validate({**base, "amount": 1.5}))[1:] == ["equalizer=f=1000:t=q:w=1:g=6", "treble=g=-3:f=6000:t=q:w=0.71"]
+    assert eq.to_ffmpeg(eq.validate({**base, "amount": 0.5}))[1:] == ["equalizer=f=1000:t=q:w=1:g=2", "treble=g=-1:f=6000:t=q:w=0.71"]
+    assert eq.to_ffmpeg(eq.validate({**base, "amount": 1}))[1:] == full[1:] and full[0].startswith("highpass")   # зріз низів не множиться
+    assert eq.to_ffmpeg(eq.validate({**base, "amount": 0})) == []              # 0 % = вимкнено
+    big = {"name": "x", "amount": 2, "bands": [{"type": "peaking", "freq_hz": 1000, "gain_db": 9, "q": 1}]}
+    assert eq.to_ffmpeg(eq.validate(big)) == ["equalizer=f=1000:t=q:w=1:g=12"]  # стеля ±12 дБ
+    for bad in (-0.1, 2.5, "1", None):
+        with pytest.raises(eq.EqError):
+            eq.validate({**base, "amount": bad})
+    assert ffmpeg_ok(eq.to_ffmpeg(eq.validate({**base, "amount": 1.5})))[0]
 
 
 @pytest.mark.parametrize("bad", [
@@ -115,6 +137,19 @@ def test_reexport_group(svc):
     (TMP_ROOT / "audio/self-recorded" / CID / GID / "peonyes1.take1.wav").unlink()
     assert svc.reexport_group(CID, GID)["failed"] == [LID]
     assert svc.reexport_group(CID, "grunt")["done"] == []
+
+
+def test_stale_game_files(svc):
+    svc.add_take(CID, GID, LID, wav_bytes())
+    line = svc.approve(CID, GID, LID, "peonyes1.take1.wav")
+    assert line["stale"] is False and svc.eq_json(CID, GID)["stale"] == 0
+    svc.eq_assign(CID, GID, "orc-tauren")                                   # змінили EQ → файл у грі застарів
+    assert svc.eq_json(CID, GID)["stale"] == 1
+    assert svc.group_json(CID, GID)["lines"][0]["stale"] is True
+    r = svc.reexport_group(CID, GID)
+    assert r["lines"][0]["stale"] is False and svc.eq_json(CID, GID)["stale"] == 0
+    svc.set_settings({"denoise": True})                                     # змінили обробку → знову застарів
+    assert svc.eq_json(CID, GID)["stale"] == 1
 
 
 def test_eq_api(api):  # noqa: F811

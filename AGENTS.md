@@ -15,7 +15,9 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 | Task | Where |
 |---|---|
 | Studio architecture, data, extension points, pitfalls | `tools/studio/README.md` |
-| New processing step (ffmpeg chain) | `docs/runbooks/add-processing-step.md` |
+| New processing step (ffmpeg chain) | `docs/runbooks/add-processing-step.md` → `tools/studio/svc/export.py` |
+| New UI button / panel / feature | `tools/studio/web/js/<feature>.js` (entry `main.js`), `web/css/<feature>.css`; README «Модулі» (line-count map). Header/split menu `header.js`, EQ editor `eq-editor.js`, voice card `voice-card.js`, game folder field `gameroot.js` |
+| New API route / Service action | `tools/studio/routes/<feature>.py` (`@route`) → `svc/<theme>.py` |
 | New line source / catalog (campaign, races) | `docs/runbooks/add-catalog.md` |
 | Studio UI test (Chrome, fake mic) | `docs/runbooks/studio-e2e-test.md` |
 | Publish / review a community voice pack | `docs/runbooks/release-voice-pack.md`, `docs/CONTRIBUTING.md` |
@@ -28,8 +30,8 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 | Feature backlog: in progress / planned / ideas | `docs/ROADMAP.md` |
 | Menus / maps / local install | `docs/ukrainian-ui-131.md`, `docs/ukrainian-maps.md`, `docs/install-local.md` |
 | Text pack (upstream cache, hotkeys, FDF 1.31), targets, `run.py install` | `docs/decisions/0006-text-pack-sourcing.md`, `tools/textpack.py`, `tools/install_pack.py`, `data/targets/`, `docs/install/` |
-| Planned refactor of the studio | `docs/plans/modularize-studio.md` |
-| Game path (`tools/gameconf.py`), cross-platform CLI (`tools/run.py`), Docker, UI hook | `docs/plans/game-path-ui.md`, `docs/install-local.md` |
+| Why/how the studio was split into modules | `docs/plans/modularize-studio.md` (done) |
+| Game path (`tools/gameconf.py`), cross-platform CLI (`tools/run.py`), Docker, UI hook | `docs/plans/game-path-ui.md` (UI done: `routes/gameroot.py`, `web/js/gameroot.js`), `docs/install-local.md` |
 
 ## Hard boundaries
 - Game folder (resolved by `tools/gameconf.py`: `WC3_GAME_ROOT` > `data/local/settings.json` > autodetect): only via `make install-voices` / `make install-text` / `make install` (dry run by default; `APPLY=1` only with the
@@ -51,7 +53,7 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 ## Workflow
 - Cross-platform (macOS/Windows/Linux/Docker): never hardcode a game path (use `gameconf`), no `/tmp`, `open`, `os.symlink` or `.venv/bin` assumptions
   outside `tools/run.py`/`opener.py`; open text files with `encoding="utf-8"`; every `make` target has a `python tools/run.py` equivalent.
-- New behaviour → test next to it (`tests/`). `fail_under` in `pyproject.toml` only goes up (CI ratchet; currently 94).
+- New behaviour → test next to it (`tests/`). `fail_under` in `pyproject.toml` only goes up (CI ratchet; currently 95).
 - Deferred or promised-for-later feature → add it to `docs/ROADMAP.md`; started → «У роботі»; merged → «Нещодавно зроблено».
 - End of a session that changes state: update `docs/STATUS.md` (≤ 40 lines; decisions section is not revisited without the owner).
 - Doc drift is tested (`tests/test_docs_sync.py`): new API route → server docstring + `tools/studio/README.md`; new make target → keep it real.
@@ -60,5 +62,6 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 ## Parallel work
 - One git worktree + branch per feature (`git worktree add ../wc3-wt-<name> -b feat/<name>`); never edit another worktree's files.
 - Keep a per-branch note in `docs/status/<branch>.md` (what is done / next / risks); it is folded into `docs/STATUS.md` at merge time.
-- Hot files (`app.js`, `app.css`, `core.py`, `server.py`): small, focused diffs; rebase on main before merging.
+- Studio is modular (no file > 300 lines, guarded by `tests/test_docs_sync.py`): one feature = one module in `web/js/`, `web/css/`, `routes/`, `svc/` —
+  parallel agents rarely touch the same file; hot spots are `web/js/card.js`, `web/js/main.js`, `svc/export.py`. Rebase on main before merging.
 - PR checklist: `.github/pull_request_template.md`. Agent-authored PRs: `docs/CONTRIBUTING.md` → «Для AI-агентів».

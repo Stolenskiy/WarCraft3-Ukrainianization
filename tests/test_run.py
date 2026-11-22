@@ -64,7 +64,7 @@ def test_verify_runs_lint_guard_voices_then_parallel_tests(calls):
     assert run.main(["verify"]) == 0
     flat = [" ".join(c) for c in calls]
     assert any("-m ruff check ." in c for c in flat)
-    assert sum("node --check" in c or "/node" in c for c in flat) == 2
+    assert sum("jscheck.mjs" in c for c in flat) == 1
     assert any("guard_no_audio" in c for c in flat) and any("check_voices" in c for c in flat)
     tests = [c for c in calls if "pytest" in c]
     assert len(tests) == 3 and all("--cov" not in c for c in tests)
