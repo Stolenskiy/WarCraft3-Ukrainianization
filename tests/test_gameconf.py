@@ -140,3 +140,14 @@ def test_linux_custom_wineprefix(tmp_path, monkeypatch):
     monkeypatch.setenv("WINEPREFIX", str(tmp_path / "pfx"))
     wc = fake_game(tmp_path / "pfx/drive_c/Program Files (x86)/Warcraft III")
     assert str(wc) in gameconf.candidates()
+
+
+def test_detect_and_clear(env, monkeypatch):
+    a, b = fake_game(env / "a"), env / "bad"
+    monkeypatch.setattr(gameconf, "candidates", lambda: [str(b), str(a)])
+    assert gameconf.detect() == [str(a)]
+    gameconf.set_game_root(a)
+    gameconf.clear_game_root()
+    assert json.loads(gameconf.settings_path().read_text()) == {}
+    gameconf.clear_game_root()                                  # повторно — без помилок
+    assert gameconf.describe()["source"] == "auto"

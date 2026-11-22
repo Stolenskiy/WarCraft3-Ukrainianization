@@ -132,7 +132,23 @@ def set_game_root(path: str | os.PathLike, root: Path | None = None) -> Path:
     return p
 
 
+def detect() -> list[str]:
+    """Усі знайдені автопошуком валідні теки (для кнопки «Знайти» в UI); нічого не зберігає."""
+    return [c for c in candidates() if looks_like_wc3(c)]
+
+
+def clear_game_root(root: Path | None = None) -> None:
+    """Прибрати збережений шлях (повернутись до автопошуку)."""
+    f = settings_path(root)
+    try:
+        cur = json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if isinstance(cur, dict) and cur.pop("game_root", None) is not None:
+        f.write_text(json.dumps(cur, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def describe(root: Path | None = None) -> dict:
     path, source, valid = resolve(root)
     return {"path": path, "source": source, "valid": valid, "platform": sys.platform,
-            "env_overrides": bool(os.environ.get(ENV, "").strip())}
+            "env_overrides": bool(os.environ.get(ENV, "").strip()), "settings_file": str(settings_path(root))}
