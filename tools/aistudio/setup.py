@@ -38,7 +38,7 @@ def detect_platform() -> dict:
     osn, arch = platform.system(), platform.machine().lower()
     if osn == "Darwin" and arch in ("arm64", "aarch64"):
         acc, speed = "mps", "помірно"
-        warn = "Apple Silicon (MPS): працює, але помітно повільніше за CUDA — на коротку репліку очікуйте десятки секунд; генеруйте партіями."
+        warn = "Apple Silicon (MPS): працює, але помітно повільніше за CUDA. Виміряно: одна коротка репліка з метриками ≈ 4 хв (більша частина — завантаження моделі), тож генеруйте партіями (n>1) — модель вантажиться один раз."
     elif shutil.which("nvidia-smi"):
         acc, speed = "cuda", "швидко"
         warn = ""
