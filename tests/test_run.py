@@ -134,3 +134,18 @@ def test_core_test_lists_match_makefile():
         m = re.search(rf"^{name} := (.+)$", mk, re.M)
         assert m and m.group(1).split() == lst
     assert all((REPO / t).exists() for t in run.CORE_TESTS_A + run.CORE_TESTS_B + run.CORE_TESTS_C)
+
+
+def test_cyrillic_output_survives_non_utf8_pipe():
+    """CI windows-latest: stdout у конвеєр має cp1252 — `run.py` не має падати на кирилиці."""
+    import os
+    import subprocess
+    import sys
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252"}
+    env.pop("PYTHONUTF8", None)
+    r = subprocess.run([sys.executable, "-I", "tools/run.py", "game-root", "--help"], capture_output=True, env=env,
+                       cwd=Path(__file__).resolve().parent.parent)
+    assert r.returncode == 0, r.stderr.decode("utf-8", "replace")
+    r = subprocess.run([sys.executable, "-I", "-c", "import sys; sys.path.insert(0, 'tools'); import run; run.utf8_stdio(); print('Готово')"],
+                       capture_output=True, env=env, cwd=Path(__file__).resolve().parent.parent)
+    assert r.returncode == 0 and "Готово" in r.stdout.decode("utf-8")

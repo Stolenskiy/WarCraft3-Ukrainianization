@@ -270,7 +270,15 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
+def utf8_stdio() -> None:
+    """Windows-конвеєри (CI, перенаправлення) мають cp1252/cp1251 → print кирилиці падав з UnicodeEncodeError (код 1)."""
+    for s in (sys.stdout, sys.stderr):
+        if s is not None and hasattr(s, "reconfigure") and (s.encoding or "").lower().replace("-", "") != "utf8":
+            s.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main(argv: list[str] | None = None) -> int:
+    utf8_stdio()
     argv = sys.argv[1:] if argv is None else argv
     if argv and argv[0] in AI_COMMANDS:         # ШІ-студія: власний розбір аргументів у tools/aistudio/cli.py
         return _call([*py(), "tools/ai_cli.py", argv[0][3:], *argv[1:]])
