@@ -4,7 +4,7 @@ import { getJSON, post } from "./api.js";
 import { play, playing, stopPlay } from "./audio.js";
 import { SETUP_CMD, bindEngine, engineHtml, ensureConsents, fixHint } from "./ai-engine.js";
 import { AIS, curEngine, draftOf, setEngine, supports } from "./ai-state.js";
-import { kick } from "./ai-queue.js";
+import { kick, render as renderQueue } from "./ai-queue.js";
 import { S, ids } from "./state.js";
 import { toast } from "./toast.js";
 import { esc, fmt } from "./util.js";
@@ -111,7 +111,9 @@ export function mountGen(p, host) {
   refCache.clear();                      // дублі могли змінитись — список референсів завантажимо знову
   const d = draftOf(p);
   const render = () => {
-    host.innerHTML = `<details class="ai-gen" ${d.open ? "open" : ""}><summary>✨ Згенерувати</summary><div id="aiGenBody"></div></details>`;
+    host.innerHTML = `<details class="ai-gen" ${d.open ? "open" : ""}><summary>✨ Згенерувати</summary><div id="aiGenBody"></div></details>
+      <div class="ai-line-prog" id="aiLineProg" data-lid="${esc(p.id)}" hidden></div>`;   // під кнопкою — там, де з’являться варіанти
+    renderQueue();
     body();
   };
   const body = () => {

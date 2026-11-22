@@ -95,6 +95,9 @@ def test_cancel_from_queue_indicator(consented, page):  # noqa: F811
     pg.click("[data-ai-more]")                                                        # n=1, новий seed
     pg.wait_for_selector("#aiQueue:not([hidden])")
     assert "ШІ:" in pg.inner_text("#aiQueueTxt")
+    pg.wait_for_selector("#aiLineProg:not([hidden]) .aip")                           # прогрес — і в картці репліки
+    assert pg.locator("#aiLineProg .aip").count() == 1 and pg.locator("#aiLineProg .aiq-bar.big b").count() == 1
+    assert any(x in pg.inner_text("#aiLineProg .aip-left") + pg.inner_text("#aiQueueTxt") for x in ("≈", "ще трохи"))
     pg.click("[data-ai-go]")                                                          # друге завдання — у черзі
     pg.wait_for_function("document.querySelector('#aiQueueTxt').textContent.includes('у черзі')")
     pg.click("#aiQueueBtn")
@@ -103,6 +106,7 @@ def test_cancel_from_queue_indicator(consented, page):  # noqa: F811
     pg.wait_for_function("document.querySelectorAll('#aiQueuePop [data-cancel]').length === 1")
     pg.click("#aiQueuePop [data-cancel]")                                             # скасувати те, що вже генерується
     pg.wait_for_selector("#aiQueue", state="hidden", timeout=15000)
+    assert pg.is_hidden("#aiLineProg")
     assert {j["state"] for j in ai_env.jobs()} == {"cancelled"} and not pg.locator("#aiSection .ai-take").count()
     assert pg.locator("#toast").is_visible()
 

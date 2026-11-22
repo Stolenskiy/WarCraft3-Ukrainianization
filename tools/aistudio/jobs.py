@@ -21,7 +21,7 @@ from studio import ai, aigen
 from studio.catalog import duration
 from studio.core import now
 
-from . import config, refs
+from . import config, eta, refs
 from .engines import Cancelled, EngineError, get_engine
 from .params import SEED_MAX, GenParams, ParamsError
 
@@ -85,6 +85,7 @@ class JobQueue:
         self._thread: threading.Thread | None = None
         self._stop = False
         self.listeners: list = []
+        self.timing = eta.Timing(self.dir / "timing.json")
         self._load()
 
     # ------------------------------------------------------------ збереження
@@ -193,7 +194,9 @@ class JobQueue:
 
     def list(self, states=None) -> list[dict]:
         with self.cv:
-            return [json.loads(json.dumps(r)) for r in self._ordered() if not states or r["state"] in states]
+            out = [json.loads(json.dumps(r)) for r in self._ordered()]
+        eta.annotate(out, self.timing)                              # оцінка часу — з урахуванням усієї черги
+        return [r for r in out if not states or r["state"] in states]
 
     def cancel(self, jid: str) -> dict:
         with self.cv:
@@ -263,7 +266,7 @@ class JobQueue:
 
     def _progress(self, rec: dict, **kw) -> None:
         with self.cv:
-            rec["progress"].update(kw)
+            rec["progress"].update(kw, t=time.time())
             self._save(rec)
         self._emit(rec, "progress", progress=dict(rec["progress"]))
 
@@ -313,12 +316,15 @@ class JobQueue:
                               refs=rf, out=d / f"{ln.stem}.ai{k0 + 1 + i}.wav",
                               params={**p.to_dict(), "seed": s, "temperature": temp, "top_p": top_p, "text_sent": text})
                     for i, s in enumerate(p.seeds(rec["base_seed"]))]
-            self._progress(rec, total=len(jobs), done=0, phase="generating")
+            self._progress(rec, total=len(jobs), done=0, phase="loading")
             made = self._generate(rec, eng, jobs, tmp, ln, unsupported)
             self._check_cancel(rec)
             self._progress(rec, phase="metrics")
+            t0 = time.time()
             try:
                 aigen.fill_metrics(self.svc, cid, gid, made, eng, self.asr_factory(), tmp, lambda *_: None)
+                if made:
+                    self.timing.learn(rec["engine"], "metrics", (time.time() - t0) / len(made))
             except Cancelled:
                 raise
             except Exception as ex:      # noqa: BLE001 — метрики необов'язкові: варіанти вже збережені
@@ -334,11 +340,21 @@ class JobQueue:
 
             seen = [0]
 
+            if attempt:
+                self._progress(rec, phase="loading")        # повтор — двигун знову вантажить модель
+
             def on_msg(m, seen=seen):
                 if isinstance(m, dict) and "out" in m:
+                    pr = rec["progress"]
+                    if pr.get("phase") == "generating":          # без "sec" — проміжок між варіантами
+                        self.timing.learn(rec["engine"], "per", m.get("sec") or time.time() - pr.get("t", time.time()))
+                    elif m.get("sec"):
+                        self.timing.learn(rec["engine"], "per", m["sec"])
                     seen[0] += 1
-                    self._progress(rec, done=min(rec["progress"]["total"], seen[0]))
+                    self._progress(rec, done=min(pr["total"], seen[0]), phase="generating")
                 elif isinstance(m, dict) and "loaded" in m:
+                    self.timing.learn(rec["engine"], "load", m["loaded"])
+                    self._progress(rec, phase="generating")
                     self._emit(rec, "log", message=f"модель завантажено за {m['loaded']} с")
 
             eng.generate(todo, raws, on_msg)

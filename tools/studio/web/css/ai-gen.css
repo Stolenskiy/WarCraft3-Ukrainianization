@@ -60,3 +60,12 @@
 .aiq-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 35; width: 320px; display: grid; gap: 6px; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
 .aiq-job { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 12px; }
 .aiq-job small { color: var(--muted); }
+.aiq-job > span { flex: 1; display: grid; gap: 4px; }
+.aiq-bar.big { height: 8px; border-radius: 4px; }
+.aiq-bar.big b { background: linear-gradient(90deg, var(--ai), #c5b3f5); transition: width 1s linear; }
+.ai-line-prog { display: grid; gap: 8px; margin-top: 10px; }
+.aip { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid rgba(154, 126, 224, .45); border-radius: 10px; background: var(--ai-soft); }
+.aip-top { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.aip-top b { color: var(--ai); flex: 1; }
+.aip-left { font-variant-numeric: tabular-nums; color: var(--text); }
+.aip small { color: var(--muted); font-size: 11px; }
