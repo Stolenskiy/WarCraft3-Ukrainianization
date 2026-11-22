@@ -11,6 +11,7 @@ import { approve, clearOriginal, del, keepOriginal, restore, unapprove } from ".
 import { saveTempo, tempoBadge, tempoClick, tempoLabel, tempoOf, tempoPanel } from "./tempo.js";
 import { resetTrim, takeItem } from "./trim.js";
 import { $, esc, fmt, timeLabel } from "./util.js";
+import { voiceBind, voiceHtml } from "./voice-card.js";
 import { loadWaves } from "./wave.js";
 
 function takeRowHtml(p, t, isNew) {
@@ -39,6 +40,7 @@ function renderCardHtml(newFile) {
   const apprTake = p.takes.find((t) => t.file === p.approved);
   const textState = p.ua_custom ? "ваш текст" : p.ua_hint ? "пропозиція з voice bible — можна змінити" : "введіть український текст";
   main.innerHTML = `<div class="card">
+    ${voiceHtml()}
     <div class="eyebrow"><span class="chip type">${esc(p.kind_ua)}</span>
       <span>Репліка ${S.idx + 1} з ${S.phrases.length}</span><span class="dot-sep">${esc(p.id)}</span>
       ${p.no_speech ? `<span class="chip warn">без слів — крик / звук</span>` : ""}</div>
@@ -104,6 +106,7 @@ function renderCardHtml(newFile) {
   renderMicSel();
   $("#micSel").onchange = (e) => { e.target.blur(); switchMic(e.target.value); };  // Пробіл знову = запис
   bindCard(p);
+  voiceBind();
   loadWaves(p);
   AI.mount(p);
 }

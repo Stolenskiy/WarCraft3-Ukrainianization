@@ -190,6 +190,25 @@ def test_eq_node_drag_wheel_and_macro(page):
     assert not pg.errors, pg.errors
 
 
+def test_voice_card_replaces_character_block(page):
+    """Голосова картка: рядок над реплікою з чипами, поповер з повним текстом; у .side немає #character; тембр — «Чому так» в «Обробці»."""
+    pg = page
+    pg.wait_for_selector("#voice .vchip")
+    assert pg.locator("#character").count() == 0 and pg.locator(".side #traits").count() == 0
+    assert pg.locator("#voice").bounding_box()["height"] <= 60
+    assert "низький" in pg.inner_text("#voice")
+    assert pg.is_hidden("#voiceFull")
+    pg.click("#voiceMore")
+    assert pg.is_visible("#voiceFull") and "простодушний" in pg.inner_text("#voiceFull")
+    pg.keyboard.press("Escape")
+    assert pg.is_hidden("#voiceFull")
+    pg.click("#voiceRef")                                                      # еталон звучить
+    pg.wait_for_function("() => __studio.playing && __studio.playing.id === 'voice-ref'", timeout=8000)
+    pg.click("#tabProc")
+    assert "низький" in pg.inner_text("#eqWhy")
+    assert not pg.errors, pg.errors
+
+
 def test_screenshot_for_review(page):
     """Скріншот (2 дублі, один обраний) для візуального рев'ю агентом; шлях друкується (-s)."""
     out = os.environ.get("STUDIO_SCREENSHOT") or str(TMP_ROOT.parent / "wc3ua-studio.png")
@@ -212,6 +231,8 @@ def test_trim_handles(page):
     pg = page
     record(pg, 1.5)
     pg.wait_for_selector(".take .trim-h.start")
+    pg.locator(".take .wave-box").first.scroll_into_view_if_needed()      # голосова картка зсунула дублі вниз
+    pg.evaluate("document.querySelector('#toast').hidden = true")           # тост про перевантаження не перекриває ручки
     box = pg.locator(".take .wave-box").first.bounding_box()
     h = pg.locator(".take .trim-h.start").first.bounding_box()
     y = h["y"] + h["height"] / 2
@@ -244,6 +265,8 @@ def test_trim_moves_marker_and_fit(page):
     pg = page
     record(pg, 1.6)
     pg.wait_for_selector(".take .trim-h.start")
+    pg.locator(".take .wave-box").first.scroll_into_view_if_needed()      # голосова картка зсунула дублі вниз
+    pg.evaluate("document.querySelector('#toast').hidden = true")           # тост про перевантаження не перекриває ручки
     cv = pg.locator(".take canvas.wave")
     pg.wait_for_function("() => document.querySelector('.take canvas.wave').dataset.markerSec")
     marker = lambda: float(cv.get_attribute("data-marker-sec"))  # noqa: E731
@@ -269,6 +292,8 @@ def test_trim_moves_marker_and_fit(page):
     m1, fit1 = marker(), pg.inner_text(".take .fit")
     pg.reload()
     pg.wait_for_selector(".take .trim-h.start")
+    pg.locator(".take .wave-box").first.scroll_into_view_if_needed()      # голосова картка зсунула дублі вниз
+    pg.evaluate("document.querySelector('#toast').hidden = true")           # тост про перевантаження не перекриває ручки
     pg.wait_for_function("() => document.querySelector('.take canvas.wave').dataset.markerSec")
     assert abs(float(pg.locator(".take canvas.wave").get_attribute("data-marker-sec")) - m1) < 0.01
     assert pg.inner_text(".take .fit") == fit1

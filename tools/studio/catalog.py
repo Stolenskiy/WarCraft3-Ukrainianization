@@ -153,7 +153,7 @@ def parse_bible(path: Path) -> dict:
             continue
         if cur is None:
             continue
-        m = re.match(r"^\*\*(Характер|Тембр|Мовна манера|Роль/архетип):\*\*\s*(.+)", line)
+        m = re.match(r"^\*\*(Характер|Тембр|Мовна манера|Роль/архетип|Коротко):\*\*\s*(.+)", line)
         if m:
             cur["traits"].append(f"{m.group(1)}: {m.group(2).strip()}")
             last_trait = True

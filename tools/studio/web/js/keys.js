@@ -8,12 +8,13 @@ import { cur, urlRef } from "./state.js";
 import { keepOriginal } from "./takes.js";
 import { runUndo } from "./toast.js";
 import { takeItem } from "./trim.js";
+import { voiceToggle } from "./voice-card.js";
 
 document.addEventListener("keydown", (e) => {
   if (!e.target.matches("#eq input[type=range], #eq .eq-node") && e.target.closest("input, textarea, select, summary, .trim-h, #eq")) return;  // елементи керування мають свої клавіші (повзунки EQ — див. eqSetup)
   if ((e.metaKey || e.ctrlKey) && e.code === "KeyZ") { e.preventDefault(); return runUndo(); }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
-  if (e.code === "Escape") return toggleUnitPopover(false);
+  if (e.code === "Escape") { voiceToggle(false); return toggleUnitPopover(false); }
   if (e.code === "Space") { e.preventDefault(); return toggleRec(); }
   if (Rec.on) return;
   const p = cur(); if (!p) return;
@@ -29,3 +30,5 @@ document.addEventListener("keydown", (e) => {
     case "ArrowUp": e.preventDefault(); step(-1); break;
   }
 });
+
+document.addEventListener("click", (e) => { if (!e.target.closest(".voice")) voiceToggle(false); });

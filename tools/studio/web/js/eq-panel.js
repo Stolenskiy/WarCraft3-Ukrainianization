@@ -8,6 +8,7 @@ import { EQ, eqClone, eqDirty, eqLiveUpdate, eqOwn, eqPlain, eqRewire, eqSetBypa
 import { MACROS, applyMacro } from "./eq-macros.js";
 import { S, cur } from "./state.js";
 import { toast } from "./toast.js";
+import { voiceWhy } from "./voice-card.js";
 import { takeItem } from "./trim.js";
 import { $, esc } from "./util.js";
 
@@ -39,7 +40,7 @@ function eqRenderInner() {
       <optgroup label="Пресети">${P.filter((p) => p.builtin).map(opt).join("")}</optgroup>
       ${P.some((p) => !p.builtin) ? `<optgroup label="Мої профілі">${P.filter((p) => !p.builtin).map(opt).join("")}</optgroup>` : ""}
     </select>${dirty ? `<button class="linkish" data-saveas>змінено · Зберегти як…</button>` : ""}</div>
-    <p class="eq-why" id="eqWhy"></p>
+    <p class="eq-why" id="eqWhy">${voiceWhy() ? `<b>Чому так.</b> ${esc(voiceWhy())}` : ""}</p>
     ${eqSvg()}
     <div class="eq-row">
       <label class="switch"><input type="checkbox" id="eqOn" ${EQ.prof.enabled ? "checked" : ""}><span></span>Увімкнено</label>

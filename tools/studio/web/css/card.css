@@ -42,3 +42,15 @@ canvas.wave { flex: 1; height: 54px; width: 100%; cursor: pointer; display: bloc
 .orig-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .chip.hint { background: transparent; color: var(--muted); border-style: dashed; font-size: 11px; }
 .approved-banner.orig { border-color: var(--line); background: var(--raise); color: var(--muted); }
+
+/* Голосова картка: один рядок над реплікою (чипи з voice bible, ▶ еталон, поповер) */
+.voice { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; min-height: 36px; font-size: 13px; }
+.voice-k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.voice-none { color: var(--muted); }
+.vchip { padding: 3px 10px; border-radius: 99px; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.vchip small { color: var(--muted); font-size: 11px; margin-right: 2px; }
+.vref { padding: 3px 10px; font-size: 12px; }
+.voice .linkish { font-size: 12px; color: var(--gold); }
+.voice-full { position: absolute; z-index: 5; top: 100%; left: 0; width: min(560px, 100%); margin-top: 6px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+.voice-full p { margin: 0 0 8px; color: #c3c8d0; } .voice-full p:last-child { margin: 0; }
+.voice-full b { color: var(--gold); font-weight: 600; }

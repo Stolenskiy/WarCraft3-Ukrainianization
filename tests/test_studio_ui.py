@@ -313,8 +313,8 @@ def test_shelf_has_no_q_control(eqpage, svc):
 
 def _open_side_panels(pg, w, h):
     pg.set_viewport_size({"width": w, "height": h})
-    if not pg.evaluate("document.querySelector('#character').open"):
-        pg.click("#character > summary")
+    pg.click("#tabProc")                                                 # відкрита вкладка «Обробка» не забирає висоту в списку реплік
+    pg.click("#tabCues")
 
 
 SIDE = """() => { const c = document.querySelector('#cues'), f = document.querySelector('#filter'),

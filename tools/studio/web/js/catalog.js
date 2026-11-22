@@ -62,9 +62,6 @@ export async function openUnit(cid, gid) {
   S.idx = i >= 0 ? i : 0;
   await loadCatalogs();
   const g = groupOf();
-  $("#traits").innerHTML = g && g.traits.length
-    ? g.traits.map((t) => { const [k, ...v] = t.split(": "); return `<p><b>${esc(k)}:</b> ${esc(v.join(": "))}</p>`; }).join("")
-    : "<p>Аркуша персонажа у voice bible ще немає.</p>";
   renderCues(); renderCard();
   S.eqReady = eqLoad();
 }
