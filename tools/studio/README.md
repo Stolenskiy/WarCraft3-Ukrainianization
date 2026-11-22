@@ -159,7 +159,7 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 | Побічний json | `<line-stem>.ai<k>.json`: `{ai:true, engine, model, seed, temperature, style, ref_takes, text, cer, similarity, dur, created, heard?, discarded?, adopted?}` |
 | Нумерація | `ai<k>` — власна, ніколи не змішується з `takeN` |
 
-API: `line.ai = [{file, n, engine, cer, similarity, dur, style, adopted}]` у `/api/group` та відповідях дій;
+API: `line.ai = [{file, n, engine, cer, similarity, dur, style, adopted,license,seed,refs,params}]` у `/api/group` та відповідях дій;
 `GET /audio/ai/<cid>/<gid>/<file>` (лише файли зі списку репліки — шлях не будується з вводу);
 `POST /api/ai/adopt {cid,gid,lid,file}` КОПІЮЄ варіант у дублі: новий `takeN` (max+1) із `source:"ai"`, `engine`, `ai_file`
 у записі дубля — далі обрізання/темп/EQ/«Обрати для гри» як у будь-якого; `POST /api/ai/discard` ховає варіант
@@ -287,6 +287,8 @@ SVG-крива 20 Гц – 11 кГц (±12 дБ) з вузлами — тягн�
 | `GET /api/install/plan`, `POST /api/install`, `GET /api/uninstall/plan`, `POST /api/uninstall`, `POST /api/open-dir` | встановлення в гру |
 | `GET /api/game-root`, `POST /api/game-root` | тека гри (`routes/gameroot.py` → `tools/gameconf.py`) |
 | `GET /api/voices`, `POST /api/voices/choice`, `POST /api/voices/publish` | голоси спільноти |
+| `GET /api/ai/status`, `/api/ai/engines`, `/api/ai/refs`, `/api/ai/jobs`, `/api/ai/job`, `/api/ai/events`; `POST /api/ai/consent`, `/api/ai/engine`, `/api/ai/generate`, `/api/ai/again`, `/api/ai/based-on`, `/api/ai/cancel` | ШІ-студія (`routes/aistudio.py` → `tools/aistudio/api.py`; план `docs/plans/ai-studio-ui.md`) |
+| `GET /api/text/targets`, `/api/text/job`; `POST /api/text/plan`, `/api/text/apply`, `/api/text/uninstall` | чекбокс «Текст» у вікні встановлення (`routes/textinstall.py` → `tools/install_pack.py`) |
 
 ## Пастки (вже наступали)
 

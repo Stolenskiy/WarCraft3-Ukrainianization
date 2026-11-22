@@ -42,7 +42,7 @@ def write_sidecar(wav: Path, meta: dict) -> None:
 
 
 def list_ai(cid: str, gid: str, stem: str, include_discarded: bool = False) -> list[dict]:
-    """ШІ-варіанти репліки (за номером k): [{file, n, engine, cer, similarity, dur, style, adopted, discarded}].
+    """ШІ-варіанти репліки (за номером k): [{file, n, engine, cer, similarity, dur, style, adopted, discarded, license, seed, refs, params}].
     Файл без валідного побічного json (позначки `ai: true`) не показується."""
     d, out = ai_dir(cid, gid), []
     for p in sorted(d.glob(f"{stem}.ai*.wav")) if d.is_dir() else []:
@@ -52,7 +52,8 @@ def list_ai(cid: str, gid: str, stem: str, include_discarded: bool = False) -> l
             continue
         out.append({"file": p.name, "n": int(m["k"]), "engine": meta.get("engine"), "cer": meta.get("cer"),
                     "similarity": meta.get("similarity"), "dur": meta.get("dur"), "style": meta.get("style"),
-                    "adopted": meta.get("adopted"), "discarded": bool(meta.get("discarded"))})
+                    "adopted": meta.get("adopted"), "discarded": bool(meta.get("discarded")),
+                    "license": meta.get("license"), "seed": meta.get("seed"), "refs": meta.get("refs"), "params": meta.get("params")})
     return sorted(out, key=lambda v: v["n"])
 
 
