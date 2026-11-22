@@ -25,14 +25,16 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 | Character, texts, voice bible | `docs/voice-bible/README.md` |
 | Why things are the way they are | `docs/decisions/` (ADRs) |
 | Menus / maps / local install | `docs/ukrainian-ui-131.md`, `docs/ukrainian-maps.md`, `docs/install-local.md` |
+| Text pack (upstream cache, hotkeys, FDF 1.31), targets, `run.py install` | `docs/decisions/0006-text-pack-sourcing.md`, `tools/textpack.py`, `tools/install_pack.py`, `data/targets/`, `docs/install/` |
 | Planned refactor of the studio | `docs/plans/modularize-studio.md` |
 | Game path (`tools/gameconf.py`), cross-platform CLI (`tools/run.py`), Docker, UI hook | `docs/plans/game-path-ui.md`, `docs/install-local.md` |
 
 ## Hard boundaries
-- Game folder (resolved by `tools/gameconf.py`: `WC3_GAME_ROOT` > `data/local/settings.json` > autodetect): only via `make install-voices` (dry run by default; `APPLY=1` only with the
+- Game folder (resolved by `tools/gameconf.py`: `WC3_GAME_ROOT` > `data/local/settings.json` > autodetect): only via `make install-voices` / `make install-text` / `make install` (dry run by default; `APPLY=1` only with the
   owner's explicit permission this session) and the `game-change` procedure. Never touch `Data/` or `Mods/`; delete nothing.
 - Never commit game or proprietary audio, `reference*/`, `audio/`, `models/`, `game-files/`, `backups/`, `data/studio/`, `.env*`,
   `.venv`. No `git add -f`, no blind `git add -A`. Only FLAC voice packs in `voices/<author>/` are allowed (`make guard` enforces it).
+- Upstream text (warcraft-in-ua, no licence) and Blizzard text/fonts/FDF never go into git: cache is `data/local/cache/` (ADR 0006; `make guard`).
 - Original Blizzard line texts (RU/EN transcripts) never go into git: they live in gitignored `data/local/` (ADR 0005); tracked `data/transcripts-*.json` hold durations only (`make guard`).
 - Commit author = the repo-local git config (personal email). Never write an email address or real name into files, commits or PRs.
   No attribution lines (no «Co-Authored-By», no «Generated with»). Push only with `git push origin`; never force-push main.
