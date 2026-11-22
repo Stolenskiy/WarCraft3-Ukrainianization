@@ -36,6 +36,9 @@ CORE_TESTS_B = ["tests/test_studio_proc.py", "tests/test_voices.py"]
 CORE_TESTS_C = ["tests/test_gameconf.py", "tests/test_windows.py", "tests/test_run.py"]
 
 
+DOCKER_DIRS = ("audio", "data/studio", "data/local", "game-files", "voices", "reference", "reference-en")
+
+
 def is_windows() -> bool:
     return sys.platform.startswith("win")
 
@@ -195,7 +198,13 @@ def cmd_docker(a) -> int:
     if not shutil.which("docker"):
         print("Docker не знайдено. Встановіть Docker Desktop (або docker engine + compose plugin) і запустіть його.")
         return 1
-    return _call(["docker", "compose", *(a.args or ["up", "--build"])])
+    for d in DOCKER_DIRS:                    # інакше docker створить їх від root (Linux) і запис студії не спрацює
+        (ROOT / d).mkdir(parents=True, exist_ok=True)
+    env = child_env()
+    if hasattr(os, "getuid"):
+        env.setdefault("HOST_UID", str(os.getuid()))
+        env.setdefault("HOST_GID", str(os.getgid()))
+    return subprocess.run(["docker", "compose", *(a.args or ["up", "--build"])], cwd=ROOT, env=env).returncode
 
 
 def build_parser() -> argparse.ArgumentParser:

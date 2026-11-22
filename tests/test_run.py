@@ -89,11 +89,13 @@ def test_env_forces_utf8():
     assert run.child_env()["PYTHONUTF8"]
 
 
-def test_docker(calls, monkeypatch):
+def test_docker(calls, monkeypatch, tmp_path):
+    monkeypatch.setattr(run, "ROOT", tmp_path)
     run.main(["docker"])
     assert calls[-1][1:] == ["compose", "up", "--build"]
     run.main(["docker", "down"])
     assert calls[-1][1:] == ["compose", "down"]
+    assert (tmp_path / "audio").is_dir() and (tmp_path / "data/studio").is_dir()
     monkeypatch.setattr(run.shutil, "which", lambda c: None)
     assert run.main(["docker"]) == 1
 
