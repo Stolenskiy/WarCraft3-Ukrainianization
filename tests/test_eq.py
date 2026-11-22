@@ -34,6 +34,10 @@ def test_presets_valid_and_cover_orcs():
         hp = [b for b in p["bands"] if b["type"] == "highpass"]
         assert hp and 70 <= hp[0]["freq_hz"] <= 90, pid
         assert all(abs(b["gain_db"]) <= 6 for b in p["bands"]) and abs(p["gain_db"]) <= 6, pid
+        # характер, а не «ефект»: смуги ±4–6 дБ; «повітря» (піднята верхня полиця) не вище 6,5–7 кГц (файл гри — 22 кГц)
+        assert max(abs(b["gain_db"]) for b in p["bands"]) <= 5, pid
+        assert all(b["freq_hz"] <= 7000 for b in p["bands"] if b["type"] == "highshelf" and b["gain_db"] > 0), pid
+        assert all(b["freq_hz"] <= 11000 for b in p["bands"]), pid
         assert ffmpeg_ok(eq.to_ffmpeg(p))[0], pid
 
 

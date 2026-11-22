@@ -181,7 +181,7 @@ A/B «З EQ / Без EQ», «Зберегти як новий профіль», 
 - Застарілі файли: при кожному експорті дубль запам'ятовує `game_hash` (відбиток ланцюжка без гучності); `line.stale` і `/api/eq.stale`
   кажуть, що файл у грі зроблено з іншим EQ/обробкою. Кнопка «Оновити файли гри (N)» = `/api/eq/reexport`. Записи без відбитка — не застарілі.
 - Код: `eq.py` (перевірка профілю, `to_ffmpeg`), хук експорту — `Service._export_filters` (EQ іде в кінці ланцюжка).
-- Пресети (лише читання, у git): `eq_presets.json` — `{"presets": {id: {name, enabled, gain_db, bands}}}`.
+- Пресети (лише читання, у git): `eq_presets.json` — `{"presets": {id: {name, enabled, gain_db, bands}}}`. Межі (перевіряє test_eq): смуги до ±5 дБ, піднятий «air» (highshelf) не вище 7 кГц, усе до 11 кГц.
 - Дані користувача (gitignored): `data/studio/eq.json` — `{profiles: {id: profile}, assign: {cid: {gid: profile_id}}}`.
 - Типовий профіль групи — пресет `<раса>-<gid>` (напр. `orc-peon`), інакше `orc-base` для орків і `neutral` для решти.
 - **Нова раса:** додати в `eq_presets.json` пресети з id `<раса>-<папка юніта>` (за аркушами `docs/voice-bible/<раса>.md`;
