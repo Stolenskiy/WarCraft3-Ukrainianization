@@ -54,3 +54,6 @@ cov.md
 *.w3x
 *.w3m
 *.mpq
+.docker-nogame/
+Thumbs.db
+desktop.ini

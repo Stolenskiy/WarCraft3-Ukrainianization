@@ -16,9 +16,38 @@ Warcraft III Classic (а згодом — кампанійних місій), п
 
 ![Студія запису](docs/img/studio.png)
 
+## Платформи
+
+Усе, що вміє `make`, вміє й `python tools/run.py <команда>` (stdlib; `--help` — список): це шлях для Windows без make.
+Тека гри визначається так: змінна `WC3_GAME_ROOT` → `data/local/settings.json` → автопошук; змінити: `python tools/run.py game-root <шлях>`.
+
+**macOS** (`brew install python@3.11 ffmpeg node`):
+`git clone … && cd WarCraft3-Ukrainianization && make setup && make doctor && make studio`
+
+**Windows 10/11** (`winget install Python.Python.3.11 Gyan.FFmpeg OpenJS.NodeJS.LTS Git.Git`; або `choco install python311 ffmpeg nodejs git`):
+`git clone … ; cd WarCraft3-Ukrainianization ; python tools/run.py setup ; python tools/run.py doctor ; python tools/run.py studio`
+(Chrome або Edge; «Allow Local Files» у реєстрі — [docs/install-local.md](docs/install-local.md#windows)). Не перевірено на реальній Windows: див. `docs/gotchas.md`.
+
+**Linux** (`sudo apt install python3.11 python3.11-venv ffmpeg nodejs`, або `pipx install uv`):
+`make setup && make doctor && make studio` (або `python3 tools/run.py …`). Гра під Wine/Lutris/Proton знаходиться автоматично, інакше `game-root`.
+
+**Docker** (лише студія; потрібен запущений Docker Desktop / docker engine):
+`docker compose up --build` (або `python tools/run.py docker`) → http://127.0.0.1:8765. Мікрофон працює, бо браузер на хості;
+записи лежать у `audio/`, `data/`, `game-files/` на хості. Теку гри додайте `GAME_DIR=/шлях` (лише читання; `GAME_MODE=rw` — для встановлення).
+Порт хоста має бути 8765 (перевірка Host). Немає в контейнері: ШІ-варіанти (Fish на Apple MPS) і `make refs`. Встановлюйте голоси в гру
+з хоста (`install-voices`): симлінки через bind-монти Docker Desktop працюють непевно.
+
+## Як поставити готовий голосовий пакет без студії
+
+Лише слухати українську озвучку, нічого не записуючи: склонуйте репозиторій і поставте Python 3.11 (див. вище), далі
+`python tools/run.py game-root` (перевірити теку гри) → `python tools/run.py install-voices` (план) → `python tools/run.py install-voices --apply`.
+Голоси беруться з `voices/<автор>/` (обрані автори — у студії, «Голоси спільноти»; без вибору береться локальна `game-files/`).
+Вручну: скопіюйте FLAC→WAV 22050 Гц mono з `voices/<автор>/units/…` в корінь гри за тим самим шляхом (`Units/orc/peon/…`) —
+але теки-симлінки й бекап безпечніше віддати інсталятору. Відкат: `python tools/run.py uninstall-voices`.
+
 ## Як долучитися локально (озвучити своїм голосом)
 
-Потрібні: Mac або Linux, Python 3.11 (або [uv](https://docs.astral.sh/uv/) — поставить сам), `ffmpeg`, Google Chrome, мікрофон і **власна
+Потрібні: Mac, Windows або Linux (див. «Платформи»), Python 3.11 (або [uv](https://docs.astral.sh/uv/) — поставить сам), `ffmpeg`, Google Chrome, мікрофон і **власна
 копія Warcraft III Classic** (оригінальні голоси беруться з неї; у репозиторії аудіо гри немає).
 
 1. **Склонувати й налаштувати:**

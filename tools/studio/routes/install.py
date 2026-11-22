@@ -1,11 +1,10 @@
 """Встановлення в гру (install_voices): плани, встановлення/відкат, відкриття теки файлів."""
 from __future__ import annotations
 
-import subprocess
-import sys
 from pathlib import Path
 
 import install_voices
+import opener
 
 from ..catalog import UNIT_RACES
 from ..paths import GAME_FILES
@@ -71,5 +70,5 @@ def open_dir(c: Ctx):
     lines = c.svc.lines(d["cid"], d["gid"])  # валідація
     folder = GAME_FILES / Path(lines[0].game_rel).parent
     folder.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["open" if sys.platform == "darwin" else "xdg-open", str(folder)], check=False)
+    opener.open_dir(folder)
     return {"ok": True}

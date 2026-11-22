@@ -28,9 +28,10 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 | Why things are the way they are | `docs/decisions/` (ADRs) |
 | Menus / maps / local install | `docs/ukrainian-ui-131.md`, `docs/ukrainian-maps.md`, `docs/install-local.md` |
 | Why/how the studio was split into modules | `docs/plans/modularize-studio.md` (done) |
+| Game path (`tools/gameconf.py`), cross-platform CLI (`tools/run.py`), Docker, UI hook | `docs/plans/game-path-ui.md`, `docs/install-local.md` |
 
 ## Hard boundaries
-- Game folder `/Applications/Warcraft III Classic`: only via `make install-voices` (dry run by default; `APPLY=1` only with the
+- Game folder (resolved by `tools/gameconf.py`: `WC3_GAME_ROOT` > `data/local/settings.json` > autodetect): only via `make install-voices` (dry run by default; `APPLY=1` only with the
   owner's explicit permission this session) and the `game-change` procedure. Never touch `Data/` or `Mods/`; delete nothing.
 - Never commit game or proprietary audio, `reference*/`, `audio/`, `models/`, `game-files/`, `backups/`, `data/studio/`, `.env*`,
   `.venv`. No `git add -f`, no blind `git add -A`. Only FLAC voice packs in `voices/<author>/` are allowed (`make guard` enforces it).
@@ -42,6 +43,8 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 - No new dependencies without need: studio = stdlib + ffmpeg, UI = vanilla JS, no build step.
 
 ## Workflow
+- Cross-platform (macOS/Windows/Linux/Docker): never hardcode a game path (use `gameconf`), no `/tmp`, `open`, `os.symlink` or `.venv/bin` assumptions
+  outside `tools/run.py`/`opener.py`; open text files with `encoding="utf-8"`; every `make` target has a `python tools/run.py` equivalent.
 - New behaviour → test next to it (`tests/`). `fail_under` in `pyproject.toml` only goes up (CI ratchet; currently 94).
 - End of a session that changes state: update `docs/STATUS.md` (≤ 40 lines; decisions section is not revisited without the owner).
 - Doc drift is tested (`tests/test_docs_sync.py`): new API route → server docstring + `tools/studio/README.md`; new make target → keep it real.

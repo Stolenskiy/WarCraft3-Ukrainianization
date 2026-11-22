@@ -28,10 +28,12 @@ import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))   # `python -I` не додає теку скрипта
+import gameconf  # noqa: E402
+
 import voices  # noqa: E402
 
 ROOT = Path(os.environ.get("WC3UA_ROOT") or Path(__file__).resolve().parent.parent)
-GAME = Path(os.environ.get("WC3_GAME_ROOT", "/Applications/Warcraft III Classic"))
+GAME = gameconf.get_game_root()
 LOCK = threading.Lock()
 
 
@@ -46,7 +48,7 @@ def sha(p: Path) -> str:
 def safe_target(game: Path, rel: str) -> Path | None:
     g = game.resolve()
     real = (game / rel).resolve()
-    if not str(real).startswith(str(g) + os.sep) or real.is_relative_to(g / "Mods") or real.is_relative_to(g / "Data"):
+    if not real.is_relative_to(g) or real == g or real.is_relative_to(g / "Mods") or real.is_relative_to(g / "Data"):
         return None
     return game / rel
 
@@ -54,7 +56,7 @@ def safe_target(game: Path, rel: str) -> Path | None:
 # ---------------------------------------------------------------- маніфест
 def _load(game: Path) -> dict:
     p = game / "Backups/ua-voices/manifest.json"
-    m = json.loads(p.read_text()) if p.exists() else {}
+    m = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
     if "files" not in m and "materialized" not in m:      # старий формат: {rel: {sha256, backup}}
         m = {"files": m}
     m.setdefault("files", {})
@@ -65,7 +67,7 @@ def _load(game: Path) -> dict:
 def _save(game: Path, m: dict) -> None:
     bdir = game / "Backups/ua-voices"
     bdir.mkdir(parents=True, exist_ok=True)
-    (bdir / "manifest.json").write_text(json.dumps(m, indent=2, ensure_ascii=False))
+    (bdir / "manifest.json").write_text(json.dumps(m, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def _sources(root: Path, sources: dict[str, Path] | None = None) -> dict[str, Path]:
@@ -165,7 +167,7 @@ def uninstall_plan(game: Path | None = None) -> dict:
     for rel, info in sorted(man["files"].items()):
         t = game / rel
         st = ("present" if sha(t) == info["sha256"] else "changed") if t.is_file() and not t.is_symlink() else "missing"
-        files.append({"rel": rel, "status": st, "materialize": str(Path(rel).parent) if str(Path(rel).parent) in man["materialized"] else ""})
+        files.append({"rel": rel, "status": st, "materialize": Path(rel).parent.as_posix() if Path(rel).parent.as_posix() in man["materialized"] else ""})
     return {"game": str(game), "files": files, "materialize": [{"rel": k, "link": v["link_target"]} for k, v in man["materialized"].items()]}
 
 
@@ -178,8 +180,13 @@ def _materialize(game: Path, lrel: str, man: dict, log: list[str]) -> None:
     entries = {n: f"{absdir}/{n}" for n in names}
     tmp.mkdir()
     try:
-        for n, tgt in entries.items():
-            os.symlink(tgt, tmp / n)
+        try:
+            for n, tgt in entries.items():
+                os.symlink(tgt, tmp / n)
+        except (OSError, NotImplementedError) as ex:     # Windows без прав/режиму розробника: симлінки недоступні
+            shutil.rmtree(tmp, ignore_errors=True)
+            raise InstallError(f"{lrel}: не вдалося створити симлінки ({ex}); на Windows увімкніть режим розробника "
+                               f"або запустіть від адміністратора — теки без симлінків працюють і так") from ex
         os.unlink(link)
         try:
             os.rename(tmp, link)
@@ -188,6 +195,8 @@ def _materialize(game: Path, lrel: str, man: dict, log: list[str]) -> None:
             raise
     except OSError:
         shutil.rmtree(tmp, ignore_errors=True)
+        raise
+    except InstallError:
         raise
     man["materialized"][lrel] = {"link_target": raw, "entries": entries}
     log.append(f"MATERIALIZED {lrel} (was symlink -> {raw}; {len(entries)} symlinks recreated)")
@@ -287,7 +296,7 @@ def uninstall(game: Path | None = None, files: list[str] | None = None) -> dict:
             else:
                 log.append(f"SKIP {rel}: змінений не нами — не чіпаю")
         rest = {r: i for r, i in man["files"].items() if r not in chosen}
-        busy = {str(Path(r).parent) for r in rest}
+        busy = {Path(r).parent.as_posix() for r in rest}
         left = {}
         for lrel, i in sorted(man["materialized"].items(), reverse=True):
             if lrel in busy or not _unmaterialize(game, lrel, i, log):

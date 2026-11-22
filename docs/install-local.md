@@ -4,8 +4,8 @@
 Усе ставиться в корінь гри як «вільні» файли поверх CASC — так само, як репак
 підключає власні мовні пакети. Нічого не видаляється, відкат — видаленням папок.
 
-> **Шлях гри за замовчуванням:** `/Applications/Warcraft III Classic`
-> Усе нижче — відносно цього кореня.
+> **Шлях гри:** macOS `/Applications/Warcraft III Classic`, Windows `C:\Program Files (x86)\Warcraft III` (автопошук; інакше
+> `python tools/run.py game-root <шлях>`). Усе нижче — відносно цього кореня.
 
 ---
 
@@ -18,6 +18,24 @@ defaults write "com.blizzard.WarcraftIII" "Allow Local Files" -int 1
 ```
 
 Перевірка: `defaults read "com.blizzard.WarcraftIII" "Allow Local Files"` → має бути `1`.
+
+### Windows
+<a id="windows"></a>
+
+Те саме в реєстрі (**лише ви самі**, інструменти проєкту реєстр не змінюють; `doctor` друкує команду):
+
+```bat
+reg add "HKCU\Software\Blizzard Entertainment\Warcraft III" /v "Allow Local Files" /t REG_DWORD /d 1 /f
+reg query "HKCU\Software\Blizzard Entertainment\Warcraft III" /v "Allow Local Files"
+```
+
+Ключ і значення — за публічними повідомленнями спільноти (офіційної документації Blizzard немає):
+[Hive: Allow local files](https://www.hiveworkshop.com/threads/allow-local-files.305678),
+[Hive: Local files](https://www.hiveworkshop.com/threads/local-files.107129/),
+[Blizzard forums](https://eu.forums.blizzard.com/en/warcraft3/t/in-registry-files-i-dotn-see-warcraft-iii/495).
+Перезапустіть гру. Симлінків у Windows-інсталяції зазвичай немає — `install-voices` просто копіює wav (з бекапом);
+матеріалізація симлінків потребує режиму розробника Windows. Для Reforged 1.32.7+ корінь «вільних» файлів — `…\Warcraft III\_retail_`
+(проєкт орієнтований на Classic 1.31; на Reforged шлях не перевірено).
 
 ---
 

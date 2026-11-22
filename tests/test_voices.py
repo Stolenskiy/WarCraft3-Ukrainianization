@@ -392,3 +392,12 @@ def test_publish_normalizes_case_of_game_dirs(tmp_path):
     assert all(p.relative_to(root / "voices/alice").as_posix() == p.relative_to(root / "voices/alice").as_posix().lower()
                for p in (root / "voices/alice/units").rglob("*.flac"))
     assert check_voices.check(root) == []
+
+
+def test_check_ignores_os_junk_files(tmp_path):
+    """Finder/Провідник кладуть .DS_Store, Thumbs.db, desktop.ini — це не «сторонні файли» пакета."""
+    root = mkroot(tmp_path)
+    pub(root)
+    for junk in (root / "voices/.DS_Store", root / "voices/alice/Thumbs.db", root / "voices/alice/units/orc/desktop.ini"):
+        junk.write_bytes(b"x")
+    assert check_voices.check(root) == []

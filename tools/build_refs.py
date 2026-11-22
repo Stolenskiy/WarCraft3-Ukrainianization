@@ -23,7 +23,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-GAME_ROOT = Path(os.environ.get("WC3_GAME_ROOT", "/Applications/Warcraft III Classic"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # `python -I` не додає теку скрипта
+import gameconf  # noqa: E402
+
+GAME_ROOT = gameconf.get_game_root()
 RU_PACK_DEFAULT = GAME_ROOT / "Localizations/Russian/ruru.w3mod"
 
 

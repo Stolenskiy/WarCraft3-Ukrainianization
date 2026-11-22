@@ -7,6 +7,7 @@
 Зупинити: Ctrl+C у терміналі.
 Де лежать дані, архітектура й розширення: tools/studio/README.md
 """
+import os
 import sys
 from pathlib import Path
 
@@ -17,7 +18,9 @@ from studio.server import serve  # noqa: E402
 
 def main() -> None:
     port = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else 8765
-    httpd = serve(port, open_browser="--no-browser" not in sys.argv)
+    # STUDIO_BIND=0.0.0.0 — лише в Docker (порт назовні публікується на 127.0.0.1); Host/Origin-захист лишається
+    httpd = serve(port, open_browser="--no-browser" not in sys.argv and not os.environ.get("STUDIO_BIND"),
+                  host=os.environ.get("STUDIO_BIND", "127.0.0.1"))
     print(f"Студія: http://127.0.0.1:{httpd.server_address[1]}/   (Ctrl+C — зупинити)")
     try:
         httpd.serve_forever()

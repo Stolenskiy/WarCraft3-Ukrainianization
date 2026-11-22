@@ -139,9 +139,10 @@ def make_handler(svc: core.Service):
     return Handler
 
 
-def serve(port: int = 8765, open_browser: bool = True, svc: core.Service | None = None) -> ThreadingHTTPServer:
+def serve(port: int = 8765, open_browser: bool = True, svc: core.Service | None = None,
+          host: str = "127.0.0.1") -> ThreadingHTTPServer:   # host != 127.0.0.1 лише в Docker (STUDIO_BIND); Host-перевірка та сама
     svc = svc or core.Service()
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(svc))
+    httpd = ThreadingHTTPServer((host, port), make_handler(svc))
     httpd.svc = svc
     if open_browser:
         webbrowser.open(f"http://127.0.0.1:{httpd.server_address[1]}/")
