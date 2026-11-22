@@ -172,6 +172,12 @@ def manifest(root: Path, author: str) -> dict:
     return m if isinstance(m, dict) else {}
 
 
+def canon_rel(rel: str) -> str:
+    """Шлях у грі в канонічному вигляді: «Units/» + решта в нижньому регістрі (так у грі й у data/inventory-units.csv).
+    game-files/ може мати «Units/Orc/…» — на macOS це той самий файл, але пакет і маніфест мусять бути однакові в усіх."""
+    return rel[:6] + rel[6:].lower() if rel[:6].lower() == "units/" else rel
+
+
 def local_rels(root: Path) -> list[str]:
     g = root / "game-files"
     return sorted(p.relative_to(g).as_posix() for p in g.rglob("*.wav")) if g.is_dir() else []
@@ -262,9 +268,10 @@ def publish(author: str, nickname: str, root: Path, consent: bool = False) -> di
     man: dict[str, dict] = {}
     added = updated = unchanged = 0
     skipped: list[dict] = []
-    own, ai = originals(root), ai_rels(root)
-    for rel in local_rels(root):
-        src = root / "game-files" / rel
+    own, ai = {canon_rel(r) for r in originals(root)}, {canon_rel(r) for r in ai_rels(root)}
+    for src_rel in local_rels(root):
+        src = root / "game-files" / src_rel
+        rel = canon_rel(src_rel)
         if rel in own:
             skipped.append({"rel": rel, "reason": "оригінал гри (залишено) — не публікується"})
             continue
