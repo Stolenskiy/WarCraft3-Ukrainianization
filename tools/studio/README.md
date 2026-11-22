@@ -31,6 +31,7 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 | Кошик (відновлюється) | `audio/self-recorded/<catalog>/<group>/_deleted/` |
 | Налаштування обробки (`auto_trim`, `denoise`, `loudness`) | `data/studio/settings.json` (gitignored) |
 | Кеш «Як у грі» (≤ 200 файлів, найстаріші видаляються) | `data/studio/preview-cache/<hash>.wav` |
+| ШІ-варіанти (власний голос) | `audio/ai/<catalog>/<group>/<line-stem>.ai<k>.wav` + `.json` (див. «ШІ-варіанти») |
 | Обраний дубль для гри | `game-files/<Line.game_rel>`, напр. `game-files/Units/orc/peon/peonyes1.wav` |
 
 | Залишений оригінал | `game-files/<Line.game_rel>` (необроблена копія) + перелік у `game-files/.originals.json` |
@@ -99,6 +100,7 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 | `test_studio_core.py` | Service + HTTP API: інваріанти дублів, відновлення стану, безпека, перевантаження (`peak_db`/`clipped`) | ~2 с |
 | `test_studio_proc.py` | обробка: порядок ланцюжка, темп (довжина/висота), гучність і лімітер, шумоговорення, налаштування, «Як у грі» і кеш, API | ~3 с |
 | `test_original.py` | «Залишити оригінал»: байти, `.originals.json`, взаємовиключність із дублем, API, план встановлення | ~2 с |
+| `test_ai.py` | ШІ-варіанти: перелік/adopt/discard/безпека, схема json, конвеєр `aigen` з підмінним двигуном | ~5 с |
 | `test_install_voices.py` | `install_voices`: план/встановлення/відкат, матеріалізація симлінків юнітів (Mods байт-у-байт), API `/api/install*` | ~1 с |
 | `test_studio_e2e.py` | Chrome + фейковий мікрофон: запис, хвилі, вибір, кошик/undo, RU/EN, раси, індикатор перевантаження, вікно «Встановити в гру»; друкує покриття app.js і шлях скріншота | ~9 с |
 
@@ -142,6 +144,32 @@ paths.py                              усі шляхи; WC3UA_ROOT переви
 (лише файли з маніфесту з тим самим sha; решта 404); докладно — docstring `server.py`. UI: кнопка «Голоси спільноти» (порядок ↑↓,
 публікація зі згодою) і `<select>` автора на рівнях раса / юніт / рядок у вікні встановлення, ▶ — прослухати. Публікація пропускає (і прибирає з пакета) оригінали з `game-files/.originals.json`, а `check_voices` падає, якщо опублікований FLAC збігається з таким оригіналом; обрані дублі з `source: "ai"` позначаються `"ai": true` у manifest.json і «ШІ» в UI. Публікація не запускає git —
 повертає команди. Тести: `tests/test_voices.py` (публікація, перевірка, вибір, встановлення суміші, API, traversal) і e2e `test_community_voices_flow`.
+
+## ШІ-варіанти (власний голос, локально)
+
+Окреме джерело поряд зі своїми дублями: голос ШІ, клонований із ВЛАСНИХ затверджених дублів користувача
+(Fish Speech S2-Pro, `make ai-voice UNIT=peon [VARIANTS=3]`, `tools/ai_voice.py` → `studio/aigen.py`). Референси
+`reference*/` (актори) голосом НЕ є — лише для порівняння на слух. Двигун і метрики працюють у `.venv-fish`
+основного репозиторію окремими процесами (`tools/ai_engines/{fish_worker,metrics_worker}.py`, пам'ять звільняється
+після кожного); `WC3_FISH_PY/_REPO/_MODEL` перевизначають шляхи.
+
+| Що | Де |
+|---|---|
+| ШІ-варіанти (gitignored, `audio/`) | `audio/ai/<catalog>/<group>/<line-stem>.ai<k>.wav` — формат гри, уже обрізані й вирівняні за гучністю оригіналу (без EQ) |
+| Побічний json | `<line-stem>.ai<k>.json`: `{ai:true, engine, model, seed, temperature, style, ref_takes, text, cer, similarity, dur, created, heard?, discarded?, adopted?}` |
+| Нумерація | `ai<k>` — власна, ніколи не змішується з `takeN` |
+
+API: `line.ai = [{file, n, engine, cer, similarity, dur, style, adopted}]` у `/api/group` та відповідях дій;
+`GET /audio/ai/<cid>/<gid>/<file>` (лише файли зі списку репліки — шлях не будується з вводу);
+`POST /api/ai/adopt {cid,gid,lid,file}` КОПІЮЄ варіант у дублі: новий `takeN` (max+1) із `source:"ai"`, `engine`, `ai_file`
+у записі дубля — далі обрізання/темп/EQ/«Обрати для гри» як у будь-якого; `POST /api/ai/discard` ховає варіант
+(`discarded` у json, файл лишається). UI — `web/ai.js` + `ai.css` (хуки в `app.js`: `AI.mount` у `renderCard`,
+`AI.cueMark` у `renderCues`, бейдж «ШІ» у `takeRow`): рядки з ▶, бейджем «ШІ», двигуном, схожістю/CER,
+«Оригінал → ШІ», «Мій дубль ↔ ШІ», «Взяти в дублі»; клавіші <kbd>1</kbd>–<kbd>3</kbd> слухати, <kbd>⇧</kbd>+цифра — A/B.
+Метрики: схожість = косинус x-vector WavLM (`microsoft/wavlm-base-plus-sv`) до власних дублів інших реплік; CER =
+Whisper (mlx, `language=uk`) проти тексту. Генератор лише ЧИТАЄ стан студії (`Store.save` вимкнено).
+Тести: `tests/test_ai.py` (перелік, adopt/discard, traversal, схема json, конвеєр з підмінним двигуном) і
+`test_ai_variants_section` в `test_studio_e2e.py`.
 
 ## Еквалайзер
 

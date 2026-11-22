@@ -1,0 +1,19 @@
+/* ШІ-варіанти (ai.js): фіолетовий акцент відрізняє синтез від власних дублів; решта — токени app.css */
+:root { --ai: #9a7ee0; --ai-soft: rgba(154, 126, 224, .13); }
+.badge-ai { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: #0e1013; background: var(--ai); padding: 2px 7px; border-radius: 5px; }
+.ai-section { margin: 18px 0 6px; }
+.ai-section .section-h h3 { color: var(--ai); }
+.ai-keys { margin-left: auto; font-size: 12px !important; }
+.ai-take { border-color: rgba(154, 126, 224, .35); background: linear-gradient(0deg, var(--ai-soft), var(--ai-soft)), var(--panel); }
+.ai-take.adopted { opacity: .75; }
+.ai-take .play.playing { background: var(--ai); }
+.ai-engine { color: var(--faint); font-size: 12px; }
+.ai-q { font-variant-numeric: tabular-nums; font-size: 12px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.ai-q.good { color: var(--ok); border-color: rgba(70, 196, 106, .35); }
+.ai-q.long { color: var(--gold); border-color: rgba(240, 164, 65, .4); }
+.ai-q.bad { color: var(--danger); border-color: rgba(242, 85, 75, .4); }
+.ai-style { font-size: 11px; color: var(--ai); border: 1px solid rgba(154, 126, 224, .4); border-radius: 5px; padding: 1px 6px; }
+.ai-mark { display: inline-block; margin-top: 2px; font-size: 10px; font-weight: 700; letter-spacing: .05em; color: #0e1013; background: var(--ai); padding: 0 5px; border-radius: 4px; }
+.ai-note { margin: 4px 2px 0; color: var(--faint); font-size: 12px; }
+.ai-take .take-head { flex-wrap: wrap; row-gap: 4px; }
+.ai-adopted { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--ai); border: 1px solid var(--ai); padding: 1px 6px; border-radius: 5px; }

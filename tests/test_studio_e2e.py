@@ -437,4 +437,67 @@ def test_keep_original_flow(page):
     pg.click("#keepOrig")                                # оригінал замінює дубль
     pg.wait_for_selector(".approved-banner.orig")
     assert pg.locator(".badge-game").count() == 0
+
+
+def test_ai_variants_section(page):
+    """ШІ-варіанти: секція, ▶, A/B «оригінал → ШІ» і «мій дубль ↔ ШІ», «Взяти в дублі» → дубль із позначкою «ШІ»."""
+    from conftest import synth
+    from studio import ai
+    d = TMP_ROOT / "audio/ai/units-orc/peon"
+    for k in (1, 2, 3):
+        w = synth(d / f"peonyes1.ai{k}.wav", 0.6 + 0.1 * k, 300 + 20 * k)
+        ai.write_sidecar(w, {"ai": True, "engine": "fish-s2-pro", "model": "m", "seed": k, "temperature": 0.7,
+                             "style": "[cheerful]" if k > 1 else None, "ref_takes": [], "text": "Зроблю.",
+                             "cer": 0.0, "similarity": 0.92, "dur": 0.6 + 0.1 * k, "created": "2026-11-22T10:00:00"})
+    pg = page
+    pg.reload()
+    pg.wait_for_selector(".cue.on")
+    # власних дублів немає → позначка в списку реплік, секція з 3 рядками й кнопка A/B неактивна
+    assert pg.inner_text(".cue.on .ai-mark") == "ШІ 3"
+    pg.wait_for_selector("#aiSection")
+    assert pg.locator("#aiSection .ai-take").count() == 3
+    assert pg.locator("#aiSection .badge-ai").count() == 3 and "fish-s2-pro" in pg.inner_text("#aiSection")
+    assert "92%" in pg.inner_text("#aiSection") and "CER 0%" in pg.inner_text("#aiSection")
+    assert pg.locator("#aiSection [data-ai-ab-own]").first.is_disabled()
+    pg.wait_for_function("""() => { const c = document.querySelector('canvas[data-wave="ai:peonyes1.ai1.wav"]');
+        if (!c || !c.width) return false; const d = c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+        for (let i = 3; i < d.length; i += 4) if (d[i]) return true; return false; }""", timeout=8000)
+
+    # ▶ грає саме цей варіант
+    pg.locator("#aiSection [data-ai-row='peonyes1.ai2.wav'] .play").click()
+    pg.wait_for_function("() => playing && playing.id === 'ai:peonyes1.ai2.wav'", timeout=5000)
+    pg.keyboard.press("1")                               # клавіша = варіант 1
+    pg.wait_for_function("() => playing && playing.id === 'ai:peonyes1.ai1.wav'", timeout=5000)
+
+    # «Оригінал → ШІ»: спершу оригінал, потім варіант
+    pg.evaluate_handle("() => { const s = []; const t = setInterval(() => { if (playing && s[s.length-1] !== playing.id) s.push(playing.id); }, 20); window.__seen = s; window.__t = t; return s; }")
+    pg.locator("#aiSection [data-ai-ab-ref='peonyes1.ai3.wav']").click()
+    pg.wait_for_function("() => window.__seen.includes('ai:peonyes1.ai3.wav')", timeout=8000)
+    assert pg.evaluate("() => window.__seen.slice(window.__seen.indexOf('ref'))") == ["ref", "ai:peonyes1.ai3.wav"]
+
+    # власний дубль → «Мій дубль ↔ ШІ» стає активною і грає власний, потім ШІ
+    record(pg)
+    pg.wait_for_selector("#aiSection")
+    own_btn = pg.locator("#aiSection [data-ai-ab-own='peonyes1.ai2.wav']")
+    assert own_btn.is_enabled() and pg.locator(".cue.on .ai-mark").count() == 0     # власний дубль є → позначки в списку немає
+    pg.evaluate("() => { window.__seen.length = 0; }")
+    own_btn.click()
+    pg.wait_for_function("() => window.__seen.includes('ai:peonyes1.ai2.wav')", timeout=8000)
+    assert pg.evaluate("() => window.__seen.slice(window.__seen.indexOf('take:peonyes1.take1.wav'))") == ["take:peonyes1.take1.wav", "ai:peonyes1.ai2.wav"]
+    pg.evaluate("() => clearInterval(window.__t)")
+
+    # «Взяти в дублі»: новий дубль 2 із позначкою «ШІ» у звичайному списку; власний дубль 1 без неї
+    pg.locator("#aiSection [data-ai-adopt='peonyes1.ai2.wav']").click()
+    pg.wait_for_selector(".takes:not(#aiSection .takes) .badge-ai")
+    row = pg.locator(".take:not(.ai-take)", has_text="Дубль 2")
+    assert row.locator(".badge-ai").count() == 1
+    assert pg.locator(".take:not(.ai-take)", has_text="Дубль 1").locator(".badge-ai").count() == 0
+    assert pg.locator("#aiSection [data-ai-row='peonyes1.ai2.wav'] [data-ai-adopt]").is_disabled()
+    row.locator("[data-approve]").click()                # як будь-який дубль: «Обрати для гри»
+    pg.wait_for_selector(".take:not(.ai-take) .badge-game")
+    assert GAME.exists()
+
+    # «Сховати» прибирає варіант зі списку
+    pg.locator("#aiSection [data-ai-discard='peonyes1.ai3.wav']").click()
+    pg.wait_for_function("() => document.querySelectorAll('#aiSection .ai-take').length === 2")
     assert not pg.errors, pg.errors
