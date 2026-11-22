@@ -109,7 +109,7 @@ def measure(pg, action, prefix="take:", ms=700):
 
 def baseline(pg):
     """«Нахил» дубля без EQ: та сама кнопка A/B у режимі «без EQ»."""
-    pg.click("#eqPanel summary")
+    pg.click("#tabProc")
     pg.click("#eqBypass")
     m, chain = measure(pg, lambda: pg.click(".take [data-play^='take:']"))
     assert not [n for n in chain if n["kind"] == "biquad"], chain        # bypass справді обходить EQ
@@ -233,7 +233,7 @@ def test_profile_switch_is_audible_while_playing(eqpage, svc):
     pg.evaluate("__studio.eqLoad()")
     pg.wait_for_function("() => __studio.EQ.data.profiles.some((p) => p.name === 'Тест зріз 500 Гц')")
     lp = pg.evaluate("__studio.EQ.data.profiles.find((p) => p.name === 'Тест зріз 500 Гц').id")
-    pg.click("#eqPanel summary")
+    pg.click("#tabProc")
     measure(pg, lambda: pg.click(".take [data-play^='take:']"), ms=200)
     pg.select_option("#eqSel", lp)
     pg.wait_for_function(f"() => __studio.EQ.id === '{lp}'")
@@ -261,7 +261,7 @@ def test_playing_take_shows_eq_chip(eqpage):
 def test_shortcuts_work_with_focus_on_eq_slider(eqpage):
     """L/A/B проходять із повзунка EQ; стрілки лишаються повзунку (значення змінюється, репліка — ні)."""
     pg = eqpage
-    pg.click("#eqPanel summary")
+    pg.click("#tabProc")
     sl = pg.locator("input[data-eq='gain'][data-i='0']")
     sl.focus()
     idx, v0 = pg.evaluate("__studio.S.idx"), sl.input_value()
@@ -302,7 +302,7 @@ def test_shelf_has_no_q_control(eqpage, svc):
              "bands": [{"type": "lowshelf", "freq_hz": 150, "gain_db": 3, "q": 0.71}]}
     svc.eq_save(CID, GID, shelf)
     pg.evaluate("__studio.eqLoad()")
-    pg.click("#eqPanel summary")
+    pg.click("#tabProc")
     pg.wait_for_selector("input[data-eq='freq']")
     assert pg.locator("input[data-eq='q']").count() == 0
 
@@ -311,10 +311,8 @@ def test_shelf_has_no_q_control(eqpage, svc):
 
 def _open_side_panels(pg, w, h):
     pg.set_viewport_size({"width": w, "height": h})
-    for sel in ("#character", "#eqPanel"):
-        if not pg.evaluate(f"document.querySelector('{sel}').open"):
-            pg.click(f"{sel} > summary")
-    pg.wait_for_selector("#eqCurve")
+    if not pg.evaluate("document.querySelector('#character').open"):
+        pg.click("#character > summary")
 
 
 SIDE = """() => { const c = document.querySelector('#cues'), f = document.querySelector('#filter'),

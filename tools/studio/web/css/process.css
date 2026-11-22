@@ -13,4 +13,4 @@
 .opts[open] summary { color: var(--text); border-color: var(--accent); }
 .opts-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; display: grid; gap: 12px; width: 300px; padding: 14px 16px;
   background: var(--raise); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.45); }
-.opts-note { margin: 2px 0 0; color: var(--faint); font-size: 12px; line-height: 1.4; }
+.opts-note { margin: 2px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }

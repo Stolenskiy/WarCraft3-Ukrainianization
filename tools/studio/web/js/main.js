@@ -8,6 +8,7 @@ import { eqLoad, eqSetup } from "./eq-panel.js";
 import "./install.js";
 import "./keys.js";
 import "./voices.js";
+import "./tabs.js";
 import { Rec } from "./rec.js";
 import { settingsSetup } from "./settings.js";
 import { S, cur } from "./state.js";

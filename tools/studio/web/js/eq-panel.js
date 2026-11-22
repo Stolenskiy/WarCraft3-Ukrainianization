@@ -77,6 +77,7 @@ function eqRenderInner() {
     <button class="ghost wide ${EQ.data.stale ? "warn" : ""}" id="eqReexport" title="Перезаписати обрані файли для гри з поточним EQ і обробкою">Оновити файли гри${EQ.data.stale ? ` (${EQ.data.stale})` : ""}</button>
     <p class="eq-hint">${EQ.data.selected === EQ.id ? "" : "Профіль для гри — «" + esc((P.find((p) => p.id === EQ.data.selected) || {}).name) + "». "}${P.find((p) => p.id === EQ.id).builtin ? "Пресет лише для читання: правки зберігайте як новий профіль. " : ""}Зміни чути одразу; у файли для гри потрапляють після застосування.</p>`;
   eqCurve();
+  $("#procTag").textContent = `EQ · ${EQ.prof.name.split(" — ")[0]}`;
 }
 
 let eqLoadSeq = 0;

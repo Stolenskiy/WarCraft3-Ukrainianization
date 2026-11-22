@@ -24,6 +24,7 @@ export function renderCues() {
       <span><div class="ru">${esc(p.ru)}</div><div class="ua">${esc(p.ua)}</div></span>
       <span class="tag">${esc(p.kind_ua)}${p.original ? `<br><b class="orig-chip" title="У грі лишається оригінал">ориг. ${p.original.lang.toUpperCase()}</b>` : n ? `<br>${n} дубл.` : ""}${AI.cueMark(p)}</span></li>`;
   }).join("") || `<li class="empty">Тут порожньо</li>`;
+  $("#cuesCount").textContent = `${S.phrases.filter(isDone).length}/${S.phrases.length}`;
   $("#cues .cue.on")?.scrollIntoView({ block: "nearest" });
 }
 

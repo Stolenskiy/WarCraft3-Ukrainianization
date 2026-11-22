@@ -3,11 +3,24 @@
 .character summary { padding: 9px 12px; cursor: pointer; color: var(--muted); font-size: 13px; list-style: none; }
 .character summary::before { content: "▸ "; }
 .character[open] summary::before { content: "▾ "; }
-.character #traits, .eq #eq { max-height: 21vh; overflow-y: auto; }
+.character #traits { max-height: 21vh; overflow-y: auto; }
 .character #traits { padding: 0 12px 12px; font-size: 13px; color: #c3c8d0; }
 .character #traits p { margin: 0 0 8px; }
 .character #traits b { color: var(--gold); font-weight: 600; }
 
+/* Вкладки «Репліки | Обробка»: обидві панелі в одній клітинці сітки, неактивна невидима, але scrollTop зберігається */
+.side-tabs { margin: 10px 12px 0; }
+.side-tabs button small { color: var(--faint); font-size: 11px; margin-left: 4px; }
+.side-tabs button.on small { color: var(--muted); }
+.pane { grid-area: 2 / 1; min-height: 0; visibility: hidden; }
+.pane.on { visibility: visible; }
+#paneCues { display: grid; grid-template-rows: auto auto minmax(0, 1fr); }
+#paneCues .cues { overflow-y: auto; overscroll-behavior: contain; }
+#paneProc { overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 12px; padding-bottom: 0; }
+.proc-file { display: grid; gap: 10px; margin: 0 12px 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); }
+.proc-file h3 { margin: 0; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.proc-file h3:not(:first-child) { margin-top: 6px; }
+.proc-file .opts-note { margin: 0; }
 .seg { display: flex; margin: 12px; padding: 3px; background: var(--bg); border: 1px solid var(--line); border-radius: 9px; }
 .seg button { flex: 1; border: 0; background: transparent; padding: 6px; border-radius: 7px; color: var(--muted); font-size: 13px; }
 .seg button.on { background: var(--raise); color: var(--text); }

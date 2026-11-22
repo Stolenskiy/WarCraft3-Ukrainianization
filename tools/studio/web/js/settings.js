@@ -18,7 +18,7 @@ export async function settingsSetup() {
     el.onchange = async () => {
       syncOpts();
       try { await post("/api/settings", { [key]: el.checked }); } catch (e) { el.checked = !el.checked; syncOpts(); toast(e.message, true); return; }
-      if (key !== "auto_trim") toast("Діє на нові вибори; обрані файли оновить «Застосувати до обраних дублів» (Еквалайзер)", false, 6000);
+      if (key !== "auto_trim") toast("Діє на нові вибори; обрані файли оновить «Оновити файли гри» (вкладка «Обробка»)", false, 6000);
     };
   }
   syncOpts();

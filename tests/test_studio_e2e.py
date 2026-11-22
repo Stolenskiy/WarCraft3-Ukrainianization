@@ -141,7 +141,7 @@ def test_full_flow(page):
 
 def test_equalizer_panel(page):
     pg = page
-    pg.click("#eqPanel summary")
+    pg.click("#tabProc")
     assert pg.input_value("#eqSel") == "orc-peon"
     pg.wait_for_function("() => document.querySelector('#eqCurve').getContext('2d').getImageData(0,0,248,72).data.some(v => v)")
     pg.locator("input[data-eq='gain'][data-i='1']").fill("-4")                 # рух слайдера → профіль змінено
@@ -154,7 +154,7 @@ def test_equalizer_panel(page):
     assert pg.eval_on_selector("#eqSel", "s => s.selectedOptions[0].text") == "Мій peon"
     pg.reload()
     pg.wait_for_selector(".cue.on")
-    pg.click("#eqPanel summary")
+    pg.click("#tabProc")
     assert pg.eval_on_selector("#eqSel", "s => s.selectedOptions[0].text") == "Мій peon"
     assert pg.input_value("input[data-eq='gain'][data-i='1']") == "-4"
     pg.click("#eqDel")                                                         # confirm → діалог
@@ -266,13 +266,13 @@ def test_game_preview_button_and_processing_toggles(page):
     with pg.expect_response(lambda r: "/api/preview" in r.url and r.status == 200):
         pg.locator("[data-preview]").first.click()
     pg.wait_for_function("() => typeof __studio.playing !== 'undefined' && (__studio.playing === null || __studio.playing.id.startsWith('preview:'))")
-    pg.click("#optsMenu summary")
+    pg.click("#tabProc")
     pg.click("label:has(#optDenoise)")                            # налаштування — на сервері, а не лише в localStorage
     pg.wait_for_function("async () => (await (await fetch('/api/settings')).json()).denoise === true")
     pg.reload()
     pg.wait_for_selector(".cue.on")
     assert pg.is_checked("#optDenoise")
-    pg.click("#optsMenu summary")                                 # після перезавантаження меню згорнуте
+    pg.click("#tabProc")                                          # після перезавантаження відкрита вкладка «Репліки»
     pg.click("label:has(#optLoudness)")
     pg.wait_for_function("async () => (await (await fetch('/api/settings')).json()).loudness === false")
     assert not pg.errors, pg.errors

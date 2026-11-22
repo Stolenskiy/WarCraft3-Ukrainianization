@@ -52,6 +52,24 @@ def test_to_ffmpeg():
     assert eq.to_ffmpeg({"name": "x", "bands": [{"type": "peaking", "freq_hz": 1000, "gain_db": 0, "q": 1}]}) == []
 
 
+def test_amount_scales_band_gains():
+    base = {"name": "x", "bands": [{"type": "highpass", "freq_hz": 80, "gain_db": 0, "q": 0.71},
+                                   {"type": "peaking", "freq_hz": 1000, "gain_db": 4, "q": 1.0},
+                                   {"type": "highshelf", "freq_hz": 6000, "gain_db": -2, "q": 0.71}]}
+    assert eq.validate(base)["amount"] == 1                                   # типово 100 %
+    full = eq.to_ffmpeg(eq.validate(base))
+    assert eq.to_ffmpeg(eq.validate({**base, "amount": 1.5}))[1:] == ["equalizer=f=1000:t=q:w=1:g=6", "treble=g=-3:f=6000:t=q:w=0.71"]
+    assert eq.to_ffmpeg(eq.validate({**base, "amount": 0.5}))[1:] == ["equalizer=f=1000:t=q:w=1:g=2", "treble=g=-1:f=6000:t=q:w=0.71"]
+    assert eq.to_ffmpeg(eq.validate({**base, "amount": 1}))[1:] == full[1:] and full[0].startswith("highpass")   # зріз низів не множиться
+    assert eq.to_ffmpeg(eq.validate({**base, "amount": 0})) == []              # 0 % = вимкнено
+    big = {"name": "x", "amount": 2, "bands": [{"type": "peaking", "freq_hz": 1000, "gain_db": 9, "q": 1}]}
+    assert eq.to_ffmpeg(eq.validate(big)) == ["equalizer=f=1000:t=q:w=1:g=12"]  # стеля ±12 дБ
+    for bad in (-0.1, 2.5, "1", None):
+        with pytest.raises(eq.EqError):
+            eq.validate({**base, "amount": bad})
+    assert ffmpeg_ok(eq.to_ffmpeg(eq.validate({**base, "amount": 1.5})))[0]
+
+
 @pytest.mark.parametrize("bad", [
     None, {"name": ""}, {"name": "x", "bands": "no"}, {"name": "x", "bands": [{"type": "bell", "freq_hz": 100}]},
     {"name": "x", "bands": [{"type": "peaking", "freq_hz": 5}]},
