@@ -53,7 +53,8 @@ export function render() {
 
 function finished(j, was) {
   if (was === j.state) return;
-  if (j.state === "done") toast(`ШІ: готово — ${label(j)} (${j.license})`, false, 6000);
+  const pick = !j.pick ? "" : j.pick.skipped ? ` · автовибір пропущено: ${j.pick.skipped}` : ` · у грі найкращий: ${j.pick.file}`;
+  if (j.state === "done") toast(`ШІ: готово — ${label(j)} (${j.license})${pick}`, false, j.pick ? 9000 : 6000);
   else if (j.state === "failed") toast(`ШІ: не вдалося — ${j.error || "помилка двигуна"}`, true, 10000);
   else if (j.state === "cancelled") toast("ШІ: завдання скасовано");
 }

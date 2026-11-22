@@ -77,7 +77,13 @@ def text(c: Ctx):
 @route("POST", "/api/ai/adopt")
 def ai_adopt(c: Ctx):
     d = c.data
-    return c.svc.adopt_ai(d["cid"], d["gid"], d["lid"], d["file"])
+    return c.svc.adopt_ai(d["cid"], d["gid"], d["lid"], d["file"], fit=bool(d.get("fit")))
+
+
+@route("POST", "/api/ai/auto-pick")
+def ai_auto_pick(c: Ctx):
+    d = c.data
+    return c.svc.auto_pick_ai(d["cid"], d["gid"], d["lid"], among=d.get("among"), fit=d.get("fit", True) is not False)
 
 
 @route("POST", "/api/ai/discard")

@@ -1,0 +1,9 @@
+/* ШІ: автотривалість і автовибір (ai-rank.js) — бейджі оцінки/темпу й панель над списком варіантів */
+.ai-auto { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 8px 2px; font-size: 13px; color: var(--muted); }
+.ai-auto label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.ai-auto .ai-note { margin: 0; }
+.ai-fit, .ai-score { font-variant-numeric: tabular-nums; font-size: 12px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.ai-fit.good { color: var(--ok); border-color: rgba(70, 196, 106, .35); }
+.ai-fit.long { color: var(--gold); border-color: rgba(240, 164, 65, .4); }
+.ai-fit.bad { color: var(--danger); border-color: rgba(242, 85, 75, .4); }
+.ai-best { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: #0e1013; background: var(--gold); padding: 1px 7px; border-radius: 5px; }

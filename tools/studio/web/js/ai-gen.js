@@ -5,6 +5,7 @@ import { play, playing, stopPlay } from "./audio.js";
 import { SETUP_CMD, bindEngine, engineHtml, ensureConsents, fixHint } from "./ai-engine.js";
 import { AIS, curEngine, draftOf, setEngine, supports } from "./ai-state.js";
 import { kick, render as renderQueue } from "./ai-queue.js";
+import { autoPickOn } from "./ai-rank.js";
 import { S, ids } from "./state.js";
 import { toast } from "./toast.js";
 import { esc, fmt } from "./util.js";
@@ -84,7 +85,8 @@ async function submit(p, params, path = "/api/ai/generate", extra = {}) {
   }
   if (!(await ensureConsents(eng))) return null;
   try {
-    const job = await post(path, { ...ids(p), ...extra, ...(params ? { params } : {}) });
+    const pick = path === "/api/ai/generate" && autoPickOn() ? { auto_pick: true } : {};   // автовибір після генерації (ai-rank.js)
+    const job = await post(path, { ...ids(p), ...extra, ...pick, ...(params ? { params } : {}) });
     (job.warnings || []).forEach((w) => toast(w, false, 7000));
     toast(`У черзі ШІ: ${job.params.n} ${job.params.n === 1 ? "варіант" : "варіанти"} · результат ${job.license}`);
     kick();

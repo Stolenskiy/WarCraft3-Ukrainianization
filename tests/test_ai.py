@@ -43,9 +43,12 @@ def test_list_ai_per_line_with_schema(svc):
     (AI_DIR / "peonyes1.ai4.json").write_text("{не json")
     lst = svc.line_json(CID, GID, svc.line(CID, GID, LID))["ai"]
     assert [v["n"] for v in lst] == [1, 2]                         # окрема нумерація, лише цієї репліки
-    assert lst[0] == {"file": "peonyes1.ai1.wav", "n": 1, "engine": "fish-s2-pro", "cer": 0.1, "similarity": 0.85,
-                      "dur": 0.7, "style": "[cheerful]", "adopted": None, "discarded": False,
-                      "license": None, "seed": lst[0]["seed"], "refs": None, "params": None}
+    rank_keys = {"fit", "score", "score_parts", "rank", "best"}                    # автовибір (studio/aifit.py)
+    assert {k: v for k, v in lst[0].items() if k not in rank_keys} == {
+        "file": "peonyes1.ai1.wav", "n": 1, "engine": "fish-s2-pro", "cer": 0.1, "similarity": 0.85,
+        "dur": 0.7, "style": "[cheerful]", "adopted": None, "discarded": False,
+        "license": None, "seed": lst[0]["seed"], "refs": None, "params": None, "peak_db": None, "clipped": None}
+    assert rank_keys <= set(lst[0]) and [v["rank"] for v in lst] == [2, 1] and lst[1]["best"] and not lst[0]["best"]
     meta = json.loads((AI_DIR / "peonyes1.ai1.json").read_text())
     assert set(ai.SIDECAR_KEYS) <= set(meta) and meta["ai"] is True
 

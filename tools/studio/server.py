@@ -18,8 +18,12 @@ API:
   POST /api/delete    {cid,gid,lid,file}           у кошик
   POST /api/restore   {cid,gid,lid,file}
   POST /api/text      {cid,gid,lid,text}
-  POST /api/ai/adopt  {cid,gid,lid,file}           КОПІЮЄ ШІ-варіант у дублі: новий дубль `source:"ai"` (далі як будь-який)
-  POST /api/ai/discard {cid,gid,lid,file}          сховати ШІ-варіант (репліка містить `ai:[{file,n,engine,cer,similarity,dur,style,adopted}]`)
+  POST /api/ai/adopt  {cid,gid,lid,file[,fit]}     КОПІЮЄ ШІ-варіант у дублі: новий дубль `source:"ai"` (далі як будь-який);
+                                             fit:true — автотривалість: темп дубля під голос оригіналу ×0.8–×1.25 (studio/aifit.py)
+  POST /api/ai/auto-pick {cid,gid,lid[,among,fit]}  автовибір: найкращий за оцінкою ШІ-варіант (серед among — імен варіантів)
+                                             → дубль «ШІ» → у гру; 400, якщо для гри обрано живий дубль чи оригінал; + picked {file,take,score,tempo}
+  POST /api/ai/discard {cid,gid,lid,file}          сховати ШІ-варіант (репліка містить `ai:[{file,n,engine,cer,similarity,dur,style,adopted,
+                                             peak_db,clipped,fit,score,score_parts,rank,best}]` — рейтинг і темп під оригінал, aifit.rank)
   POST /api/trim      {cid,gid,lid,file,start,end[,auto_trim]}   ручне обрізання дубля (секунди; null,null — скинути)
   POST /api/tempo     {cid,gid,lid,file,tempo}     темп дубля 0.8–1.3 (atempo, висота та сама; null/1 — скинути)
   GET  /api/settings                         {auto_trim, denoise, loudness} (data/studio/settings.json)
@@ -54,7 +58,8 @@ API:
   POST /api/ai/consent {accept}              згода «це мій власний голос» (без неї генерація не стартує)
   POST /api/ai/engine {name,upload_consent?,api_key?}   згода на вивантаження дублів / ключ (data/local/settings.json; назад ключ не віддається)
   GET  /api/ai/refs?cid=&gid=&lid=[&approved=1]  власні дублі каталогу для вибору референсів (лише audio/self-recorded)
-  POST /api/ai/generate {cid,gid,lid,params}  у чергу (queued; warnings, unsupported, license); params: text_override, style, ref_takes, variability, seed, n, engine
+  POST /api/ai/generate {cid,gid,lid,params[,auto_pick]}  у чергу (queued; warnings, unsupported, license); params: text_override, style, ref_takes, variability, seed, n, engine;
+                                             auto_pick:true — після генерації найкращий варіант → у гру (job.pick; живий дубль має пріоритет)
   POST /api/ai/again {cid,gid,lid,file}      «Ще варіант»: ті самі параметри, новий seed, n=1
   POST /api/ai/based-on {cid,gid,lid,file}   параметри варіанта для форми (нічого не запускає)
   GET  /api/ai/jobs[?state=queued,running]   завдання за порядком черги (progress {done,total,phase}, results, license)

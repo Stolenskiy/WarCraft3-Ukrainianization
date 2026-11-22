@@ -41,8 +41,8 @@ class AiStudio:
         return [refs.public(c) for c in refs.list_ref_candidates(self.svc, cid, gid, lid, approved_only)]
 
     # ---- генерація
-    def submit(self, cid: str, gid: str, lid: str, params: dict | None) -> dict:
-        return self.queue.submit(cid, gid, lid, GenParams.from_dict(params))
+    def submit(self, cid: str, gid: str, lid: str, params: dict | None, auto_pick: bool = False) -> dict:
+        return self.queue.submit(cid, gid, lid, GenParams.from_dict(params), auto_pick=auto_pick)
 
     def again(self, cid: str, gid: str, lid: str, file: str) -> dict:
         return self.queue.again(cid, gid, lid, file)
