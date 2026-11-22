@@ -81,9 +81,7 @@ class Asr:
 
 @pytest.fixture(autouse=True)
 def reg(clean_root):
-    import shutil
-    shutil.rmtree(TMP_ROOT / "data/local", ignore_errors=True)
-    (TMP_ROOT / "data/local").mkdir(parents=True)
+    config.settings_path().unlink(missing_ok=True)       # лише налаштування: інші файли data/local (транскрипти) потрібні іншим тестам
     FakeEngine.block, FakeEngine.calls = None, []
     E.register(FakeEngine)
     E.register(FakeCloud)
