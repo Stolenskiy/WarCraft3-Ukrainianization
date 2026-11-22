@@ -50,8 +50,8 @@ function eqRenderInner() {
     ${simple ? `<label class="eq-sl">Сила <output>${amt} %</output>
         <input type="range" data-eq="amount" aria-label="Сила профілю" min="0" max="200" step="5" value="${amt}"></label>
       <div class="eq-macros" role="group" aria-label="Швидкі правки">${Object.entries(MACROS).map(([k, m]) => `<button class="ghost" data-macro="${k}">${m[0]}</button>`).join("")}</div>`
-    : `<label class="eq-sl">Підсилення (загальне) <output>${EQ.prof.gain_db} дБ</output>
-        <input type="range" data-eq="gain" aria-label="Підсилення (загальне)" min="-12" max="12" step="0.5" value="${EQ.prof.gain_db}"></label>${eqTable()}`}
+    : `<label class="eq-sl">Загальний рівень <output>${EQ.prof.gain_db} дБ</output>
+        <input type="range" data-eq="gain" aria-label="Загальний рівень" min="-12" max="12" step="0.5" value="${EQ.prof.gain_db}"></label>${eqTable()}`}
     <div class="eq-row">
       ${EQ.naming ? `<input type="text" id="eqName" maxlength="60" placeholder="Назва профілю" value="${esc(own ? "" : EQ.prof.name + " (копія)")}">
         <button class="ghost" id="eqSaveNew">Зберегти</button>` : `<button class="ghost" id="eqNew">Зберегти як новий профіль</button>`}
@@ -133,7 +133,7 @@ export function eqSetup() {
       if (!name) return toast("Вкажіть назву профілю", true);
       eqCommit("/api/eq/profile", { profile: { ...EQ.prof, name } }, `Профіль «${name}» збережено`);
     } else if (id === "eqUpdate") eqCommit("/api/eq/profile", { id: EQ.id, profile: EQ.prof }, "Профіль оновлено");
-    else if (id === "eqDel") { if (confirm(`Видалити профіль «${EQ.prof.name}»?`)) eqCommit("/api/eq/delete", { id: EQ.id }, "Профіль видалено"); }
+    else if (id === "eqDel") eqDelete();
     else if (id === "eqReexport") eqReexport();
   });
   // Усередині #eq глобальні клавіші не діють, крім L, B, A і Пробілу на повзунках і вузлах (стрілки лишаються їм)
@@ -150,6 +150,13 @@ export function eqSetup() {
       if (last) play([takeItem(p, last.file)]);
     }
   });
+}
+
+/** Видалення без confirm(): тост зі «Скасувати» і ⌘Z відновлює профіль (створюється заново й призначається юніту). */
+async function eqDelete() {
+  const gone = eqClone(eqPlain(eqOwn()));
+  if (!(await eqCommit("/api/eq/delete", { id: EQ.id }))) return;
+  toast(`Профіль «${gone.name}» видалено`, false, 8000, () => eqCommit("/api/eq/profile", { profile: gone }, `Профіль «${gone.name}» повернуто`));
 }
 
 async function eqReexport() {

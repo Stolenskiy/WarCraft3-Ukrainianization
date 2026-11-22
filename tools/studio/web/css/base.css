@@ -7,7 +7,7 @@
   --line: #2a303b;
   --text: #ece8e1;
   --muted: #8d95a3;
-  --faint: #5d6573;
+  --faint: #858d9c;      /* текст ≥ 4,5:1 на --panel-2 */
   --accent: #e4572e;      /* жар Орди */
   --accent-soft: rgba(228, 87, 46, .14);
   --gold: #f0a441;

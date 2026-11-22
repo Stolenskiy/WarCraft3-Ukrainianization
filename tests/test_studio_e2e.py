@@ -145,7 +145,12 @@ def test_equalizer_panel(page):
     assert pg.input_value("#eqSel") == "orc-peon"
     pg.wait_for_function("() => document.querySelector('#eqLine').getAttribute('d').length > 100")      # крива намальована
     pg.click("#eqMode [data-mode='bands']")
+    assert pg.get_attribute("#eqA", "aria-pressed") == "true"
     pg.locator("input[data-eq='gain'][data-i='1']").fill("-4")                 # зміна смуги → профіль змінено
+    pg.locator("input[data-eq='gain'][data-i='1']").blur()
+    pg.wait_for_selector("[data-saveas]")
+    assert "змінено · Зберегти як" in pg.inner_text(".eq-head")
+    assert pg.evaluate("(() => { const c = (h) => [1,3,5].map(i => parseInt(h.slice(i,i+2),16)/255).map(x => x <= .03928 ? x/12.92 : ((x+.055)/1.055)**2.4); const L = (h) => { const [r,g,b] = c(h); return .2126*r+.7152*g+.0722*b; }; const f = getComputedStyle(document.documentElement).getPropertyValue('--faint').trim(), p = '#1b1f26'; const [a, b] = [L(f), L(p)].sort((x, y) => y - x); return (a+.05)/(b+.05) >= 4.5; })()")      # токен --faint ≥ 4,5:1
     pg.click("#eqB")
     pg.click("#eqA")
     pg.click("#eqNew")
@@ -159,7 +164,12 @@ def test_equalizer_panel(page):
     assert pg.eval_on_selector("#eqSel", "s => s.selectedOptions[0].text") == "Мій peon"
     pg.click("#eqMode [data-mode='bands']")
     assert pg.input_value("input[data-eq='gain'][data-i='1']") == "-4"
-    pg.click("#eqDel")                                                         # confirm → діалог
+    pg.click("#eqDel")                                                         # без confirm(): тост «Скасувати» (⌘Z)
+    pg.wait_for_selector("#toast >> text=видалено")
+    assert pg.locator("#eqDel").count() == 0
+    pg.click("#undoBtn")
+    pg.wait_for_selector("#eqDel")
+    assert pg.eval_on_selector("#eqSel", "s => s.selectedOptions[0].text") == "Мій peon"
     assert not pg.errors, pg.errors
 
 
