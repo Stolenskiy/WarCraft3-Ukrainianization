@@ -2,11 +2,11 @@ PY := .venv/bin/python -I
 PYTHON311 ?= python3.11
 CORE_TESTS_A := tests/test_studio_core.py tests/test_eq.py tests/test_install_voices.py tests/test_guard_no_audio.py tests/test_docs_sync.py tests/test_doctor.py
 CORE_TESTS_B := tests/test_studio_proc.py tests/test_voices.py
-CORE_TESTS_C := tests/test_gameconf.py tests/test_windows.py tests/test_run.py
+CORE_TESTS_C := tests/test_gameconf.py tests/test_windows.py tests/test_run.py tests/test_aistudio.py
 RUN := $(PY) tools/run.py
 
 .PHONY: studio test test-core lint guard check check-voices verify doctor hooks publish-voice refs \
-        setup setup-dev setup-refs install-voices transcripts-local transcribe uninstall-voices ai-voice docker game-root
+        setup setup-dev setup-refs install-voices transcripts-local transcribe uninstall-voices ai-voice ai-setup ai-status docker game-root
 
 verify:      ## «перевір мою зміну» (≤ 20 с, без Chrome): lint + guard + check-voices + test-core
 	$(MAKE) --no-print-directory lint guard check-voices test-core
@@ -71,6 +71,12 @@ uninstall-voices: ## прибрати встановлені нами голос
 
 ai-voice:     ## ШІ-варіанти реплік юніта власним голосом (Fish S2-Pro, локально): make ai-voice UNIT=peon [VARIANTS=3]
 	$(PY) tools/ai_voice.py --unit $(or $(UNIT),peon) --variants $(or $(VARIANTS),3)
+
+ai-setup:     ## Fish S2-Pro: .venv-fish + ваги (лише після згоди з ліцензією: ACCEPT=1)
+	$(RUN) ai-setup $(if $(ACCEPT),--accept-license,)
+
+ai-status:    ## готовність ШІ-студії (платформа, ваги, згода)
+	$(RUN) ai-status
 
 docker:      ## студія в Docker одною командою (http://127.0.0.1:8765); потрібен запущений Docker Desktop
 	python3 tools/run.py docker

@@ -80,6 +80,7 @@ class Job:
     max_new: int = 512   # ліміт токенів двигуна: репліки короткі, «заблукана» генерація не має тривати хвилинами
     refs: list[dict] = field(default_factory=list)   # [{take, audio, text}]
     out: Path = None  # type: ignore[assignment]
+    params: dict | None = None   # параметри ШІ-студії (tools/aistudio/params.py) — лише передаються в побічний json
 
 
 def ref_clip(svc: Service, cid: str, gid: str, take: dict, dst: Path) -> bool:

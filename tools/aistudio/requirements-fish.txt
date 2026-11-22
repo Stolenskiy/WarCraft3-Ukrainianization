@@ -1,0 +1,10 @@
+# Закріплені залежності .venv-fish (Fish S2-Pro + метрики WavLM). Встановлює `python tools/run.py ai-setup`.
+# Версії — з робочого середовища власника (2026-11-22). Сам fish-speech ставиться з клона на коміті FISH_SPEECH_COMMIT (setup.py).
+torch==2.8.0
+torchaudio==2.8.0
+transformers==5.19.0
+numpy==2.4.6
+soundfile==0.14.0
+librosa==0.11.0
+pydantic==2.9.2
+huggingface-hub==2.4.0

@@ -2,7 +2,7 @@
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-include = ["tools/*.py", "tools/studio/**/*.py", "tools/ai_engines/*.py", "tests/**/*.py"]  # усі скрипти; vendored tools/fish-speech поза include
+include = ["tools/*.py", "tools/studio/**/*.py", "tools/aistudio/**/*.py", "tools/ai_engines/*.py", "tests/**/*.py"]  # усі скрипти; vendored tools/fish-speech поза include
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
@@ -18,7 +18,7 @@ ignore = ["E501"]
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["tools/studio"]
+source = ["tools/studio", "tools/aistudio"]
 branch = true
 
 [tool.coverage.report]
