@@ -84,3 +84,28 @@ def test_blocks_local_dir_and_original_texts_in_tracked_transcripts(repo):
     put(repo, "data/transcripts-orc-peon.json", '{"a.wav": {"text": "Сделаю.", "duration": 1.0}}'.encode())
     git(repo, "add", "-f", "data")
     assert guard.main(repo) == 1                                   # поле text — заборонено
+
+
+# ---------------------------------------------------------------- текст upstream/Blizzard (ADR 0006)
+@pytest.mark.parametrize("rel", [
+    "UI/framedef/globalstrings.fdf", "LIGHT[Interface only]/_retail_/Units/orcunitstrings.txt", "Units/commandstrings.txt",
+    "fonts/frizqt__.ttf", "movies/captions/orced.srt", "docs/x/_retail_/UI/tipstrings.txt", "Localizations/Russian/a.txt",
+    "War3_Reforged_AllowLocalFiles.reg"])
+def test_blocks_upstream_and_blizzard_text(repo, rel):
+    put(repo, rel)
+    git(repo, "add", "-f", rel)
+    assert guard.main(repo) == 1
+
+
+def test_blocks_renamed_game_text_by_content(repo):
+    put(repo, "notes/copy.txt", b"[a]\nTip=x\nHotkey=A\n[b]\nTip=y\nHotkey=B\n")
+    git(repo, "add", "notes/copy.txt")
+    assert guard.gametext_violations(repo, ["notes/copy.txt"]) == ["notes/copy.txt"] and guard.main(repo) == 1
+
+
+def test_allows_our_targets_overrides_and_docs(repo):
+    put(repo, "data/targets/classic-1.31.json", b"{}")
+    put(repo, "data/text-overrides/fdf131.json", b"{}")
+    put(repo, "docs/install/classic-1.31.md", b"Tip=x\nHotkey=A\n")
+    git(repo, "add", "-A")
+    assert guard.main(repo) == 0
