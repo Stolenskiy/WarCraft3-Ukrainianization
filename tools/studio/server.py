@@ -27,7 +27,10 @@ API:
                                              оновлює /api/eq/reexport
   GET  /api/preview?cid=&gid=&lid=&file=     «Як у грі» для будь-якого дубля: wav, зібраний тим самим
                                              ланцюжком і налаштуваннями, що й копія для гри (кеш preview-cache/)
-  POST /api/open-dir  {cid,gid}                    відкрити теку game-files у Finder
+  POST /api/open-dir  {cid,gid}                    відкрити теку game-files у файловому менеджері ОС (opener.open_dir)
+  GET  /api/game-root                        {path, source env|settings|auto|default, valid, env_overrides, candidates:[шлях]} (tools/gameconf.py)
+  POST /api/game-root {path} | {autodetect:true} | {clear:true}   зберегти теку гри (data/local/settings.json) / взяти першу знайдену /
+                                             повернутись до автопошуку; невалідна тека чи WC3_GAME_ROOT → 400; плани install бачать її одразу
   GET  /api/eq?cid=&gid=                     {selected, default, stale, profiles:[{id,builtin,name,enabled,gain_db,bands}]}
                                              stale = скільки обраних файлів гри зроблено з іншим EQ/обробкою
   POST /api/eq/profile {cid,gid,profile,id?,assign?}  створити (без id) / оновити власний профіль

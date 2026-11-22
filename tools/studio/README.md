@@ -220,6 +220,7 @@ A/B «З EQ / Без EQ», «Зберегти як новий профіль», 
 | `GET/POST /api/settings` | налаштування обробки |
 | `GET /api/eq`, `POST /api/eq/profile`, `/api/eq/delete`, `/api/eq/assign`, `/api/eq/reexport` | еквалайзер |
 | `GET /api/install/plan`, `POST /api/install`, `GET /api/uninstall/plan`, `POST /api/uninstall`, `POST /api/open-dir` | встановлення в гру |
+| `GET /api/game-root`, `POST /api/game-root` | тека гри (`routes/gameroot.py` → `tools/gameconf.py`) |
 | `GET /api/voices`, `POST /api/voices/choice`, `POST /api/voices/publish` | голоси спільноти |
 
 ## Пастки (вже наступали)
