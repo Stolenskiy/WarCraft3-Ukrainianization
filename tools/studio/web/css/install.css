@@ -35,3 +35,17 @@ details[open] > summary::before { transform: rotate(90deg); }
 .tag.new { color: var(--ok); border-color: rgba(70,196,106,.4); } .tag.upd { color: var(--gold); border-color: rgba(240,164,65,.4); }
 .tag.mat { color: var(--gold); border-color: rgba(240,164,65,.4); cursor: help; margin-left: auto; }
 .btn:disabled { opacity: .45; cursor: default; }
+
+/* Поле «Тека гри» (вкладка «Обробка» і вікно встановлення) */
+.game-root { display: grid; gap: 8px; }
+.proc-file.game-root { margin-bottom: 12px; }
+.gr-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.gr-path { flex: 1; min-width: 0; width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: 12px var(--font); }
+.gr-path[readonly] { color: var(--muted); }
+.gr-badge { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; border: 1px solid; }
+.gr-badge.ok { color: var(--ok); border-color: rgba(70,196,106,.5); background: var(--ok-soft); }
+.gr-badge.bad { color: var(--danger); border-color: rgba(242,85,75,.5); }
+.gr-src { color: var(--muted); font-size: 11px; }
+.gr-err { margin: 0; color: var(--danger); font-size: 12px; }
+.gr-note { margin: 0; color: var(--muted); font-size: 12px; }
+.game-root .ghost { padding: 5px 10px; font-size: 12px; }

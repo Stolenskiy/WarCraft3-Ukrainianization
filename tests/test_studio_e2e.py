@@ -200,6 +200,70 @@ def test_eq_node_drag_wheel_and_macro(page):
     assert not pg.errors, pg.errors
 
 
+def test_tabs_keep_scroll_and_stale_counter_clears(page):
+    """Вкладки зберігають власний скрол; лічильник «Оновити файли гри (N)» з'являється після зміни EQ і зникає після оновлення."""
+    pg = page
+    pg.set_viewport_size({"width": 1280, "height": 520})
+    pg.click("#tabProc")
+    pg.evaluate("document.querySelector('#paneProc').scrollTop = 120")
+    y = pg.evaluate("document.querySelector('#paneProc').scrollTop")
+    assert y > 0
+    pg.click("#tabCues")
+    pg.click("#tabProc")
+    assert pg.evaluate("document.querySelector('#paneProc').scrollTop") == y
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.evaluate("document.activeElement.blur()")                              # Пробіл на кнопці вкладки не має бути «кліком»
+    record(pg, 1.6)
+    pg.locator("[data-approve]").first.click()
+    pg.wait_for_selector(".badge-game")
+    pg.select_option("#eqSel", "orc-grunt")                                    # інший профіль → файл у грі відстав
+    pg.wait_for_function("() => document.querySelector('#eqReexport').textContent.includes('(1)')")
+    pg.click("#eqReexport")
+    pg.wait_for_function("() => !document.querySelector('#eqReexport').textContent.includes('(')")
+    assert pg.locator(".stale-chip").count() == 0 and not pg.errors, pg.errors
+
+
+def test_game_root_field_and_inline_install_prompt(page, tmp_path, monkeypatch):
+    """Поле «Тека гри» (Обробка): шлях, джерело, бейдж, валідація; вікно встановлення без теки гри питає шлях, а не падає."""
+    import gameconf
+    import install_voices as iv
+    game = tmp_path / "wc3"
+    (game / "Data").mkdir(parents=True)
+    monkeypatch.delenv("WC3_GAME_ROOT", raising=False)
+    monkeypatch.setenv("WC3UA_ROOT", str(tmp_path / "repo"))                 # settings.json — у тимчасовий корінь
+    monkeypatch.setattr(gameconf, "candidates", lambda: [str(game)])
+    monkeypatch.setattr(iv, "GAME", tmp_path / "nope")                        # справжню теку гри не чіпаємо
+    monkeypatch.setattr(iv, "ROOT", tmp_path / "repo")
+    pg = page
+    pg.reload()
+    pg.wait_for_selector(".cue.on")
+    pg.click("#tabProc")
+    pg.wait_for_selector("#gameRoot .gr-badge")
+    assert "автопошук" in pg.inner_text("#gameRoot") and "✓ гру знайдено" in pg.inner_text("#gameRoot .gr-badge")
+    (tmp_path / "plain").mkdir()
+    pg.fill("#gameRoot .gr-path", str(tmp_path / "plain"))
+    pg.click("#gameRoot .gr-save")                                             # не тека WC3 → бейдж і пояснення
+    pg.wait_for_selector("#gameRoot .gr-err")
+    assert "✗ це не тека WC3" in pg.inner_text("#gameRoot .gr-badge") and "не схоже на теку Warcraft III" in pg.inner_text("#gameRoot .gr-err")
+    assert not (tmp_path / "repo/data/local/settings.json").exists()
+    pg.fill("#gameRoot .gr-path", str(game))
+    pg.click("#gameRoot .gr-save")
+    pg.wait_for_function("() => document.querySelector('#gameRoot .gr-src').textContent.includes('налаштування')")
+    assert "✓ гру знайдено" in pg.inner_text("#gameRoot .gr-badge")
+    pg.click("#gameRoot .gr-clear")                                            # скинути → автопошук
+    pg.wait_for_function("() => document.querySelector('#gameRoot .gr-src').textContent.includes('автопошук')")
+    # вікно встановлення: плану немає (тека гри не існує), але шлях валідний → просто помилка; з невалідним — поле
+    monkeypatch.setattr(gameconf, "candidates", lambda: [])
+    pg.click("#installBtn")
+    pg.wait_for_selector("#instRoot .gr-path")
+    assert "Вкажіть її" in pg.inner_text("#installBody")
+    pg.fill("#instRoot .gr-path", str(game))
+    pg.click("#instRoot .gr-save")
+    pg.wait_for_selector("#installBody .inst-err")                             # теку знайдено; тепер лише «немає що встановлювати»
+    assert "немає що встановлювати" in pg.inner_text("#installBody") and pg.locator("#instRoot").count() == 0
+    assert all(e.startswith("400 ") for e in pg.errors), pg.errors            # лише очікувані відмови валідації
+
+
 def test_header_one_row_split_menu_and_narrow_layout(page):
     """Шапка ≤ 58 px на 1280 і 1440; меню «▾» відкриває вікна; на 820 px немає горизонтального переповнення, панель висувна (☰)."""
     pg = page

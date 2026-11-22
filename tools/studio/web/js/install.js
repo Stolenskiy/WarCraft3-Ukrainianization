@@ -3,6 +3,7 @@ import { getJSON, post } from "./api.js";
 import { play } from "./audio.js";
 import { renderCard } from "./card.js";
 import { select } from "./cues.js";
+import { mountGameRoot } from "./gameroot.js";
 import { S, cur } from "./state.js";
 import { toast } from "./toast.js";
 import { $, esc, nFiles } from "./util.js";
@@ -97,7 +98,14 @@ async function instLoad(keep) {                   // keep = {open: [data-key], o
       instSync();
     }
   }
-  catch (e) { $("#installBody").innerHTML = `<p class="inst-err">${esc(e.message)}</p>`; }
+  catch (e) {
+    let gr = { valid: true };
+    try { gr = await getJSON("/api/game-root"); } catch { /* покажемо саму помилку плану */ }
+    if (gr.valid) { $("#installBody").innerHTML = `<p class="inst-err">${esc(e.message)}</p>`; return; }
+    // без теки гри не падаємо, а питаємо шлях тут же
+    $("#installBody").innerHTML = `<p class="inst-note">Не знайшов теку гри Warcraft III. Вкажіть її — і продовжимо.</p><div class="game-root" id="instRoot"></div>`;
+    mountGameRoot($("#instRoot"), () => { mountGameRoot($("#gameRoot")); instLoad(keep); });
+  }
 }
 
 function openInstall() { instModal().hidden = false; instLoad(); }

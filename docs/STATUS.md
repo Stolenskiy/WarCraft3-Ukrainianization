@@ -14,7 +14,7 @@ _Оновлено: 2026-11-22_
 - Агентна готовність (feat/agentic): `AGENTS.md`, `make verify|doctor|hooks|guard`, скіли й `docs/runbooks/`, ADR, глосарій, LICENSE (MIT).
 ## Зараз
 - Кросплатформа (feat/windows-docker): `tools/gameconf.py` (шлях гри: env > `data/local/settings.json` > автопошук), `tools/run.py` (CLI без make), Windows-джоб у CI,
-  `docker compose up` (Dockerfile перевірено на macOS; Windows НЕ перевірено на реальній машині). Поле «Тека гри» в UI — `docs/plans/game-path-ui.md`.
+  `docker compose up` (Dockerfile перевірено на macOS; Windows НЕ перевірено на реальній машині). Поле «Тека гри» в UI зроблено (вкладка «Обробка» + вікно встановлення, feat/modular-redesign).
 - Встановлення в гру: кнопка «Встановити в гру» в студії або `make install-voices` (симлінки юнітів матеріалізуються з відкатом, `tools/install_voices.py`). Попередження про перевантаження мікрофона (бейдж у дублі).
 - «Залишити оригінал» (O): у гру — необроблений оригінал; `game-files/.originals.json` (`publish`/`check-voices` пропускають).
 - Користувач сам озвучує Орду в студії (`make studio`). Прогрес — у самій студії.
@@ -22,7 +22,7 @@ _Оновлено: 2026-11-22_
   на картці (A/B, «Взяти в дублі» → дубль «ШІ»). Пілот Орчатник: 54 варіанти, 16 «чистих»; вигуки слабкі. Деталі — README студії.
 
 ## Далі
-0. Фаза 2 — модульність студії (`docs/plans/modularize-studio.md`), потім редизайн за аудитом UI; історію git зі старими транскриптами не переписано.
+0. Фаза 2 (модульність) і редизайн студії за аудитом UI зроблені в feat/modular-redesign (до злиття в main); історію git зі старими транскриптами не переписано.
 1. Транскрипти для людей (є лише селянин) — `tools/transcribe.py`. Англійських транскриптів немає
    (у режимі EN текст показується російський).
 2. ElevenLabs — коли користувач дасть ключ (`docs/improve-and-elevenlabs.md`).

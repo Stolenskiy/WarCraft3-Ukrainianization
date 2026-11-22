@@ -16,7 +16,7 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 |---|---|
 | Studio architecture, data, extension points, pitfalls | `tools/studio/README.md` |
 | New processing step (ffmpeg chain) | `docs/runbooks/add-processing-step.md` → `tools/studio/svc/export.py` |
-| New UI button / panel / feature | `tools/studio/web/js/<feature>.js` (entry `main.js`), `web/css/<feature>.css`; README «Модулі» |
+| New UI button / panel / feature | `tools/studio/web/js/<feature>.js` (entry `main.js`), `web/css/<feature>.css`; README «Модулі» (line-count map). Header/split menu `header.js`, EQ editor `eq-editor.js`, voice card `voice-card.js`, game folder field `gameroot.js` |
 | New API route / Service action | `tools/studio/routes/<feature>.py` (`@route`) → `svc/<theme>.py` |
 | New line source / catalog (campaign, races) | `docs/runbooks/add-catalog.md` |
 | Studio UI test (Chrome, fake mic) | `docs/runbooks/studio-e2e-test.md` |
@@ -28,7 +28,7 @@ Talk to the owner in Ukrainian; code, commits and these instructions stay Englis
 | Why things are the way they are | `docs/decisions/` (ADRs) |
 | Menus / maps / local install | `docs/ukrainian-ui-131.md`, `docs/ukrainian-maps.md`, `docs/install-local.md` |
 | Why/how the studio was split into modules | `docs/plans/modularize-studio.md` (done) |
-| Game path (`tools/gameconf.py`), cross-platform CLI (`tools/run.py`), Docker, UI hook | `docs/plans/game-path-ui.md`, `docs/install-local.md` |
+| Game path (`tools/gameconf.py`), cross-platform CLI (`tools/run.py`), Docker, UI hook | `docs/plans/game-path-ui.md` (UI done: `routes/gameroot.py`, `web/js/gameroot.js`), `docs/install-local.md` |
 
 ## Hard boundaries
 - Game folder (resolved by `tools/gameconf.py`: `WC3_GAME_ROOT` > `data/local/settings.json` > autodetect): only via `make install-voices` (dry run by default; `APPLY=1` only with the

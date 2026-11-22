@@ -5,6 +5,7 @@ import { openUnit } from "./catalog.js";
 import { clipCheck } from "./clip.js";
 import { EQ } from "./eq-live.js";
 import { eqLoad, eqSetup } from "./eq-panel.js";
+import "./gameroot.js";
 import "./header.js";
 import "./install.js";
 import "./keys.js";
