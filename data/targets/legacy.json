@@ -1,0 +1,14 @@
+{
+  "id": "legacy",
+  "title": "Класичні MPQ-клієнти 1.26-1.29 (вільні файли в теці гри)",
+  "status": "experimental",
+  "game_subdir": "",
+  "hotkey_markers": true,
+  "fdf": "template-only",
+  "fonts": "none",
+  "exclude": ["skinstrings\\.txt$", "^doodads/"],
+  "full_dirs": [],
+  "voice": "experimental",
+  "local_files": {"windows": "HKCU\\Software\\Blizzard Entertainment\\Warcraft III : Allow Local Files = 1 (DWORD)", "macos": "defaults write com.blizzard.WarcraftIII \"Allow Local Files\" -int 1"},
+  "notes": "НЕ перевірено: немає клієнта 1.26-1.29. Тексти Reforged описують сучасний баланс; FDF лише з --fdf-template (з вашого war3.mpq)."
+}

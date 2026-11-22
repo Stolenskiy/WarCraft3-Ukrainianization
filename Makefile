@@ -2,11 +2,11 @@ PY := .venv/bin/python -I
 PYTHON311 ?= python3.11
 CORE_TESTS_A := tests/test_studio_core.py tests/test_eq.py tests/test_install_voices.py tests/test_guard_no_audio.py tests/test_docs_sync.py tests/test_doctor.py
 CORE_TESTS_B := tests/test_studio_proc.py tests/test_voices.py
-CORE_TESTS_C := tests/test_gameconf.py tests/test_windows.py tests/test_run.py
+CORE_TESTS_C := tests/test_gameconf.py tests/test_windows.py tests/test_run.py tests/test_textpack.py tests/test_install_pack.py
 RUN := $(PY) tools/run.py
 
 .PHONY: studio test test-core lint guard check check-voices verify doctor hooks publish-voice refs \
-        setup setup-dev setup-refs install-voices transcripts-local transcribe uninstall-voices ai-voice docker game-root
+        setup setup-dev setup-refs install-voices install-text install transcripts-local transcribe uninstall-voices ai-voice docker game-root
 
 verify:      ## «перевір мою зміну» (≤ 20 с, без Chrome): lint + guard + check-voices + test-core
 	$(MAKE) --no-print-directory lint guard check-voices test-core
@@ -62,6 +62,12 @@ setup-refs:  ## PyCASC і решта requirements.txt (для make refs; PyCASC 
 
 install-voices:   ## обрані дублі → гра (без APPLY=1 лише план); бекап і журнал у <гра>/Backups/ua-voices/
 	$(RUN) install-voices $(if $(APPLY),--apply,)
+
+install-text:   ## український ТЕКСТ → гра (TARGET=classic-1.31|reforged|legacy; FULL=1 кампанії; REF=<sha>; без APPLY=1 лише план)
+	$(RUN) install --target $(or $(TARGET),classic-1.31) --parts text $(if $(FULL),--full,) $(if $(REF),--ref $(REF),) $(if $(APPLY),--apply,)
+
+install:        ## текст + голос разом (ті самі змінні: TARGET, FULL, REF, APPLY)
+	$(RUN) install --target $(or $(TARGET),classic-1.31) --parts text,voice $(if $(FULL),--full,) $(if $(REF),--ref $(REF),) $(if $(APPLY),--apply,)
 
 publish-voice: ## власні обрані дублі (game-files/) → voices/<AUTHOR>/ (FLAC); потрібні AUTHOR=<нік> CONSENT=1 (це мій голос, CC BY 4.0)
 	$(RUN) publish-voice --author "$(AUTHOR)" $(if $(CONSENT),--consent,)

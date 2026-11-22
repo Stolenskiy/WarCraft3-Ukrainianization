@@ -21,3 +21,7 @@
   працюють); консоль cp1251/cp1252 → `run.py` ставить `PYTHONUTF8=1`, файли відкривати з `encoding="utf-8"`; ключі маніфесту — завжди `/` (`as_posix`).
 - Docker: студія слухає `STUDIO_BIND=0.0.0.0` лише в контейнері, порт назовні — тільки `127.0.0.1:8765:8765`; Host-перевірка вимагає, щоб порт хоста
   дорівнював порту сервера (8765), інший порт дасть 403. Симлінки гри через bind-монти Docker Desktop ненадійні → `install-voices` запускати на хості.
+- Текст (ADR 0006): upstream без ліцензії — лише кеш `data/local/cache/` + наші перетворення. `Hotkey=` у Reforged-тексті без розмітки: Classic показує клавішу лише через
+  `(|cffffcc00A|r)` у Tip; рівні `[|cffffcc00рівень 1|r]` не є «вже з клавішею». Шаблон FDF 1.31 і кириличні шрифти — з CASC самої гри (`_locales/enus|ruru.w3mod`).
+- macOS-домени «Allow Local Files»: репак 1.31 — `com.blizzard.WarcraftIII`, Reforged — `com.blizzard.Warcraft III` (з пробілом); на CI/інших ФС регістр імен (`OrcUnitStrings.txt`) зберігаємо за наявним файлом.
+- Каталог upstream: `LIGHT[Interface only]/_retail_/` — дужки ламають `glob`; використовуйте `os.listdir`.

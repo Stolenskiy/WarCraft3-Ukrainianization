@@ -1,0 +1,14 @@
+{
+  "id": "reforged",
+  "title": "Warcraft III: Reforged (1.32+ / 2.x / 3.x), корінь _retail_",
+  "status": "experimental",
+  "game_subdir": "_retail_",
+  "hotkey_markers": false,
+  "fdf": "upstream",
+  "fonts": "upstream",
+  "exclude": [],
+  "full_dirs": ["classic", "reforged", "movies"],
+  "voice": "experimental",
+  "local_files": {"windows": "HKCU\\Software\\Blizzard Entertainment\\Warcraft III : Allow Local Files = 1 (DWORD)", "macos": "defaults write \"com.blizzard.Warcraft III\" \"Allow Local Files\" -int 1"},
+  "notes": "Рідний формат upstream, без перетворень. НЕ перевірено на реальному Reforged; сумісність з 3.0 невідома."
+}

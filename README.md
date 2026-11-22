@@ -16,6 +16,25 @@ Warcraft III Classic (а згодом — кампанійних місій), п
 
 ![Студія запису](docs/img/studio.png)
 
+## Встановлення
+
+Є два незалежні пакети: **текст** (переклад меню, назв, підказок із гарячими клавішами) і **голос** (озвучка юнітів). Усе ставиться «вільними» файлами
+(потрібен «Allow Local Files»), спершу показується план, у гру пишемо лише з `--apply`, відкат — однією командою.
+
+| Версія гри | Текст | Голос | Інструкція |
+|---|---|---|---|
+| Classic 1.31 (RoC + TFT; macOS-репак, Windows) | підтримується (macOS перевірено; Windows — ні) | підтримується | [docs/install/classic-1.31.md](docs/install/classic-1.31.md) |
+| Reforged 1.32+ / 2.x / 3.x | EXPERIMENTAL, не перевірено | EXPERIMENTAL, не перевірено | [docs/install/reforged.md](docs/install/reforged.md) |
+| Класичні 1.26–1.29 (MPQ) | EXPERIMENTAL, не перевірено | EXPERIMENTAL, не перевірено | [docs/install/legacy.md](docs/install/legacy.md) |
+
+Три шляхи (приклад для Classic 1.31; `--target reforged|legacy` для інших; без `--apply` — лише план):
+- **лише текст:** `python tools/run.py install --target classic-1.31 --parts text --apply` (`make install-text APPLY=1`);
+- **лише голос:** `python tools/run.py install --target classic-1.31 --parts voice --apply` (`make install-voices APPLY=1`);
+- **усе разом:** `python tools/run.py install --target classic-1.31 --parts text,voice --apply` (`make install APPLY=1`).
+
+Текст завантажується з [warcraft-in-ua](https://github.com/warcraft-in-ua/WarCraft3-Reforged-Ukrainian) (найновіша версія; `--ref` фіксує, `--full` додає кампанії)
+у локальний кеш: у цьому репозиторії чужих файлів немає ([ADR 0006](docs/decisions/0006-text-pack-sourcing.md)). Відкат: `python tools/run.py uninstall --target … --parts text,voice`.
+
 ## Платформи
 
 Усе, що вміє `make`, вміє й `python tools/run.py <команда>` (stdlib; `--help` — список): це шлях для Windows без make.

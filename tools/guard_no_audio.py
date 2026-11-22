@@ -4,6 +4,8 @@
 Ловить і `git add -f` через .gitignore. Дозволено лише пакети голосів спільноти:
 voices/LICENSE.md та voices/<автор>/{voice.json, manifest.json, LICENSE.md, units/**.flac}
 (їхній вміст окремо перевіряє tools/check_voices.py).
+Текст (ADR 0006): тексти/шрифти/FDF upstream (warcraft-in-ua, без ліцензії) і Blizzard (*.fdf, *.ttf, *.srt, Units|UI/*.txt|slk,
+_retail_/, Localizations/) у git заборонені; так само будь-який .txt із рядками Tip=/Ubertip=/Hotkey=.
 Запуск: `make guard` (входить у `make verify`), .githooks/pre-commit, CI.
 """
 from __future__ import annotations
@@ -18,6 +20,9 @@ EXTS = ("wav mp3 flac ogg opus m4a aac aif aiff webm w3x w3m mpq blp mdx pem key
 BAD = re.compile(
     r"\.(" + "|".join(EXTS) + r")$"
     r"|(^|/)(reference[^/]*|audio[^/]*|models|game-files|backups)/"
+    r"|\.(fdf|ttf|otf|srt|reg)$"
+    r"|(^|/)(_retail_|Localizations|ruru\.w3mod|LIGHT\[[^/]*|FULL\[[^/]*)/"
+    r"|(^|/)(units|ui|doodads|fonts)/[^/]+\.(txt|slk)$"
     r"|^data/(studio|local)/"
     r"|(^|/)\.env",
     re.I,
@@ -58,10 +63,26 @@ def text_violations(root: Path, files) -> list[str]:
     return bad
 
 
+GAME_TEXT = re.compile(r"^(Tip|Ubertip|Hotkey|Researchtip|Revivetip)=", re.M | re.I)
+
+
+def gametext_violations(root: Path, files) -> list[str]:
+    """Будь-який .txt із ≥ 3 рядками Tip=/Ubertip=/Hotkey= — це текст гри (upstream чи Blizzard), навіть під іншою назвою."""
+    bad = []
+    for f in sorted(set(files)):
+        if not f.lower().endswith(".txt"):
+            continue
+        r = subprocess.run(["git", "show", f":{f}"], cwd=root, capture_output=True)
+        raw = r.stdout if r.returncode == 0 else (root / f).read_bytes() if (root / f).exists() else b""
+        if len(GAME_TEXT.findall(raw.decode("utf-8", "ignore"))) >= 3:
+            bad.append(f)
+    return bad
+
+
 def main(root: Path | None = None) -> int:
     root = Path(root or Path(__file__).resolve().parent.parent)
     files = git_files(root)
-    bad = violations(files) + text_violations(root, files)
+    bad = violations(files) + text_violations(root, files) + gametext_violations(root, files)
     if bad:
         print("ЗАБОРОНЕНО комітити (аудіо, ресурси гри, секрети, data/local/, оригінальні тексти в data/transcripts-*.json):", *bad, sep="\n  ", file=sys.stderr)
         print("Дозволені лише пакети голосів: voices/<автор>/{voice.json,manifest.json,LICENSE.md,units/**.flac}.",
