@@ -203,7 +203,7 @@ def test_preview_equals_game_export_and_caches(svc, monkeypatch):
     assert p.read_bytes() == GAME.read_bytes()                            # байт у байт той самий ланцюжок
     n = []
     real = core.export_take
-    monkeypatch.setattr(core, "export_take", lambda *a: n.append(1) or real(*a))
+    monkeypatch.setattr("studio.svc.export.export_take", lambda *a: n.append(1) or real(*a))
     assert svc.preview(CID, GID, LID, f) == p and not n                   # кеш
     svc.set_tempo(CID, GID, LID, f, 1.1)
     p2 = svc.preview(CID, GID, LID, f)
