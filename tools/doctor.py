@@ -88,7 +88,7 @@ def checks() -> list[tuple[str, str, bool, str]]:
                 "" if chrome and pw else "встановити Chrome (або Edge); playwright: python tools/run.py setup"))
     out.append(("PyCASC", "run.py refs / make refs (оригінали з гри)", False,
                 "" if venv_py.exists() and _run(str(venv_py), "-c", "import PyCASC;print(1)") == "1"
-                else "make setup-refs   (Windows: python tools/run.py setup --refs)"))
+                else "python tools/run.py setup   (або make setup-refs)"))
     gd = gameconf.describe()
     out.append((f"тека гри ({gd['source']}: {gd['path']})", "встановлення голосів, make refs", False,
                 "" if gd["valid"] else "python tools/run.py game-root <шлях>   (або змінна WC3_GAME_ROOT)"))
