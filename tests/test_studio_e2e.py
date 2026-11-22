@@ -37,7 +37,7 @@ def page(svc):
         pg.on("console", lambda m: m.type == "error" and "Failed to load resource" not in m.text
               and errors.append(m.text))
         pg.on("response", lambda r: r.status >= 400 and errors.append(f"{r.status} {r.url}"))
-        cdp = ctx.new_cdp_session(pg)                    # покриття app.js (інформативно, друкується з -s)
+        cdp = ctx.new_cdp_session(pg)                    # покриття JS-модулів (інформативно, друкується з -s)
         cdp.send("Profiler.enable")
         cdp.send("Profiler.startPreciseCoverage", {"callCount": False, "detailed": True})
         pg.goto(f"http://127.0.0.1:{httpd.server_address[1]}/")
@@ -50,16 +50,19 @@ def page(svc):
 
 
 def _print_js_coverage(cdp) -> None:
-    """Частка байтів app.js, що виконались (блоки з count=0 віднімаються від охоплюючих)."""
+    """Частка байтів JS студії (сума по /static/js/*), що виконались (блоки з count=0 віднімаються від охоплюючих)."""
+    total = used = 0
     for script in cdp.send("Profiler.takePreciseCoverage")["result"]:
-        if not script["url"].endswith("/static/app.js"):
+        if "/static/js/" not in script["url"]:
             continue
         size = max(r["endOffset"] for f in script["functions"] for r in f["ranges"])
         hit = bytearray(size)
         for f in script["functions"]:
             for r in f["ranges"]:
                 hit[r["startOffset"]:r["endOffset"]] = (b"\1" if r["count"] else b"\0") * (r["endOffset"] - r["startOffset"])
-        print(f"\napp.js coverage: {100 * sum(hit) / size:.0f}%")
+        total, used = total + size, used + sum(hit)
+    if total:
+        print(f"\napp.js coverage: {100 * used / total:.0f}%  (усі модулі /static/js/*)")
 
 
 def record(pg, sec=1.2):
@@ -172,8 +175,8 @@ def test_screenshot_for_review(page):
 
 
 def _trim_of(pg):
-    return pg.evaluate("""async () => { const g = await (await fetch(`/api/group/${S.cat}/${S.unit}`)).json();
-        return g.lines.find((l) => l.id === S.phrases[S.idx].id).takes.map((t) => t.trim); }""")
+    return pg.evaluate("""async () => { const g = await (await fetch(`/api/group/${__studio.S.cat}/${__studio.S.unit}`)).json();
+        return g.lines.find((l) => l.id === __studio.S.phrases[__studio.S.idx].id).takes.map((t) => t.trim); }""")
 
 
 def test_trim_handles(page):
@@ -217,7 +220,7 @@ def test_trim_moves_marker_and_fit(page):
     marker = lambda: float(cv.get_attribute("data-marker-sec"))  # noqa: E731
     fit0 = pg.inner_text(".take .fit")
     box = pg.locator(".take .wave-box").first.bounding_box()
-    scale = pg.evaluate("() => waves.get(document.querySelector('.take canvas.wave').dataset.wave).opts.scale")
+    scale = pg.evaluate("() => __studio.waves.get(document.querySelector('.take canvas.wave').dataset.wave).opts.scale")
     h = pg.locator(".take .trim-h.start").first.bounding_box()
     y = h["y"] + h["height"] / 2
     pg.mouse.move(h["x"] + h["width"] / 2, y)
@@ -262,7 +265,7 @@ def test_game_preview_button_and_processing_toggles(page):
     record(pg, 1.2)
     with pg.expect_response(lambda r: "/api/preview" in r.url and r.status == 200):
         pg.locator("[data-preview]").first.click()
-    pg.wait_for_function("() => typeof playing !== 'undefined' && (playing === null || playing.id.startsWith('preview:'))")
+    pg.wait_for_function("() => typeof __studio.playing !== 'undefined' && (__studio.playing === null || __studio.playing.id.startsWith('preview:'))")
     pg.click("#optsMenu summary")
     pg.click("label:has(#optDenoise)")                            # налаштування — на сервері, а не лише в localStorage
     pg.wait_for_function("async () => (await (await fetch('/api/settings')).json()).denoise === true")
@@ -278,17 +281,17 @@ def test_game_preview_button_and_processing_toggles(page):
 def test_clipping_indicator_and_badge(page):
     pg = page
     assert pg.locator("#clipFlag").count() == 1 and pg.locator("#clipFlag").is_hidden()
-    pg.evaluate("Rec.t0 = 123.5; clipCheck(new Float32Array([0.2, -0.5]))")          # без перевантаження
+    pg.evaluate("__studio.Rec.t0 = 123.5; __studio.clipCheck(new Float32Array([0.2, -0.5]))")          # без перевантаження
     assert pg.locator("#clipFlag").is_hidden() and "clip" not in pg.get_attribute("#meter", "class")
-    pg.evaluate("clipCheck(new Float32Array([0.2, -0.99]))")
+    pg.evaluate("__studio.clipCheck(new Float32Array([0.2, -0.99]))")
     assert pg.locator("#clipFlag").is_visible() and "clip" in pg.get_attribute("#meter", "class")
     pg.wait_for_function("() => !document.querySelector('#meter').classList.contains('clip')", timeout=3000)   # спалах згасає
     assert pg.locator("#clipFlag").is_visible()                                       # індикатор лишається до кінця дубля
-    pg.evaluate("Rec.t0 = 999; clipCheck(new Float32Array([0.1]))")                  # новий дубль → скинуто
+    pg.evaluate("__studio.Rec.t0 = 999; __studio.clipCheck(new Float32Array([0.1]))")                  # новий дубль → скинуто
     assert pg.locator("#clipFlag").is_hidden()
-    row = pg.evaluate("takeRow(cur(), {file: 'x.take1.wav', n: 1, clipped: true, exists: true, dur: 1}, false)")
+    row = pg.evaluate("__studio.takeRow(__studio.cur(), {file: 'x.take1.wav', n: 1, clipped: true, exists: true, dur: 1}, false)")
     assert 'class="badge-clip"' in row and "10–15 см" in row
-    assert "badge-clip" not in pg.evaluate("takeRow(cur(), {file: 'y.take1.wav', n: 2, clipped: false, exists: true, dur: 1}, false)")
+    assert "badge-clip" not in pg.evaluate("__studio.takeRow(__studio.cur(), {file: 'y.take1.wav', n: 2, clipped: false, exists: true, dur: 1}, false)")
 
 
 def test_install_modal(page, tmp_path, monkeypatch):
@@ -465,12 +468,12 @@ def test_ai_variants_section(page):
 
     # ▶ грає саме цей варіант
     pg.locator("#aiSection [data-ai-row='peonyes1.ai2.wav'] .play").click()
-    pg.wait_for_function("() => playing && playing.id === 'ai:peonyes1.ai2.wav'", timeout=5000)
+    pg.wait_for_function("() => __studio.playing && __studio.playing.id === 'ai:peonyes1.ai2.wav'", timeout=5000)
     pg.keyboard.press("1")                               # клавіша = варіант 1
-    pg.wait_for_function("() => playing && playing.id === 'ai:peonyes1.ai1.wav'", timeout=5000)
+    pg.wait_for_function("() => __studio.playing && __studio.playing.id === 'ai:peonyes1.ai1.wav'", timeout=5000)
 
     # «Оригінал → ШІ»: спершу оригінал, потім варіант
-    pg.evaluate_handle("() => { const s = []; const t = setInterval(() => { if (playing && s[s.length-1] !== playing.id) s.push(playing.id); }, 20); window.__seen = s; window.__t = t; return s; }")
+    pg.evaluate_handle("() => { const s = []; const t = setInterval(() => { if (__studio.playing && s[s.length-1] !== __studio.playing.id) s.push(__studio.playing.id); }, 20); window.__seen = s; window.__t = t; return s; }")
     pg.locator("#aiSection [data-ai-ab-ref='peonyes1.ai3.wav']").click()
     pg.wait_for_function("() => window.__seen.includes('ai:peonyes1.ai3.wav')", timeout=8000)
     assert pg.evaluate("() => window.__seen.slice(window.__seen.indexOf('ref'))") == ["ref", "ai:peonyes1.ai3.wav"]

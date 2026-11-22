@@ -1,0 +1,65 @@
+/* Шапка, кнопка юніта, прогрес раси, поповер вибору юніта. */
+/* ---------- top bar */
+.top {
+  display: flex; align-items: center; gap: 20px; padding: 10px 18px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.brand-mark {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
+  background: linear-gradient(180deg, #0057b7 50%, #ffd700 50%); color: transparent; font-size: 0;
+}
+.unit-btn {
+  display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; min-width: 300px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; text-align: left;
+}
+.unit-btn:hover { border-color: #3a414e; }
+.unit-btn-text { display: flex; flex-direction: column; flex: 1; line-height: 1.2; }
+.unit-btn-text small { color: var(--muted); font-size: 12px; }
+.chev { color: var(--muted); }
+.avatar {
+  display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; flex: none;
+  background: radial-gradient(circle at 30% 25%, #a8432a, #4a1d12); color: #ffd9c7;
+  font: 700 14px/1 var(--display); letter-spacing: .5px;
+}
+.overall { width: 220px; }
+.overall-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.overall-label b { color: var(--text); font-weight: 600; }
+.bar { height: 6px; border-radius: 99px; background: var(--raise); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--gold)); border-radius: 99px; transition: width .3s; }
+.top-actions { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.ghost {
+  background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; color: var(--muted);
+}
+.ghost:hover { color: var(--text); border-color: #3a414e; }
+.switch { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; cursor: pointer; user-select: none; white-space: nowrap; }
+.switch input { display: none; }
+.switch span { width: 30px; height: 18px; border-radius: 99px; background: var(--raise); border: 1px solid var(--line); position: relative; transition: .2s; }
+.switch span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: .2s; }
+.switch input:checked + span { background: var(--accent-soft); border-color: var(--accent); }
+.switch input:checked + span::after { left: 14px; background: var(--accent); }
+
+/* ---------- unit popover */
+.popover { position: fixed; inset: 58px 0 0 0; z-index: 20; background: rgba(5, 6, 8, .55); backdrop-filter: blur(2px);
+  transition: opacity .16s ease-out, visibility 0s; }
+.popover-inner {
+  margin: 0 18px; max-width: 980px; max-height: calc(100vh - 90px); overflow: auto; padding: 16px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+.pop-group { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin: 6px 4px 10px; }
+.pop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.unit-card {
+  display: flex; gap: 10px; align-items: center; padding: 10px; text-align: left;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+}
+.unit-card { transition: border-color .15s ease-out, background-color .15s ease-out, transform .15s ease-out; }
+.unit-card:active { transform: scale(.98); }
+.unit-card:hover { border-color: #3a414e; background: var(--raise); }
+.unit-card.on { border-color: var(--accent); background: var(--accent-soft); }
+.unit-card .meta { flex: 1; min-width: 0; }
+.unit-card .meta b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.unit-card .meta small { color: var(--muted); font-size: 12px; }
+.unit-card .bar { height: 4px; margin-top: 6px; }
+.unit-card.complete .bar i { background: var(--ok); }
+
+.cat-tabs { margin: 0 0 14px; } .cat-tabs small { color: var(--faint); margin-left: 4px; }

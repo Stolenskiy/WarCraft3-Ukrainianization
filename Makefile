@@ -21,8 +21,8 @@ test-core:   ## швидко, без браузера: ядро, API, оброб
 	@$(PY) -m pytest -q $(CORE_TESTS_A) & a=$$!; $(PY) -m pytest -q $(CORE_TESTS_B) & b=$$!; \
 	  r=0; wait $$a || r=1; wait $$b || r=1; exit $$r
 
-lint:        ## ruff (усі tools/*.py, tests) + синтаксис JS
-	.venv/bin/ruff check . && node --check tools/studio/web/app.js && node --check tools/studio/web/ai.js
+lint:        ## ruff (усі tools/*.py, tests) + синтаксис JS-модулів студії (node --check)
+	.venv/bin/ruff check . && for f in tools/studio/web/js/*.js; do node --input-type=module --check < $$f || exit 1; done
 
 guard:       ## у git немає аудіо / ресурсів гри / секретів (дозволені лише FLAC пакетів voices/)
 	$(PY) tools/guard_no_audio.py

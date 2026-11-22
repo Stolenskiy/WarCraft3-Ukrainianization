@@ -1,0 +1,39 @@
+/* Ліва колонка: характер, сегменти, список реплік. */
+.character { margin: 12px 12px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); }
+.character summary { padding: 9px 12px; cursor: pointer; color: var(--muted); font-size: 13px; list-style: none; }
+.character summary::before { content: "▸ "; }
+.character[open] summary::before { content: "▾ "; }
+.character #traits, .eq #eq { max-height: 21vh; overflow-y: auto; }
+.character #traits { padding: 0 12px 12px; font-size: 13px; color: #c3c8d0; }
+.character #traits p { margin: 0 0 8px; }
+.character #traits b { color: var(--gold); font-weight: 600; }
+
+.seg { display: flex; margin: 12px; padding: 3px; background: var(--bg); border: 1px solid var(--line); border-radius: 9px; }
+.seg button { flex: 1; border: 0; background: transparent; padding: 6px; border-radius: 7px; color: var(--muted); font-size: 13px; }
+.seg button.on { background: var(--raise); color: var(--text); }
+
+.cues { list-style: none; margin: 0; padding: 0 8px 16px; overflow: auto; min-height: 0; }
+.cue {
+  transition: background-color .15s ease-out, border-color .15s ease-out;
+  display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: start;
+  padding: 9px 10px; border-radius: 9px; cursor: pointer; border: 1px solid transparent;
+}
+.cue:hover { background: var(--panel-2); }
+.cue.on { background: var(--raise); border-color: #3a414e; }
+.cue .st { transition: background-color .2s ease-out, border-color .2s ease-out; margin-top: 3px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--faint); }
+.cue .st.has { border-color: var(--gold); background: radial-gradient(circle, var(--gold) 0 3px, transparent 4px); }
+.cue .st.ok { border-color: var(--ok); background: var(--ok); position: relative; }
+.cue .st.ok { animation: pop .3s ease-out; }
+.cue .st.ok::after { content: "✓"; position: absolute; inset: -3px 0 0 0; text-align: center; font-size: 11px; font-weight: 800; color: #0e1013; }
+.cue .st.mute { border-style: dashed; }
+.cue .ru { font-weight: 500; }
+.cue .ua { color: var(--muted); font-size: 13px; margin-top: 1px; }
+.cue .ua:empty::before { content: "— немає тексту —"; color: var(--faint); }
+.cue .tag { font-size: 11px; color: var(--faint); white-space: nowrap; margin-top: 3px; text-align: right; }
+.cue.mute .ru { color: var(--faint); }
+.seg.mini { margin: 0; padding: 2px; align-items: center; gap: 2px; }
+.seg.mini span { color: var(--muted); font-size: 12px; padding: 0 8px 0 6px; }
+.seg.mini button { flex: none; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+.cue .st.orig { border-color: var(--muted); background: var(--muted); position: relative; }
+.cue .st.orig::after { content: "♪"; position: absolute; inset: -3px 0 0 0; text-align: center; font-size: 10px; font-weight: 800; color: #0e1013; }
+.orig-chip { color: var(--muted); font-weight: 600; border: 1px solid var(--line); border-radius: 99px; padding: 0 6px; }

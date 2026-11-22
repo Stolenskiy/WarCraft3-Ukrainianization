@@ -1,0 +1,10 @@
+/* Тост з undo. */
+/* ---------- footer / toast */
+.toast {
+  position: fixed; left: 50%; bottom: 52px; transform: translateX(-50%); z-index: 30;
+  display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 16px;
+  transition: opacity .2s ease-out, transform .2s ease-out, visibility 0s;
+  background: #f3efe8; color: #15181d; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.5); font-size: 14px;
+}
+.toast.err { background: #ffdfdb; }
+.toast button { border: 0; background: #15181d; color: #f3efe8; border-radius: 7px; padding: 6px 12px; font-weight: 600; }

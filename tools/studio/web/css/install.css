@@ -1,0 +1,37 @@
+/* Вікно «Встановити в гру» (спільні стилі модальних вікон). */
+/* ---------- встановлення в гру */
+.modal { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(5, 6, 8, .62); backdrop-filter: blur(2px); }
+.modal-box { width: min(720px, 100%); max-height: 86vh; display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.modal-head h3 { margin: 0; font-size: 16px; }
+.modal-body { padding: 14px 18px; overflow-y: auto; font-size: 13px; }
+.modal-body h4 { margin: 14px 0 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.modal-body h4 small { color: var(--faint); }
+.modal-foot { display: flex; justify-content: space-between; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--line); }
+.ghost.danger:hover { color: var(--danger); border-color: rgba(242,85,75,.5); }
+.modal-head .seg { margin: 0 12px; flex: 1; max-width: 320px; }
+.modal-hint { color: var(--muted); font-size: 12px; align-self: center; }
+.btn.warn { background: var(--danger); border-color: var(--danger); color: #fff; }
+.inst-game, .inst-note { color: var(--muted); margin: 0 0 8px; }
+.inst-err { color: var(--danger); }
+.inst-body details > summary { cursor: pointer; }
+.inst-race, .inst-skip { border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); margin-bottom: 8px; }
+.inst-race > summary, .inst-skip > summary, .inst-unit > summary { display: flex; align-items: center; gap: 8px; padding: 8px 12px; list-style: none; }
+.inst-race > summary::before, .inst-unit > summary::before, .inst-skip > summary::before { content: "▸"; color: var(--muted); width: 10px; transition: transform .15s; }
+details[open] > summary::before { transform: rotate(90deg); }
+.inst-unit { margin: 0 0 4px 22px; border-left: 2px solid var(--line); }
+.inst-unit > summary { padding: 5px 10px; }
+.cnt, .inst-list small { color: var(--muted); font-size: 12px; font-weight: 400; }
+.inst-list { list-style: none; margin: 0; padding: 0 10px 6px 34px; }
+.inst-list li { padding: 2px 0; }
+.inst-list li label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.inst-list li.dim { opacity: .55; }
+.inst-list code { color: var(--text); }
+.inst-list.skip { padding-left: 14px; } .inst-list.skip li { border-left: 3px solid var(--faint); padding-left: 8px; margin-bottom: 4px; }
+.inst-list.skip small { display: block; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.tag.new { color: var(--ok); border-color: rgba(70,196,106,.4); } .tag.upd { color: var(--gold); border-color: rgba(240,164,65,.4); }
+.tag.mat { color: var(--gold); border-color: rgba(240,164,65,.4); cursor: help; margin-left: auto; }
+.btn:disabled { opacity: .45; cursor: default; }
