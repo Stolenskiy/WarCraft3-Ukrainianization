@@ -47,6 +47,10 @@ jobs:
           make check 2>&1 | tee check.log
           rc=${PIPESTATUS[0]}
           { echo "## Покриття"; echo '```'; sed -n '/coverage:/,/Total coverage/p' check.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" != 0 ]; then   # причина — анотацією (видно без входу в GitHub)
+            msg=$(grep -E "FAILED|Error|error:|assert|Traceback|^E  |fail_under|Coverage failure|\*\*\*" check.log | tail -60 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')
+            echo "::error title=make check::${msg:-$(tail -40 check.log | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')}"
+          fi
           exit $rc
       - name: Скріншот студії
         if: always()

@@ -177,12 +177,12 @@ def _materialize(game: Path, lrel: str, man: dict, log: list[str]) -> None:
     raw, absdir, names = _link_info(game, lrel)
     tmp = link.with_name(link.name + ".ua-tmp")
     shutil.rmtree(tmp, ignore_errors=True)
-    entries = {n: f"{absdir}/{n}" for n in names}
+    entries = {n: os.path.join(absdir, n) for n in names}
     tmp.mkdir()
     try:
         try:
             for n, tgt in entries.items():
-                os.symlink(tgt, tmp / n)
+                os.symlink(tgt, tmp / n, target_is_directory=os.path.isdir(tgt))
         except (OSError, NotImplementedError) as ex:     # Windows без прав/режиму розробника: симлінки недоступні
             shutil.rmtree(tmp, ignore_errors=True)
             raise InstallError(f"{lrel}: не вдалося створити симлінки ({ex}); на Windows увімкніть режим розробника "
@@ -191,7 +191,7 @@ def _materialize(game: Path, lrel: str, man: dict, log: list[str]) -> None:
         try:
             os.rename(tmp, link)
         except OSError:
-            os.symlink(raw, link)                # відкат: повернути оригінальний симлінк
+            os.symlink(raw, link, target_is_directory=True)   # відкат: повернути оригінальний симлінк
             raise
     except OSError:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -262,7 +262,7 @@ def _unmaterialize(game: Path, lrel: str, info: dict, log: list[str]) -> bool:
     entries = info["entries"]
     for n, tgt in entries.items():                 # елементи, замінені нашими файлами (вже прибрані)
         if not os.path.lexists(d / n):
-            os.symlink(tgt, d / n)
+            os.symlink(tgt, d / n, target_is_directory=os.path.isdir(tgt))
     names = set(os.listdir(d))
     if names != set(entries) or any(not (d / n).is_symlink() or os.readlink(d / n) != entries[n] for n in names):
         log.append(f"SKIP {lrel}: у теці є сторонні файли — лишаю матеріалізованою")
@@ -270,7 +270,7 @@ def _unmaterialize(game: Path, lrel: str, info: dict, log: list[str]) -> bool:
     for n in names:
         os.unlink(d / n)
     d.rmdir()
-    os.symlink(info["link_target"], d)
+    os.symlink(info["link_target"], d, target_is_directory=True)   # Windows: інакше «файловий» симлінк на теку
     log.append(f"RESTORED SYMLINK {lrel} -> {info['link_target']}")
     return True
 

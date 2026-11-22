@@ -6,6 +6,11 @@ from conftest import synth
 from studio import server as _studio_server  # noqa: F401  (імпорт до того, як фікстури змінять WC3UA_ROOT)
 
 
+def _dlink(target, link):
+    """Симлінк на теку, як у репаку; на Windows — з \\ і прапорцем теки, інакше він «файловий» і битий."""
+    os.symlink(os.path.join(*str(target).split("/")) if not os.path.isabs(target) else target, link, target_is_directory=True)
+
+
 def test_install_and_uninstall(tmp_path, monkeypatch):
     root, game = tmp_path / "repo", tmp_path / "game"
     synth(root / "game-files/Units/orc/peon/peonyes1.wav")
@@ -14,7 +19,7 @@ def test_install_and_uninstall(tmp_path, monkeypatch):
     (game / "Units/orc/peon").mkdir(parents=True)
     (game / "Units/orc/peon/peonwhat1.wav").write_bytes(b"ORIGINAL")         # чужий файл
     (game / "Mods/grunt").mkdir(parents=True)
-    os.symlink(game / "Mods/grunt", game / "Units/orc/grunt")                  # як у репаку
+    _dlink(game / "Mods/grunt", game / "Units/orc/grunt")                      # як у репаку
     monkeypatch.setenv("WC3UA_ROOT", str(root))
     monkeypatch.setenv("WC3_GAME_ROOT", str(game))
     import install_voices as iv
@@ -64,7 +69,7 @@ def world(tmp_path, monkeypatch):
     (mods / "grunt.mdx").write_bytes(b"MODEL")
     (mods / "grunt_diffuse.blp").write_bytes(b"TEX")
     (game / "Units/orc/peon").mkdir(parents=True)
-    os.symlink("../../Mods/Reforged Models/units/orc/grunt", game / "Units/orc/grunt")   # відносний, як у репаку
+    _dlink("../../Mods/Reforged Models/units/orc/grunt", game / "Units/orc/grunt")   # відносний, як у репаку
     monkeypatch.setenv("WC3UA_ROOT", str(root))
     monkeypatch.setenv("WC3_GAME_ROOT", str(game))
     import install_voices as iv
@@ -134,9 +139,9 @@ def test_never_writes_into_mods_or_data(world):
     iv, root, game = world
     (game / "Data").mkdir()
     synth(root / "game-files/Units/orc/shaman/shamanyes1.wav")
-    os.symlink("../../Data", game / "Units/orc/shaman")                    # веде в Data/ — у ній нічого не пишемо
+    _dlink("../../Data", game / "Units/orc/shaman")                        # веде в Data/ — у ній нічого не пишемо
     synth(root / "game-files/Units/orc/deep/sub/x.wav")
-    os.symlink("../../Mods", game / "Units/orc/deep")                      # симлінк-предок не безпосередній
+    _dlink("../../Mods", game / "Units/orc/deep")                          # симлінк-предок не безпосередній
     pl = iv.plan(game, root)
     assert {s["rel"] for s in pl["skipped"]} == {"Units/orc/deep/sub/x.wav"}
     snap = _tree(game / "Data"), _tree(game / "Mods")
@@ -154,7 +159,7 @@ def test_install_replacing_entry_in_materialized_dir_restores_link(world):
     iv.apply(game, root)
     assert (game / "Units/orc/grunt/gruntyes1.wav").read_bytes()[:4] == b"RIFF"
     iv.uninstall(game)
-    assert os.readlink(game / "Units/orc/grunt").startswith("../../Mods") and _tree(game / "Mods") == mods_before
+    assert os.readlink(game / "Units/orc/grunt").replace("\\", "/").startswith("../../Mods") and _tree(game / "Mods") == mods_before
 
 
 def test_cli_plan_apply_uninstall(world, capsys):
