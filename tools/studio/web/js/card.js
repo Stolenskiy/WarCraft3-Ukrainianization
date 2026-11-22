@@ -46,7 +46,7 @@ function renderCardHtml(newFile) {
       ${p.no_speech ? `<span class="chip warn">без слів — крик / звук</span>` : ""}</div>
 
     <div class="lang"><div class="lang-tag" id="refTag">${refLang(p).toUpperCase()}</div><div>
-      <h1 class="ru-text">«${esc(p.ru)}»</h1>
+      <h1 class="ru-text${p.ru.startsWith("(") ? " muted" : ""}">${p.ru.startsWith("(") ? esc(p.ru) : `«${esc(p.ru)}»`}</h1>
       ${S.lang === "en" && p.has_en ? `<div class="ua-meta">звук — англійський оригінал; текст — з російського транскрипту</div>`
         : S.lang === "en" ? `<div class="ua-meta">англійського оригіналу для цієї репліки немає — звучить російський</div>` : ""}
       ${S.lang === "ru" && !p.has_ru ? `<div class="ua-meta">російського оригіналу немає (потрібен мовний пакет — README) — звучить англійський</div>` : ""}

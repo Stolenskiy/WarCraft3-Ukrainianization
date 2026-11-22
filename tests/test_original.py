@@ -135,3 +135,20 @@ def test_corrupt_marks_file_is_rebuilt_and_garbage_ref_fails(svc):
         assert not GAME.exists()
     finally:
         REF["en"].write_bytes(keep)
+
+
+def test_clean_ru_whisper_garbage():
+    """Галюцинації Whisper: вирізати хвіст зі справжніх реплік, сміття з латиницею → «ненадійне», вигуки → no_speech."""
+    from studio.catalog import NO_SPEECH, UNRELIABLE, clean_ru
+    assert clean_ru("«Т si наrawы слоя вир brain не будет уравнение?»") == (UNRELIABLE, "unreliable")
+    assert clean_ru("Нway!") == (UNRELIABLE, "unreliable")
+    assert clean_ru("Продолжение следует...") == (NO_SPEECH, "no_speech")
+    assert clean_ru("Субтитры создавал DimaTorzok") == (NO_SPEECH, "no_speech")
+    assert clean_ru("Редактор субтитров А.Семкин Корректор А.Егорова") == (NO_SPEECH, "no_speech")
+    assert clean_ru("ВООДУШЕВЛЯЮЩАЯ МУЗЫКА") == (NO_SPEECH, "no_speech")
+    assert clean_ru("Оооооооооооо") == (NO_SPEECH, "no_speech")
+    assert clean_ru("Режет даже тяжелый доспех. Продолжение следует...") == ("Режет даже тяжелый доспех.", None)
+    assert clean_ru("Такой уж я. Субтитры создавал DimaTorzok") == ("Такой уж я.", None)
+    assert clean_ru("«Реальность — штука жестокая!»") == ("Реальность — штука жестокая!", None)
+    assert clean_ru("Ха-ха-ха-ха-ха-ха-ха-ха") == ("Ха-ха-ха…", None)
+    assert clean_ru("Зроблю.") == ("Зроблю.", None)

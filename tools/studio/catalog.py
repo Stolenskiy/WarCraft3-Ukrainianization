@@ -99,13 +99,12 @@ def line_kind(fname: str) -> tuple[str | None, int]:
     return (m.group(1).lower(), int(m.group(2) or 1)) if m else (None, 0)
 
 
-# Whisper «галюцинує» ці фрази на звуках без мови (крики, смерть) — це НЕ вотермарки в аудіо.
-HALLUCINATION_RE = re.compile(r"продолжение следует|субтитр|dimatorzok|семкин|редактор", re.I)
+from .transcript_clean import HALLUCINATION_RE, NO_SPEECH, UNRELIABLE, clean_ru  # noqa: E402,F401  (реекспорт)
 
 
 def _garbage(text: str) -> bool:
-    """Транскрипт без розбірливих слів: повтори символів або відома галюцинація Whisper."""
-    return re.search(r"(.)\1{7,}", text) is not None or HALLUCINATION_RE.search(text) is not None
+    """Сумісність: транскрипт без розбірливих слів (вигук або відома галюцинація без іншого тексту)."""
+    return clean_ru(text)[1] == "no_speech"
 
 
 NONVERBAL_WORDS = {"угу", "ага", "хм", "гм", "хе", "ха", "хі", "хи", "ух", "ох", "ах", "ех", "ой", "ай", "ну", "а", "о", "м", "ммм", "ги"}
@@ -272,11 +271,12 @@ class UnitCatalog:
             p = ru_p if ru_p.exists() else en
             info = tr.get(p.name, {})
             ru = (info.get("text") or "").strip()
-            no_speech = bool(ru) and _garbage(ru)
+            flag = clean_ru(ru)[1] if ru else None
+            no_speech = flag == "no_speech"
             if not ru:
                 ru = NO_TEXT
-            elif no_speech:
-                ru = "(без розбірливих слів — крик / звук)"
+            else:
+                ru = clean_ru(ru)[0]
             hint, direction = bible_hint(binfo, p.name)
             kind, num = line_kind(p.name)
             out.append(Line(
